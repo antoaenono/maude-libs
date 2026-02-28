@@ -635,9 +635,9 @@ defmodule MaudeLibsWeb.DecisionLive do
         </div>
       <% end %>
 
-      <%!-- Claude suggestions (dead center, after all confirmed) --%>
+      <%!-- Claude suggestions (lower center, after all confirmed) --%>
       <%= if @all_confirmed and length(@s.suggestions) > 0 do %>
-        <div class="absolute z-20" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
+        <div class="absolute z-20" style="left: 50%; top: 65%; transform: translate(-50%, -50%);">
           <div class="card w-72 border-2 border-dashed border-secondary bg-base-100 shadow-lg">
             <div class="card-body p-4 gap-3">
               <div class="flex items-center gap-1.5">
@@ -668,7 +668,7 @@ defmodule MaudeLibsWeb.DecisionLive do
         </div>
       <% else %>
       <%= if @s.suggesting do %>
-        <div class="absolute z-20" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
+        <div class="absolute z-20" style="left: 50%; top: 65%; transform: translate(-50%, -50%);">
           <.claude_thinking label="Claude" />
         </div>
       <% end %>
@@ -810,10 +810,10 @@ defmodule MaudeLibsWeb.DecisionLive do
         </div>
       <% end %>
 
-      <%!-- Claude suggestions (dead center, after all confirmed) --%>
+      <%!-- Claude suggestions (lower center, after all confirmed) --%>
       <%= if @all_confirmed and length(@s.suggestions) > 0 do %>
-        <div class="absolute z-20" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
-          <div class="card w-80 border-2 border-dashed border-secondary bg-base-100 shadow-lg">
+        <div class="absolute z-20" style="left: 50%; top: 65%; transform: translate(-50%, -50%);">
+          <div class="card w-72 border-2 border-dashed border-secondary bg-base-100 shadow-lg">
             <div class="card-body p-4 gap-3">
               <div class="flex items-center gap-1.5">
                 <span class="badge badge-secondary badge-sm">Claude - anyone can toggle</span>
@@ -823,10 +823,10 @@ defmodule MaudeLibsWeb.DecisionLive do
                 <button
                   phx-click="toggle_option_suggestion"
                   phx-value-idx={idx}
-                  class={"flex items-start gap-3 px-3 py-2 rounded-lg border w-full text-left transition-all " <>
+                  class={"flex items-center gap-3 px-3 py-2 rounded-lg border w-full text-left transition-all " <>
                          if(suggestion.included, do: "border-secondary bg-secondary/10", else: "border-base-300 hover:border-secondary/50")}
                 >
-                  <div class={"w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 " <>
+                  <div class={"w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 " <>
                                if(suggestion.included, do: "border-secondary bg-secondary", else: "border-base-300")}>
                     <%= if suggestion.included do %>
                       <svg class="w-2.5 h-2.5 text-secondary-content" fill="currentColor" viewBox="0 0 12 12">
@@ -834,10 +834,7 @@ defmodule MaudeLibsWeb.DecisionLive do
                       </svg>
                     <% end %>
                   </div>
-                  <div class="flex flex-col gap-0.5">
-                    <span class="text-sm font-semibold"><%= suggestion.name %></span>
-                    <span class="text-xs text-base-content/60"><%= suggestion.desc %></span>
-                  </div>
+                  <span class="text-sm font-semibold"><%= suggestion.name %></span>
                 </button>
               <% end %>
             </div>
@@ -845,7 +842,7 @@ defmodule MaudeLibsWeb.DecisionLive do
         </div>
       <% else %>
       <%= if @s.suggesting do %>
-        <div class="absolute z-20" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
+        <div class="absolute z-20" style="left: 50%; top: 65%; transform: translate(-50%, -50%);">
           <.claude_thinking label="Claude" />
         </div>
       <% end %>

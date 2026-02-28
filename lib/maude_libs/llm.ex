@@ -92,10 +92,9 @@ defmodule MaudeLibs.LLM do
     Suggest up to 3 additional options they may have missed.
     Each option has:
     - name: short name (2-4 words)
-    - desc: one sentence description
 
     Respond ONLY with valid JSON matching exactly this schema:
-    {"suggestions": [{"name": "string", "desc": "string"}]}
+    {"suggestions": [{"name": "string"}]}
     Return at most 3 suggestions. No markdown, no explanation, no code fences.
     """
 
@@ -104,7 +103,7 @@ defmodule MaudeLibs.LLM do
         case body do
           %{"suggestions" => suggestions} when is_list(suggestions) ->
             parsed = Enum.map(suggestions, fn s ->
-              %{name: s["name"], desc: s["desc"]}
+              %{name: s["name"]}
             end)
             {:ok, parsed}
           _ ->
