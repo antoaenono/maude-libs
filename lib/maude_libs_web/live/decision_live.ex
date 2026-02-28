@@ -510,7 +510,7 @@ defmodule MaudeLibsWeb.DecisionLive do
                   type="text"
                   name="text"
                   value={my_sub || ""}
-                  placeholder="Rephrase (optional)"
+                  placeholder="What's your perspective?"
                   class="input input-bordered input-sm flex-1"
                   autocomplete="off"
                 />
