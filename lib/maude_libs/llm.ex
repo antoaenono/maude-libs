@@ -63,6 +63,11 @@ defmodule MaudeLibs.LLM do
     - text: the dimension name (e.g. "cost", "speed", "reliability") - NOT a directional statement
     - direction: "+" to maximize, "-" to minimize, "~" if relevant but not deciding
 
+    Rules:
+    - Be specific to this scenario and context - avoid generic suggestions like "cost" or "quality" unless genuinely relevant and not already covered
+    - Do not suggest anything semantically similar to what's already listed
+    - Prefer non-obvious dimensions that a thoughtful person might overlook
+
     Respond ONLY with valid JSON matching exactly this schema:
     {"suggestions": [{"text": "string", "direction": "+"|"-"|"~"}]}
     Return at most 3 suggestions. No markdown, no explanation, no code fences.
@@ -92,6 +97,11 @@ defmodule MaudeLibs.LLM do
     Suggest up to 3 additional options they may have missed.
     Each option has:
     - name: short name (2-4 words)
+
+    Rules:
+    - Be specific to this scenario - avoid generic options like "do more research" or "hire someone"
+    - Do not suggest anything semantically similar to what's already listed
+    - Prefer concrete, actionable alternatives the group may not have considered
 
     Respond ONLY with valid JSON matching exactly this schema:
     {"suggestions": [{"name": "string"}]}
@@ -205,6 +215,7 @@ defmodule MaudeLibs.LLM do
       body = %{
         model: @model,
         max_tokens: @max_tokens,
+        temperature: 1.0,
         messages: [%{role: "user", content: prompt}]
       }
 
