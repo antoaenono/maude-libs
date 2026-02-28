@@ -174,6 +174,30 @@ defmodule MaudeLibsWeb.DecisionLive do
   end
 
   # ---------------------------------------------------------------------------
+  # Dashboard events
+  # ---------------------------------------------------------------------------
+
+  def handle_event("toggle_vote", %{"option" => option_name}, socket) do
+    s = socket.assigns.decision.stage
+    current_votes = Map.get(s.votes, socket.assigns.username, [])
+    new_votes =
+      if option_name in current_votes do
+        List.delete(current_votes, option_name)
+      else
+        [option_name | current_votes]
+      end
+    if new_votes != [] do
+      Server.handle_message(socket.assigns.id, {:vote, socket.assigns.username, new_votes})
+    end
+    {:noreply, socket}
+  end
+
+  def handle_event("ready_dashboard", _params, socket) do
+    Server.handle_message(socket.assigns.id, {:ready_dashboard, socket.assigns.username})
+    {:noreply, socket}
+  end
+
+  # ---------------------------------------------------------------------------
   # Render
   # ---------------------------------------------------------------------------
 
@@ -226,25 +250,19 @@ defmodule MaudeLibsWeb.DecisionLive do
 
   defp render_stage(%{decision: %{stage: %Stage.Scaffolding{}}} = assigns) do
     ~H"""
-    <div class="flex items-center justify-center min-h-screen">
-      <p class="text-base-content/50">Scaffolding... coming in Step 8</p>
-    </div>
+    <.scaffolding_stage />
     """
   end
 
   defp render_stage(%{decision: %{stage: %Stage.Dashboard{}}} = assigns) do
     ~H"""
-    <div class="flex items-center justify-center min-h-screen">
-      <p class="text-base-content/50">Dashboard - coming in Step 8</p>
-    </div>
+    <.dashboard_stage decision={@decision} username={@username} />
     """
   end
 
   defp render_stage(%{decision: %{stage: %Stage.Complete{}}} = assigns) do
     ~H"""
-    <div class="flex items-center justify-center min-h-screen">
-      <p class="text-base-content/50">Complete - coming in Step 8</p>
-    </div>
+    <.complete_stage decision={@decision} />
     """
   end
 
@@ -713,6 +731,260 @@ defmodule MaudeLibsWeb.DecisionLive do
   end
 
   # ---------------------------------------------------------------------------
+  # Scaffolding component
+  # ---------------------------------------------------------------------------
+
+  defp scaffolding_stage(assigns) do
+    ~H"""
+    <div class="min-h-screen flex flex-col items-center justify-center gap-6">
+      <div class="loading loading-spinner loading-lg text-primary"></div>
+      <p class="text-xl font-semibold text-base-content/70" id="scaffold-msg" phx-hook="ScaffoldMsg">
+        Spelunking...
+      </p>
+      <p class="text-sm text-base-content/40">Claude is analysing your options against priorities</p>
+    </div>
+    """
+  end
+
+  # ---------------------------------------------------------------------------
+  # Dashboard component
+  # ---------------------------------------------------------------------------
+
+  defp dashboard_stage(assigns) do
+    s = assigns.decision.stage
+    my_votes = Map.get(s.votes, assigns.username, [])
+    is_ready = assigns.username in s.ready
+    vote_counts = count_votes_ui(s)
+    sorted_by_votes = Enum.sort_by(s.options, &(-Map.get(vote_counts, &1.name, 0)))
+    participants = MapSet.to_list(assigns.decision.connected)
+
+    assigns = assign(assigns,
+      s: s,
+      my_votes: my_votes,
+      is_ready: is_ready,
+      vote_counts: vote_counts,
+      sorted_by_votes: sorted_by_votes,
+      participants: participants,
+      priorities: assigns.decision.priorities
+    )
+
+    ~H"""
+    <div class="min-h-screen flex flex-col p-6 gap-6 max-w-6xl mx-auto">
+      <%!-- Scenario + priorities header --%>
+      <div class="flex flex-col gap-2">
+        <p class="text-xs text-base-content/40 uppercase tracking-wide">Scenario</p>
+        <p class="text-lg font-semibold"><%= @decision.topic %></p>
+      </div>
+
+      <%= if length(@priorities) > 0 do %>
+        <div class="flex flex-wrap gap-2">
+          <%= for p <- @priorities do %>
+            <span class={"badge badge-outline font-mono " <> priority_badge_class(p.direction)}>
+              <%= p.id %> <%= p.text %>
+            </span>
+          <% end %>
+        </div>
+      <% end %>
+
+      <div class="divider my-0"></div>
+
+      <%!-- Main content: ranking sidebar + options cards --%>
+      <div class="flex gap-6">
+        <%!-- Left sidebar: live ranking --%>
+        <div class="w-40 flex-shrink-0 flex flex-col gap-2">
+          <p class="text-xs text-base-content/40 uppercase tracking-wide">Ranking</p>
+          <%= for {opt, rank} <- Enum.with_index(@sorted_by_votes, 1) do %>
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-base-content/40 w-4"><%= rank %>.</span>
+              <span class="text-xs font-mono truncate flex-1"><%= opt.name %></span>
+              <span class="badge badge-sm"><%= Map.get(@vote_counts, opt.name, 0) %></span>
+            </div>
+          <% end %>
+        </div>
+
+        <%!-- Option cards --%>
+        <div class="flex gap-4 overflow-x-auto pb-2 flex-1">
+          <%= for opt <- @s.options do %>
+            <% votes_for = Map.get(@vote_counts, opt.name, 0) %>
+            <div class={"card w-72 flex-shrink-0 border-2 " <>
+                        if(opt.name in @my_votes, do: "border-primary bg-primary/5", else: "border-base-300 bg-base-100")}>
+              <div class="card-body p-4 gap-3">
+                <%!-- Header --%>
+                <div class="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 class="font-bold text-sm"><%= opt.name %></h3>
+                    <p class="text-xs text-base-content/60"><%= opt.desc %></p>
+                  </div>
+                  <span class="badge badge-sm flex-shrink-0"><%= votes_for %> votes</span>
+                </div>
+
+                <%!-- For points --%>
+                <%= if length(opt.for) > 0 do %>
+                  <div class="flex flex-col gap-1">
+                    <p class="text-xs font-semibold text-success">For</p>
+                    <%= for point <- opt.for do %>
+                      <div class="flex gap-1 items-start">
+                        <span class="badge badge-xs badge-outline text-success border-success font-mono flex-shrink-0 mt-0.5">
+                          <%= point.priority_id %>
+                        </span>
+                        <p class="text-xs text-base-content/70"><%= point.text %></p>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+
+                <%!-- Against points --%>
+                <%= if length(opt.against) > 0 do %>
+                  <div class="flex flex-col gap-1">
+                    <p class="text-xs font-semibold text-error">Against</p>
+                    <%= for point <- opt.against do %>
+                      <div class="flex gap-1 items-start">
+                        <span class="badge badge-xs badge-outline text-error border-error font-mono flex-shrink-0 mt-0.5">
+                          <%= point.priority_id %>
+                        </span>
+                        <p class="text-xs text-base-content/70"><%= point.text %></p>
+                      </div>
+                    <% end %>
+                  </div>
+                <% end %>
+
+                <%!-- Participant vote checkboxes --%>
+                <div class="flex flex-wrap gap-1 mt-auto pt-2 border-t border-base-200">
+                  <%= for user <- @participants do %>
+                    <% user_voted = opt.name in Map.get(@s.votes, user, []) %>
+                    <button
+                      phx-click={if user == @username, do: "toggle_vote", else: nil}
+                      phx-value-option={opt.name}
+                      class={"flex items-center gap-1 px-2 py-1 rounded text-xs font-mono transition-all " <>
+                             if(user_voted, do: "bg-primary/20 text-primary", else: "bg-base-200 text-base-content/40") <>
+                             if(user == @username, do: " cursor-pointer hover:bg-primary/30", else: " cursor-default")}
+                    >
+                      <%= if user_voted do %>
+                        <span>✓</span>
+                      <% end %>
+                      <%= user %>
+                    </button>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <%!-- Ready button --%>
+      <div class="flex justify-end">
+        <button
+          phx-click="ready_dashboard"
+          disabled={@my_votes == [] or @is_ready}
+          class={"btn btn-primary " <> if(@is_ready, do: "btn-disabled", else: "")}
+        >
+          <%= if @is_ready, do: "Ready ✓", else: "Ready up" %>
+        </button>
+      </div>
+    </div>
+    """
+  end
+
+  # ---------------------------------------------------------------------------
+  # Complete component
+  # ---------------------------------------------------------------------------
+
+  defp complete_stage(assigns) do
+    s = assigns.decision.stage
+    assigns = assign(assigns, s: s, priorities: assigns.decision.priorities)
+
+    ~H"""
+    <div class="min-h-screen flex flex-col p-8 gap-8 max-w-3xl mx-auto">
+      <%!-- Why statement --%>
+      <div class="card bg-primary/10 border-2 border-primary/30">
+        <div class="card-body gap-3">
+          <div class="flex items-center gap-2">
+            <span class="badge badge-primary">Decision</span>
+            <h2 class="font-bold text-lg"><%= @s.winner %></h2>
+          </div>
+          <%= if @s.why_statement do %>
+            <p class="text-base-content/80 leading-relaxed"><%= @s.why_statement %></p>
+          <% else %>
+            <div class="flex items-center gap-2 text-base-content/40">
+              <span class="loading loading-dots loading-sm"></span>
+              <span class="text-sm">Generating summary...</span>
+            </div>
+          <% end %>
+        </div>
+      </div>
+
+      <%!-- Scenario --%>
+      <div>
+        <p class="text-xs text-base-content/40 uppercase tracking-wide mb-1">Scenario</p>
+        <p class="font-semibold"><%= @decision.topic %></p>
+      </div>
+
+      <%!-- Priorities --%>
+      <%= if length(@priorities) > 0 do %>
+        <div>
+          <p class="text-xs text-base-content/40 uppercase tracking-wide mb-2">Priorities</p>
+          <div class="flex flex-wrap gap-2">
+            <%= for p <- @priorities do %>
+              <span class={"badge badge-outline font-mono " <> priority_badge_class(p.direction)}>
+                <%= p.id %> <%= p.text %>
+              </span>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <%!-- Options sorted by vote count --%>
+      <div class="flex flex-col gap-4">
+        <p class="text-xs text-base-content/40 uppercase tracking-wide">Options</p>
+        <%= for {opt, idx} <- Enum.with_index(@s.options) do %>
+          <div class={"card border-2 " <> if(idx == 0, do: "border-primary bg-primary/5", else: "border-base-300 bg-base-100")}>
+            <div class="card-body p-4 gap-3">
+              <div class="flex items-center gap-2">
+                <%= if idx == 0 do %>
+                  <span class="badge badge-primary badge-sm">Winner</span>
+                <% end %>
+                <h3 class="font-bold"><%= opt.name %></h3>
+                <span class="text-xs text-base-content/50 ml-auto"><%= opt.desc %></span>
+              </div>
+
+              <div class="grid grid-cols-2 gap-3">
+                <div class="flex flex-col gap-1">
+                  <p class="text-xs font-semibold text-success">For</p>
+                  <%= for point <- opt.for do %>
+                    <div class="flex gap-1 items-start">
+                      <span class="badge badge-xs badge-outline text-success border-success font-mono flex-shrink-0 mt-0.5">
+                        <%= point.priority_id %>
+                      </span>
+                      <p class="text-xs text-base-content/70"><%= point.text %></p>
+                    </div>
+                  <% end %>
+                </div>
+                <div class="flex flex-col gap-1">
+                  <p class="text-xs font-semibold text-error">Against</p>
+                  <%= for point <- opt.against do %>
+                    <div class="flex gap-1 items-start">
+                      <span class="badge badge-xs badge-outline text-error border-error font-mono flex-shrink-0 mt-0.5">
+                        <%= point.priority_id %>
+                      </span>
+                      <p class="text-xs text-base-content/70"><%= point.text %></p>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="text-center">
+        <a href="/canvas" class="btn btn-ghost btn-sm">Back to canvas</a>
+      </div>
+    </div>
+    """
+  end
+
+  # ---------------------------------------------------------------------------
   # Stage modals
   # ---------------------------------------------------------------------------
 
@@ -772,6 +1044,31 @@ defmodule MaudeLibsWeb.DecisionLive do
     """
   end
 
+  defp stage_modal(%{stage: %Stage.Dashboard{}} = assigns) do
+    ~H"""
+    <.modal_overlay>
+      <h3 class="text-lg font-bold">Vote</h3>
+      <p>Read each option's for/against analysis, then check every option you'd be happy with.</p>
+      <ul class="list-disc list-inside text-sm text-base-content/70 gap-1 flex flex-col">
+        <li>Approval voting - select as many as you'd accept</li>
+        <li>You must select at least one to ready up</li>
+        <li>Other participants' votes appear live on each card</li>
+        <li>Ranking on the left updates as people vote</li>
+      </ul>
+    </.modal_overlay>
+    """
+  end
+
+  defp stage_modal(%{stage: %Stage.Complete{}} = assigns) do
+    ~H"""
+    <.modal_overlay>
+      <h3 class="text-lg font-bold">Decision Record</h3>
+      <p>The decision is complete. This is the full record - shareable and self-documenting.</p>
+      <p class="text-sm text-base-content/60">The why-statement at the top summarises the winner and the reasoning.</p>
+    </.modal_overlay>
+    """
+  end
+
   defp stage_modal(assigns) do
     ~H"""
     <.modal_overlay>
@@ -822,4 +1119,17 @@ defmodule MaudeLibsWeb.DecisionLive do
 
   defp direction_btn_class(dir, dir), do: "btn-primary"
   defp direction_btn_class(_, _), do: "btn-ghost"
+
+  defp priority_badge_class("+"), do: "text-success border-success"
+  defp priority_badge_class("-"), do: "text-error border-error"
+  defp priority_badge_class(_), do: "text-base-content/50"
+
+  defp count_votes_ui(%Stage.Dashboard{votes: votes, options: options}) do
+    base = Map.new(options, &{&1.name, 0})
+    Enum.reduce(votes, base, fn {_user, selected}, acc ->
+      Enum.reduce(selected, acc, fn name, acc2 ->
+        Map.update(acc2, name, 1, &(&1 + 1))
+      end)
+    end)
+  end
 end
