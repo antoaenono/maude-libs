@@ -931,6 +931,8 @@ defmodule MaudeLibsWeb.DecisionLive do
     sorted_by_votes = Enum.sort_by(s.options, &(-Map.get(vote_counts, &1.name, 0)))
     participants = MapSet.to_list(assigns.decision.connected)
 
+    priority_names = Map.new(assigns.decision.priorities, &{&1.id, &1.text})
+
     assigns = assign(assigns,
       s: s,
       my_votes: my_votes,
@@ -938,7 +940,8 @@ defmodule MaudeLibsWeb.DecisionLive do
       vote_counts: vote_counts,
       sorted_by_votes: sorted_by_votes,
       participants: participants,
-      priorities: assigns.decision.priorities
+      priorities: assigns.decision.priorities,
+      priority_names: priority_names
     )
 
     ~H"""
@@ -997,8 +1000,8 @@ defmodule MaudeLibsWeb.DecisionLive do
                     <p class="text-xs font-semibold text-success">For</p>
                     <%= for point <- opt.for do %>
                       <div class="flex gap-1 items-start">
-                        <span class="badge badge-xs badge-outline text-success border-success font-mono flex-shrink-0 mt-0.5">
-                          <%= point.priority_id %>
+                        <span class="badge badge-xs badge-outline text-success border-success flex-shrink-0 mt-0.5">
+                          <%= Map.get(@priority_names, point.priority_id, point.priority_id) %>
                         </span>
                         <p class="text-xs text-base-content/70"><%= point.text %></p>
                       </div>
@@ -1012,8 +1015,8 @@ defmodule MaudeLibsWeb.DecisionLive do
                     <p class="text-xs font-semibold text-error">Against</p>
                     <%= for point <- opt.against do %>
                       <div class="flex gap-1 items-start">
-                        <span class="badge badge-xs badge-outline text-error border-error font-mono flex-shrink-0 mt-0.5">
-                          <%= point.priority_id %>
+                        <span class="badge badge-xs badge-outline text-error border-error flex-shrink-0 mt-0.5">
+                          <%= Map.get(@priority_names, point.priority_id, point.priority_id) %>
                         </span>
                         <p class="text-xs text-base-content/70"><%= point.text %></p>
                       </div>
@@ -1067,7 +1070,8 @@ defmodule MaudeLibsWeb.DecisionLive do
 
   defp complete_stage(assigns) do
     s = assigns.decision.stage
-    assigns = assign(assigns, s: s, priorities: assigns.decision.priorities)
+    priority_names = Map.new(assigns.decision.priorities, &{&1.id, &1.text})
+    assigns = assign(assigns, s: s, priorities: assigns.decision.priorities, priority_names: priority_names)
 
     ~H"""
     <div class="min-h-screen flex flex-col p-8 gap-8 max-w-3xl mx-auto">
@@ -1128,8 +1132,8 @@ defmodule MaudeLibsWeb.DecisionLive do
                   <p class="text-xs font-semibold text-success">For</p>
                   <%= for point <- opt.for do %>
                     <div class="flex gap-1 items-start">
-                      <span class="badge badge-xs badge-outline text-success border-success font-mono flex-shrink-0 mt-0.5">
-                        <%= point.priority_id %>
+                      <span class="badge badge-xs badge-outline text-success border-success flex-shrink-0 mt-0.5">
+                        <%= Map.get(@priority_names, point.priority_id, point.priority_id) %>
                       </span>
                       <p class="text-xs text-base-content/70"><%= point.text %></p>
                     </div>
@@ -1139,8 +1143,8 @@ defmodule MaudeLibsWeb.DecisionLive do
                   <p class="text-xs font-semibold text-error">Against</p>
                   <%= for point <- opt.against do %>
                     <div class="flex gap-1 items-start">
-                      <span class="badge badge-xs badge-outline text-error border-error font-mono flex-shrink-0 mt-0.5">
-                        <%= point.priority_id %>
+                      <span class="badge badge-xs badge-outline text-error border-error flex-shrink-0 mt-0.5">
+                        <%= Map.get(@priority_names, point.priority_id, point.priority_id) %>
                       </span>
                       <p class="text-xs text-base-content/70"><%= point.text %></p>
                     </div>
