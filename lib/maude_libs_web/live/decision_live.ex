@@ -16,11 +16,15 @@ defmodule MaudeLibsWeb.DecisionLive do
     if is_nil(username) do
       {:ok, push_navigate(socket, to: "/join")}
     else
-      id = generate_id()
-      {:ok, _pid} = Supervisor.start_decision(id, username, "")
-      Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
-      decision = Server.get_state(id)
-      {:ok, assign(socket, username: username, decision: decision, id: id, modal_open: true, spectator: false)}
+      if connected?(socket) do
+        id = generate_id()
+        {:ok, _pid} = Supervisor.start_decision(id, username, "")
+        Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
+        decision = Server.get_state(id)
+        {:ok, assign(socket, username: username, decision: decision, id: id, modal_open: true, spectator: false)}
+      else
+        {:ok, assign(socket, username: username, decision: nil, id: nil, modal_open: false, spectator: false)}
+      end
     end
   end
 
@@ -202,6 +206,14 @@ defmodule MaudeLibsWeb.DecisionLive do
   # ---------------------------------------------------------------------------
 
   @impl true
+  def render(%{decision: nil} = assigns) do
+    ~H"""
+    <div class="min-h-screen bg-base-200 flex items-center justify-center">
+      <span class="loading loading-spinner loading-lg text-primary"></span>
+    </div>
+    """
+  end
+
   def render(assigns) do
     ~H"""
     <div class="min-h-screen bg-base-200 relative">
