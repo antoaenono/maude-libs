@@ -21,7 +21,7 @@ defmodule MaudeLibsWeb.DecisionLive do
         {:ok, _pid} = Supervisor.start_decision(id, username, "")
         Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
         decision = Server.get_state(id)
-        {:ok, assign(socket, username: username, decision: decision, id: id, modal_open: true, spectator: false)}
+        {:ok, push_navigate(socket, to: "/d/#{id}", replace: true)}
       else
         {:ok, assign(socket, username: username, decision: nil, id: nil, modal_open: false, spectator: false)}
       end
