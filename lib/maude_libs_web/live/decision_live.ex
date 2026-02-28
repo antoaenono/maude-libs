@@ -408,9 +408,9 @@ defmodule MaudeLibsWeb.DecisionLive do
   # "others" excludes self; Claude goes dead center (50%, 50%)
   # self always anchored at bottom center (50%, 85%)
   @other_positions %{
-    1 => [{"50%", "15%"}],
-    2 => [{"28%", "20%"}, {"72%", "20%"}],
-    3 => [{"50%", "12%"}, {"22%", "35%"}, {"78%", "35%"}]
+    1 => [{"50%", "28%"}],
+    2 => [{"28%", "30%"}, {"72%", "30%"}],
+    3 => [{"50%", "25%"}, {"22%", "42%"}, {"78%", "42%"}]
   }
 
   defp scenario_stage(assigns) do
