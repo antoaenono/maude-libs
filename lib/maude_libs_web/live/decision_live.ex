@@ -500,7 +500,7 @@ defmodule MaudeLibsWeb.DecisionLive do
                   <%= if @my_vote == my_sub, do: "Your vote ✓", else: "Vote for yours" %>
                 </button>
               <% end %>
-              <form phx-submit="submit_scenario" class="flex gap-2 mt-1">
+              <form id="scenario-input" phx-update="ignore" phx-submit="submit_scenario" class="flex gap-2 mt-1">
                 <input
                   type="text"
                   name="text"
