@@ -242,7 +242,7 @@ defmodule MaudeLibsWeb.DecisionLive do
 
       <%!-- Stage modal --%>
       <%= if @modal_open do %>
-        <.stage_modal stage={@decision.stage} />
+        <.stage_modal stage={@decision.stage} is_creator={creator_of(@decision) == @username} />
       <% end %>
 
       <%!-- Route to correct stage component --%>
@@ -1173,12 +1173,22 @@ defmodule MaudeLibsWeb.DecisionLive do
   # Stage modals
   # ---------------------------------------------------------------------------
 
+  defp stage_modal(%{stage: %Stage.Lobby{}, is_creator: true} = assigns) do
+    ~H"""
+    <.modal_overlay>
+      <h3 class="text-lg font-bold">Lobby</h3>
+      <p>Set the decision topic and invite participants. Everyone must ready up before you can start.</p>
+      <p class="text-sm text-base-content/60">Once started you'll frame the scenario together.</p>
+    </.modal_overlay>
+    """
+  end
+
   defp stage_modal(%{stage: %Stage.Lobby{}} = assigns) do
     ~H"""
     <.modal_overlay>
       <h3 class="text-lg font-bold">Lobby</h3>
-      <p>Set the decision topic and invite participants. Everyone must ready up before the creator can start.</p>
-      <p class="text-sm text-base-content/60">Once started you'll frame the scenario together.</p>
+      <p>You've been invited to join this decision. Ready up when you're set to go.</p>
+      <p class="text-sm text-base-content/60">Once everyone is ready the creator will start and you'll frame the scenario together.</p>
     </.modal_overlay>
     """
   end
