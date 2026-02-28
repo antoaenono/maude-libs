@@ -455,7 +455,7 @@ defmodule MaudeLibsWeb.DecisionLive do
       <%!-- Vote status --%>
       <div class="text-sm text-base-content/50">
         <%= map_size(@s.votes) %> / <%= MapSet.size(@decision.connected) %> voted
-        <%= if @my_vote and not @spectator do %>
+        <%= if @my_vote != nil and not @spectator do %>
           - you voted for "<%= @my_vote %>"
         <% end %>
       </div>
