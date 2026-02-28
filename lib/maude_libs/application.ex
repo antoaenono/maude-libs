@@ -14,6 +14,7 @@ defmodule MaudeLibs.Application do
       {Registry, keys: :unique, name: MaudeLibs.Decision.Registry},
       MaudeLibs.Decision.Supervisor,
       MaudeLibs.UserRegistry,
+      MaudeLibs.CanvasServer,
       MaudeLibsWeb.Endpoint
     ]
 

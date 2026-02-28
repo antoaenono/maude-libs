@@ -81,6 +81,8 @@ defmodule MaudeLibs.Decision.Server do
       }
     }
 
+    MaudeLibs.CanvasServer.add_circle(id, topic)
+
     {:ok, %{decision: decision, timers: %{}}}
   end
 
@@ -128,6 +130,8 @@ defmodule MaudeLibs.Decision.Server do
 
   # Receive LLM result from async Task
   @impl true
+  def handle_info({:llm_result, :noop}, state), do: {:noreply, state}
+
   def handle_info({:llm_result, msg}, %{decision: d} = state) do
     Logger.metadata(decision_id: d.id, stage: stage_name(d.stage))
     Logger.info("llm result received", msg_type: elem(msg, 0))
@@ -163,6 +167,11 @@ defmodule MaudeLibs.Decision.Server do
   defp dispatch_effect({:broadcast, id, decision}, state) do
     Logger.debug("broadcasting state", decision_id: id, stage: stage_name(decision.stage))
     Phoenix.PubSub.broadcast(MaudeLibs.PubSub, "decision:#{id}", {:decision_updated, decision})
+    MaudeLibs.CanvasServer.update_circle(id, %{stage: stage_atom(decision.stage)})
+    # Fire tagline LLM call when scenario just resolved (topic is now the agreed scenario)
+    if match?(%Stage.Priorities{}, decision.stage) and is_binary(decision.topic) do
+      spawn_llm_task({:tagline, id, decision.topic}, self())
+    end
     state
   end
 
@@ -190,6 +199,18 @@ defmodule MaudeLibs.Decision.Server do
   end
 
   # Maps LLM call specs to MaudeLibs.LLM calls and converts results to Core messages
+  defp execute_llm_call({:tagline, id, scenario}) do
+    case MaudeLibs.LLM.tagline(scenario) do
+      {:ok, text} ->
+        MaudeLibs.CanvasServer.update_circle(id, %{tagline: text})
+        Logger.info("tagline set", decision_id: id, tagline: text)
+      {:error, reason} ->
+        Logger.error("llm call failed", call: :tagline, reason: inspect(reason))
+    end
+    # No Core message needed - canvas update is the side effect
+    :noop
+  end
+
   defp execute_llm_call({:synthesize_scenario, submissions}) do
     case MaudeLibs.LLM.synthesize_scenario(submissions) do
       {:ok, text} -> {:synthesis_result, text}
@@ -242,4 +263,12 @@ defmodule MaudeLibs.Decision.Server do
   defp via(id), do: {:via, Registry, {@registry, id}}
 
   defp stage_name(stage), do: stage.__struct__ |> Module.split() |> List.last()
+
+  defp stage_atom(%Stage.Lobby{}), do: :lobby
+  defp stage_atom(%Stage.Scenario{}), do: :scenario
+  defp stage_atom(%Stage.Priorities{}), do: :priorities
+  defp stage_atom(%Stage.Options{}), do: :options
+  defp stage_atom(%Stage.Scaffolding{}), do: :scaffolding
+  defp stage_atom(%Stage.Dashboard{}), do: :dashboard
+  defp stage_atom(%Stage.Complete{}), do: :complete
 end
