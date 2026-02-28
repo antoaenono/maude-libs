@@ -720,7 +720,7 @@ defmodule MaudeLibsWeb.DecisionLive do
                   class={"btn btn-sm flex-1 " <>
                     cond do
                       @is_ready -> "btn-primary"
-                      @all_confirmed and @is_confirmed -> "btn-outline btn-primary animate-pulse"
+                      @all_confirmed and @is_confirmed -> "btn-primary animate-pulse"
                       true -> "btn-outline btn-primary"
                     end}
                 >
