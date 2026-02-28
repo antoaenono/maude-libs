@@ -396,93 +396,157 @@ defmodule MaudeLibsWeb.DecisionLive do
   # Scenario component
   # ---------------------------------------------------------------------------
 
+  # Spatial positions for other participants: {left%, top%}
+  # "others" excludes self; Claude goes dead center (50%, 50%)
+  # self always anchored at bottom center (50%, 85%)
+  @other_positions %{
+    1 => [{"50%", "15%"}],
+    2 => [{"28%", "20%"}, {"72%", "20%"}],
+    3 => [{"50%", "12%"}, {"22%", "35%"}, {"78%", "35%"}]
+  }
+
   defp scenario_stage(assigns) do
     s = assigns.decision.stage
     my_vote = Map.get(s.votes, assigns.username)
     other_users = MapSet.to_list(assigns.decision.connected) |> Enum.reject(&(&1 == assigns.username))
-    assigns = assign(assigns, s: s, my_vote: my_vote, other_users: other_users)
+    positions = Map.get(@other_positions, min(length(other_users), 3), [])
+    others_with_pos = Enum.zip(other_users, positions)
+    assigns = assign(assigns, s: s, my_vote: my_vote, other_users: other_users, others_with_pos: others_with_pos)
 
     ~H"""
-    <div class="min-h-screen flex flex-col items-center justify-center p-8 gap-8 max-w-3xl mx-auto">
-      <h2 class="text-2xl font-bold">Frame the scenario</h2>
-      <p class="text-base-content/60 text-sm text-center">
-        Vote on a framing. Everyone must agree on the same one to proceed.
-      </p>
-
-      <%!-- Candidate cards --%>
-      <div class="flex flex-wrap gap-4 justify-center w-full">
-        <%!-- Submissions from participants --%>
-        <%= for {user, text} <- @s.submissions, text != "" do %>
-          <.candidate_card
-            text={text}
-            label={if user == @username, do: "you", else: user}
-            selected={@my_vote == text}
-            username={@username}
-            is_synthesis={false}
-            spectator={@spectator}
-          />
-        <% end %>
-
-        <%!-- LLM synthesis --%>
-        <%= if @s.synthesis do %>
-          <.candidate_card
-            text={@s.synthesis}
-            label="Claude synthesis"
-            selected={@my_vote == @s.synthesis}
-            username={@username}
-            is_synthesis={true}
-            spectator={@spectator}
-          />
-        <% end %>
+    <div class="w-screen h-screen overflow-hidden relative select-none">
+      <%!-- Sticky header --%>
+      <div class="absolute top-0 left-0 right-0 z-10 bg-base-100/80 backdrop-blur border-b border-base-300 px-8 py-4 flex flex-col items-center gap-1">
+        <span class="text-xs font-mono text-base-content/40 uppercase tracking-widest">Frame the scenario</span>
+        <span class="text-lg font-semibold text-base-content"><%= @decision.topic %></span>
+        <span class="text-xs text-base-content/40">Vote on a framing - everyone must agree to proceed</span>
       </div>
 
-      <%!-- Optional rephrase input --%>
-      <%= if not @spectator do %>
-        <div class="w-full max-w-md">
-          <form phx-submit="submit_scenario" class="flex gap-2">
-            <input
-              type="text"
-              name="text"
-              placeholder="Submit your own rephrase (optional)"
-              class="input input-bordered flex-1"
-              autocomplete="off"
-            />
-            <button type="submit" class="btn btn-outline">Add</button>
-          </form>
+      <%!-- Other participants' cards --%>
+      <%= for {user, {left, top}} <- @others_with_pos do %>
+        <% text = Map.get(@s.submissions, user, "") %>
+        <% voted = Map.get(@s.votes, user) %>
+        <div
+          class="absolute"
+          style={"left: #{left}; top: #{top}; transform: translate(-50%, -50%);"}
+        >
+          <.candidate_card
+            text={if text != "", do: text, else: nil}
+            label={user}
+            voted={voted != nil}
+            selected={@my_vote != nil and @my_vote == text and text != ""}
+            is_synthesis={false}
+            spectator={@spectator}
+            placeholder="thinking..."
+          />
         </div>
       <% end %>
 
-      <%!-- Vote status --%>
-      <div class="text-sm text-base-content/50">
-        <%= map_size(@s.votes) %> / <%= MapSet.size(@decision.connected) %> voted
-        <%= if @my_vote != nil and not @spectator do %>
-          - you voted for "<%= @my_vote %>"
+      <%!-- Claude synthesis (dead center) --%>
+      <%= if @s.synthesis do %>
+        <div class="absolute" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
+          <.candidate_card
+            text={@s.synthesis}
+            label="Claude"
+            voted={false}
+            selected={@my_vote == @s.synthesis}
+            is_synthesis={true}
+            spectator={@spectator}
+            placeholder={nil}
+          />
+        </div>
+      <% end %>
+
+      <%!-- Your card (bottom center) --%>
+      <div class="absolute" style="left: 50%; top: 82%; transform: translate(-50%, -50%);">
+        <% my_text = Map.get(@s.submissions, @username, "") %>
+        <%= if @spectator do %>
+          <.candidate_card
+            text={if my_text != "", do: my_text, else: nil}
+            label="you (spectating)"
+            voted={@my_vote != nil}
+            selected={false}
+            is_synthesis={false}
+            spectator={true}
+            placeholder="spectating"
+          />
+        <% else %>
+          <div class={"card w-72 border-2 bg-base-100 shadow-xl " <> if(@my_vote != nil, do: "border-primary", else: "border-base-300")}>
+            <div class="card-body p-4 gap-3">
+              <div class="flex items-center justify-between">
+                <span class="badge badge-ghost badge-sm">you</span>
+                <%= if @my_vote != nil do %>
+                  <span class="text-xs text-primary font-semibold">voted ✓</span>
+                <% end %>
+              </div>
+              <% my_sub = Map.get(@s.submissions, @username) %>
+              <%= if my_sub && my_sub != "" do %>
+                <p class="text-sm font-medium"><%= my_sub %></p>
+                <button
+                  phx-click="vote_scenario"
+                  phx-value-candidate={my_sub}
+                  class={"btn btn-xs " <> if(@my_vote == my_sub, do: "btn-primary", else: "btn-outline btn-primary")}
+                >
+                  <%= if @my_vote == my_sub, do: "Your vote ✓", else: "Vote for yours" %>
+                </button>
+              <% end %>
+              <form phx-submit="submit_scenario" class="flex gap-2 mt-1">
+                <input
+                  type="text"
+                  name="text"
+                  value={my_sub || ""}
+                  placeholder="Rephrase (optional)"
+                  class="input input-bordered input-sm flex-1"
+                  autocomplete="off"
+                />
+                <button type="submit" class="btn btn-sm btn-outline">Save</button>
+              </form>
+            </div>
+          </div>
         <% end %>
+      </div>
+
+      <%!-- Vote tally (bottom right) --%>
+      <div class="absolute bottom-4 right-4 text-xs text-base-content/40 font-mono">
+        <%= map_size(@s.votes) %> / <%= MapSet.size(@decision.connected) %> voted
       </div>
     </div>
     """
   end
 
   defp candidate_card(assigns) do
+    assigns = assign_new(assigns, :placeholder, fn -> nil end)
     ~H"""
-    <button
-      phx-click={if not @spectator, do: "vote_scenario"}
-      phx-value-candidate={@text}
-      class={"card w-64 text-left transition-all border-2 " <>
-             if(@selected, do: "border-primary bg-primary/10", else: "border-base-300 bg-base-100 hover:border-primary/50") <>
-             if(@is_synthesis, do: " border-dashed", else: "") <>
-             if(@spectator, do: " cursor-default", else: " cursor-pointer")}
+    <div class={"card w-60 border-2 bg-base-100 shadow-md transition-all " <>
+                 if(@selected, do: "border-primary bg-primary/10", else:
+                   if(@is_synthesis, do: "border-dashed border-secondary", else: "border-base-300")) <>
+                 if(@spectator or is_nil(@text), do: " cursor-default", else: " cursor-pointer hover:border-primary/60 hover:shadow-lg")}
     >
       <div class="card-body p-4 gap-2">
-        <span class={"badge badge-sm " <> if(@is_synthesis, do: "badge-secondary", else: "badge-ghost")}>
-          <%= @label %>
-        </span>
-        <p class="text-sm"><%= @text %></p>
-        <%= if @selected do %>
-          <span class="text-primary text-xs font-semibold">Your vote ✓</span>
+        <div class="flex items-center justify-between">
+          <span class={"badge badge-sm " <> if(@is_synthesis, do: "badge-secondary", else: "badge-ghost")}>
+            <%= @label %>
+          </span>
+          <%= if @voted do %>
+            <span class="text-xs text-base-content/40">voted ✓</span>
+          <% end %>
+        </div>
+        <%= if @text do %>
+          <p class="text-sm"><%= @text %></p>
+          <%= if not @spectator and @text do %>
+            <button
+              phx-click="vote_scenario"
+              phx-value-candidate={@text}
+              class={"btn btn-xs mt-1 " <> if(@selected, do: "btn-primary", else: "btn-outline btn-primary")}
+            >
+              <%= if @selected, do: "Your vote ✓", else: "Vote" %>
+            </button>
+          <% end %>
+        <% else %>
+          <p class="text-xs text-base-content/30 italic"><%= @placeholder || "..." %></p>
         <% end %>
       </div>
-    </button>
+    </div>
     """
   end
 
@@ -510,125 +574,135 @@ defmodule MaudeLibsWeb.DecisionLive do
       is_ready: is_ready,
       all_confirmed: all_confirmed,
       waiting_count: waiting_count,
-      other_users: other_users
+      other_users: other_users,
+      other_positions: @other_positions
     )
 
     ~H"""
-    <div class="min-h-screen flex flex-col items-center justify-center p-8 gap-8 max-w-3xl mx-auto">
-      <h2 class="text-2xl font-bold">Name Your Priorities</h2>
-      <p class="text-base-content/60 text-sm text-center">
-        Topic: <span class="font-semibold text-base-content"><%= @decision.topic %></span>
-      </p>
+    <div class="w-screen h-screen overflow-hidden relative select-none">
+      <%!-- Sticky header --%>
+      <div class="absolute top-0 left-0 right-0 z-10 bg-base-100/80 backdrop-blur border-b border-base-300 px-8 py-4 flex flex-col items-center gap-1">
+        <span class="text-xs font-mono text-base-content/40 uppercase tracking-widest">Name your priorities</span>
+        <span class="text-lg font-semibold text-base-content"><%= @decision.topic %></span>
+        <span class="text-xs text-base-content/40">Name a dimension, not a directional statement - e.g. "cost" not "too expensive"</span>
+      </div>
 
-      <%!-- Other participants' priorities --%>
-      <%= if length(@other_users) > 0 do %>
-        <div class="flex flex-wrap gap-4 justify-center w-full">
-          <%= for user <- @other_users do %>
-            <% other_priority = Map.get(@s.priorities, user) %>
-            <div class={"card w-48 border-2 " <> if(user in @s.confirmed, do: "border-success bg-success/5", else: "border-base-300 bg-base-100")}>
-              <div class="card-body p-4 gap-2">
+      <%!-- Other participants' priority cards --%>
+      <%= for {user, {left, top}} <- Enum.zip(@other_users, Map.get(@other_positions, min(length(@other_users), 3), [])) do %>
+        <% p = Map.get(@s.priorities, user) %>
+        <div class="absolute" style={"left: #{left}; top: #{top}; transform: translate(-50%, -50%);"}>
+          <div class={"card w-52 border-2 bg-base-100 shadow-md " <> if(user in @s.confirmed, do: "border-success", else: "border-base-300")}>
+            <div class="card-body p-4 gap-2">
+              <div class="flex items-center justify-between">
                 <span class="badge badge-ghost badge-sm"><%= user %></span>
-                <%= if other_priority do %>
-                  <div class="flex items-center gap-2">
-                    <span class={direction_color(other_priority.direction) <> " font-mono font-bold text-lg"}>
-                      <%= other_priority.direction %>
-                    </span>
-                    <span class="text-sm"><%= other_priority.text %></span>
-                  </div>
-                <% else %>
-                  <p class="text-xs text-base-content/40 italic">thinking...</p>
+                <%= if user in @s.confirmed do %>
+                  <span class="text-xs text-success">confirmed ✓</span>
                 <% end %>
               </div>
+              <%= if p do %>
+                <div class="flex items-center gap-2">
+                  <span class={direction_color(p.direction) <> " font-mono font-bold text-xl"}><%= p.direction %></span>
+                  <span class="text-sm"><%= p.text %></span>
+                </div>
+              <% else %>
+                <p class="text-xs text-base-content/30 italic">thinking...</p>
+              <% end %>
             </div>
-          <% end %>
+          </div>
         </div>
       <% end %>
 
-      <%!-- Claude suggestions (center, after all confirmed) --%>
+      <%!-- Claude suggestions (dead center, after all confirmed) --%>
       <%= if @all_confirmed and length(@s.suggestions) > 0 do %>
-        <div class="w-full">
-          <p class="text-xs text-center text-base-content/50 mb-3">Claude suggestions - toggle to include</p>
-          <div class="flex flex-wrap gap-3 justify-center">
-            <%= for {suggestion, idx} <- Enum.with_index(@s.suggestions) do %>
-              <button
-                phx-click="toggle_priority_suggestion"
-                phx-value-idx={idx}
-                phx-value-included={not suggestion.included}
-                class={"flex items-center gap-2 px-3 py-2 rounded-lg border-2 border-dashed text-sm transition-all " <>
-                       if(suggestion.included, do: "border-secondary bg-secondary/10", else: "border-base-300 bg-base-100 opacity-60")}
-              >
-                <span class={direction_color(suggestion.direction) <> " font-mono font-bold"}>
-                  <%= suggestion.direction %>
-                </span>
-                <span><%= suggestion.text %></span>
-                <%= if suggestion.included do %>
-                  <span class="text-secondary text-xs">included ✓</span>
-                <% end %>
-              </button>
-            <% end %>
+        <div class="absolute" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
+          <div class="card w-72 border-2 border-dashed border-secondary bg-base-100 shadow-md">
+            <div class="card-body p-4 gap-3">
+              <span class="badge badge-secondary badge-sm">Claude suggestions</span>
+              <%= for {suggestion, idx} <- Enum.with_index(@s.suggestions) do %>
+                <button
+                  phx-click="toggle_priority_suggestion"
+                  phx-value-idx={idx}
+                  phx-value-included={not suggestion.included}
+                  class={"flex items-center gap-2 px-2 py-1 rounded border text-sm transition-all " <>
+                         if(suggestion.included, do: "border-secondary bg-secondary/10", else: "border-base-300 opacity-60")}
+                >
+                  <span class={direction_color(suggestion.direction) <> " font-mono font-bold"}><%= suggestion.direction %></span>
+                  <span class="flex-1 text-left"><%= suggestion.text %></span>
+                  <span class="text-xs"><%= if suggestion.included, do: "✓", else: "+" %></span>
+                </button>
+              <% end %>
+            </div>
           </div>
         </div>
       <% end %>
 
-      <%!-- Waiting indicator --%>
-      <%= if not @all_confirmed and @is_confirmed and @waiting_count > 0 do %>
-        <p class="text-sm text-base-content/50">
-          Waiting for <%= @waiting_count %> <%= if @waiting_count == 1, do: "person", else: "people" %> to confirm...
-        </p>
-      <% end %>
-
-      <%= if not @spectator do %>
-        <%!-- Your input (bottom) --%>
-        <div class="w-full max-w-md">
-          <form phx-change="upsert_priority" phx-submit="upsert_priority" class="flex flex-col gap-3">
-            <label class="label"><span class="label-text font-semibold">Your priority</span></label>
-            <div class="flex gap-2 items-center">
-              <%!-- Direction selector --%>
-              <div class="flex gap-1">
-                <%= for dir <- ["+", "-", "~"] do %>
-                  <button
-                    type="button"
-                    phx-click="upsert_priority"
-                    phx-value-direction={dir}
-                    phx-value-text={@my_text}
-                    class={"btn btn-sm font-mono " <> direction_btn_class(dir, @my_direction)}
-                  >
-                    <%= dir %>
-                  </button>
+      <%!-- Your card (bottom center) --%>
+      <div class="absolute" style="left: 50%; top: 82%; transform: translate(-50%, -50%);">
+        <%= if @spectator do %>
+          <span class="badge badge-ghost">Spectating</span>
+        <% else %>
+          <div class={"card w-80 border-2 bg-base-100 shadow-xl " <> if(@is_confirmed, do: "border-success", else: "border-base-300")}>
+            <div class="card-body p-4 gap-3">
+              <div class="flex items-center justify-between">
+                <span class="badge badge-ghost badge-sm">you</span>
+                <%= if @is_confirmed do %>
+                  <span class="text-xs text-success">confirmed ✓</span>
                 <% end %>
               </div>
-              <input type="hidden" name="direction" value={@my_direction} />
-              <input
-                type="text"
-                name="text"
-                value={@my_text}
-                placeholder="e.g. cost, speed, reliability"
-                class="input input-bordered flex-1 input-sm"
-                autocomplete="off"
-              />
+              <form phx-change="upsert_priority" phx-submit="upsert_priority" class="flex gap-2 items-center">
+                <div class="flex gap-1">
+                  <%= for dir <- ["+", "-", "~"] do %>
+                    <button
+                      type="button"
+                      phx-click="upsert_priority"
+                      phx-value-direction={dir}
+                      phx-value-text={@my_text}
+                      class={"btn btn-sm font-mono " <> direction_btn_class(dir, @my_direction)}
+                    >
+                      <%= dir %>
+                    </button>
+                  <% end %>
+                </div>
+                <input type="hidden" name="direction" value={@my_direction} />
+                <input
+                  type="text"
+                  name="text"
+                  value={@my_text}
+                  placeholder="e.g. cost, speed"
+                  class="input input-bordered input-sm flex-1"
+                  autocomplete="off"
+                />
+              </form>
+              <div class="flex gap-2">
+                <button
+                  phx-click="confirm_priority"
+                  disabled={@my_text == "" or @is_ready}
+                  class={"btn btn-sm flex-1 " <> if(@is_confirmed, do: "btn-success", else: "btn-outline btn-success")}
+                >
+                  <%= if @is_confirmed, do: "Confirmed ✓", else: "Confirm" %>
+                </button>
+                <button
+                  phx-click="ready_priority"
+                  disabled={not @is_confirmed or @is_ready}
+                  class={"btn btn-sm flex-1 " <> if(@is_ready, do: "btn-primary", else: "btn-outline btn-primary")}
+                >
+                  <%= if @is_ready, do: "Ready ✓", else: "Ready up" %>
+                </button>
+              </div>
+              <%= if not @all_confirmed and @is_confirmed and @waiting_count > 0 do %>
+                <p class="text-xs text-base-content/40 text-center">
+                  Waiting for <%= @waiting_count %> <%= if @waiting_count == 1, do: "person", else: "people" %>...
+                </p>
+              <% end %>
             </div>
-          </form>
-
-          <div class="flex gap-2 mt-4">
-            <button
-              phx-click="confirm_priority"
-              disabled={@my_text == "" or @is_ready}
-              class={"btn btn-sm flex-1 " <> if(@is_confirmed, do: "btn-success", else: "btn-outline btn-success")}
-            >
-              <%= if @is_confirmed, do: "Confirmed ✓", else: "Confirm" %>
-            </button>
-            <button
-              phx-click="ready_priority"
-              disabled={not @is_confirmed or @is_ready}
-              class={"btn btn-sm flex-1 " <> if(@is_ready, do: "btn-primary", else: "btn-outline btn-primary")}
-            >
-              <%= if @is_ready, do: "Ready ✓", else: "Ready up" %>
-            </button>
           </div>
-        </div>
-      <% else %>
-        <span class="badge badge-ghost">Spectating</span>
-      <% end %>
+        <% end %>
+      </div>
+
+      <%!-- Vote tally (bottom right) --%>
+      <div class="absolute bottom-4 right-4 text-xs text-base-content/40 font-mono">
+        <%= MapSet.size(@s.confirmed) %> / <%= MapSet.size(@decision.connected) %> confirmed
+      </div>
     </div>
     """
   end
