@@ -1012,14 +1012,18 @@ defmodule MaudeLibsWeb.DecisionLive do
                 <%= if length(opt.for) > 0 do %>
                   <div class="flex flex-col gap-1">
                     <p class="text-xs font-semibold text-success">For</p>
-                    <%= for point <- opt.for do %>
-                      <div class="flex gap-1 items-start">
-                        <span class="badge badge-xs badge-outline text-success border-success flex-shrink-0 mt-0.5">
-                          <%= Map.get(@priority_names, point.priority_id, point.priority_id) %>
-                        </span>
-                        <p class="text-xs text-base-content/70"><%= point.text %></p>
-                      </div>
-                    <% end %>
+                    <table class="w-full text-xs">
+                      <%= for point <- opt.for do %>
+                        <tr>
+                          <td class="w-px whitespace-nowrap pr-1.5 align-top pt-0.5">
+                            <span class="badge badge-xs badge-outline text-success border-success">
+                              <%= Map.get(@priority_names, point.priority_id, point.priority_id) %>
+                            </span>
+                          </td>
+                          <td class="text-base-content/70"><%= point.text %></td>
+                        </tr>
+                      <% end %>
+                    </table>
                   </div>
                 <% end %>
 
@@ -1027,14 +1031,18 @@ defmodule MaudeLibsWeb.DecisionLive do
                 <%= if length(opt.against) > 0 do %>
                   <div class="flex flex-col gap-1">
                     <p class="text-xs font-semibold text-error">Against</p>
-                    <%= for point <- opt.against do %>
-                      <div class="flex gap-1 items-start">
-                        <span class="badge badge-xs badge-outline text-error border-error flex-shrink-0 mt-0.5">
-                          <%= Map.get(@priority_names, point.priority_id, point.priority_id) %>
-                        </span>
-                        <p class="text-xs text-base-content/70"><%= point.text %></p>
-                      </div>
-                    <% end %>
+                    <table class="w-full text-xs">
+                      <%= for point <- opt.against do %>
+                        <tr>
+                          <td class="w-px whitespace-nowrap pr-1.5 align-top pt-0.5">
+                            <span class="badge badge-xs badge-outline text-error border-error">
+                              <%= Map.get(@priority_names, point.priority_id, point.priority_id) %>
+                            </span>
+                          </td>
+                          <td class="text-base-content/70"><%= point.text %></td>
+                        </tr>
+                      <% end %>
+                    </table>
                   </div>
                 <% end %>
 
