@@ -20,7 +20,9 @@ if System.get_env("PHX_SERVER") do
   config :maude_libs, MaudeLibsWeb.Endpoint, server: true
 end
 
-config :maude_libs, anthropic_api_key: System.get_env("ANTHROPIC_API_KEY")
+if key = System.get_env("ANTHROPIC_API_KEY") do
+  config :maude_libs, anthropic_api_key: key
+end
 
 config :maude_libs, MaudeLibsWeb.Endpoint,
   http: [port: String.to_integer(System.get_env("PORT", "4000"))]
