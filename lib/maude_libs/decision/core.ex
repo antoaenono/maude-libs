@@ -12,6 +12,7 @@ defmodule MaudeLibs.Decision.Core do
   alias MaudeLibs.Decision.Stage
 
   defstruct id: nil,
+            creator: nil,
             topic: nil,
             # Assigned priority list (populated when advancing Priorities -> Options)
             # [{id: "+1", text: "...", direction: "+"}, ...]

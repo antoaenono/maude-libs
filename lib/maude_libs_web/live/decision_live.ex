@@ -1139,15 +1139,7 @@ defmodule MaudeLibsWeb.DecisionLive do
   # Helpers
   # ---------------------------------------------------------------------------
 
-  defp creator_of(decision) do
-    # Creator is the first user who joined - they're in the lobby's joined set
-    # We identify creator as the one who started the server (they're always in invited from init)
-    decision.stage
-    |> case do
-      %{joined: joined} -> MapSet.to_list(joined) |> List.first()
-      _ -> nil
-    end
-  end
+  defp creator_of(decision), do: decision.creator
 
   defp generate_id do
     :crypto.strong_rand_bytes(6) |> Base.url_encode64(padding: false)

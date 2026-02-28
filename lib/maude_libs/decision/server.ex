@@ -72,6 +72,7 @@ defmodule MaudeLibs.Decision.Server do
     # Build initial decision: creator is invited + auto-joined
     decision = %Core{
       id: id,
+      creator: creator,
       topic: topic,
       connected: MapSet.new([creator]),
       stage: %Stage.Lobby{
