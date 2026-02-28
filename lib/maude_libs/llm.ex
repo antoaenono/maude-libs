@@ -132,7 +132,7 @@ defmodule MaudeLibs.LLM do
     Rules:
     - Only tag points with "+" or "-" priority IDs (e.g. "+1", "-2"). Do NOT tag "~" priorities.
     - 2-4 points for and 2-4 points against per option.
-    - Points are prose sentences, not bullet fragments.
+    - Each point must be a short phrase (5-10 words), not a full sentence.
 
     Respond ONLY with valid JSON matching exactly this schema:
     {
