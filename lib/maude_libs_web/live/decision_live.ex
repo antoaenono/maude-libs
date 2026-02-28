@@ -41,10 +41,17 @@ defmodule MaudeLibsWeb.DecisionLive do
         _pid ->
           Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
           decision = Server.get_state(id)
-          is_participant = username in decision.connected
-          if is_participant do
-            Server.handle_message(id, {:connect, username})
+          is_invited = match?(%Stage.Lobby{}, decision.stage) and username in decision.stage.invited
+          is_participant = username in decision.connected or is_invited
+          cond do
+            username in decision.connected ->
+              Server.handle_message(id, {:connect, username})
+            is_invited ->
+              Server.handle_message(id, {:join, username})
+            true ->
+              :ok
           end
+          decision = Server.get_state(id)
           {:ok, assign(socket, username: username, decision: decision, id: id, modal_open: true, spectator: not is_participant)}
       end
     end
