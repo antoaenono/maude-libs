@@ -136,7 +136,7 @@ defmodule MaudeLibs.CanvasServer do
 
   defp center_force(circle) do
     cx = (@width / 2 - circle.x) * @center_pull
-    cy = (@height / 2 - circle.y) * @center_pull
+    cy = (@height * 0.38 - circle.y) * @center_pull
     {cx, cy}
   end
 
