@@ -56,10 +56,14 @@ defmodule MaudeLibs.CanvasServer do
     if Map.has_key?(state, id) do
       {:noreply, state}
     else
-      # Spawn near center with small random offset
-      x = @width / 2 + (:rand.uniform() - 0.5) * 10
-      y = @height / 2 + (:rand.uniform() - 0.5) * 10
-      circle = %{x: x, y: y, vx: 0.0, vy: 0.0, title: title, tagline: nil, stage: :lobby}
+      # Spawn offset from center so it doesn't sit on the + button
+      angle = :rand.uniform() * 2 * :math.pi()
+      radius = 15.0 + :rand.uniform() * 10.0
+      x = @width / 2 + :math.cos(angle) * radius
+      y = @height / 2 + :math.sin(angle) * radius
+      vx = :math.cos(angle) * 2.0
+      vy = :math.sin(angle) * 2.0
+      circle = %{x: x, y: y, vx: vx, vy: vy, title: title, tagline: nil, stage: :lobby}
       Logger.metadata(component: :canvas)
       Logger.info("circle spawned", decision_id: id)
       {:noreply, Map.put(state, id, circle)}
