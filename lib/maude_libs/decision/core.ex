@@ -206,8 +206,9 @@ defmodule MaudeLibs.Decision.Core do
       d2 = %{d | stage: s2}
 
       if all_ready?(d2.connected, s2.ready) do
-        # Assign IDs to priorities: + gets +1/+2, - gets -1/-2, ~ gets ~1/~2
-        assigned = assign_priority_ids(s2.priorities)
+        # Assign IDs to priorities: human proposals + included Claude suggestions
+        claude_priorities = s2.suggestions |> Enum.filter(& &1.included) |> Enum.map(&Map.drop(&1, [:included]))
+        assigned = assign_priority_ids(s2.priorities, claude_priorities)
         options_stage = %Stage.Options{}
         d3 = %{d2 | stage: options_stage, priorities: assigned}
         {:ok, d3, [{:broadcast, d3.id, d3}]}
@@ -217,10 +218,12 @@ defmodule MaudeLibs.Decision.Core do
     end
   end
 
-  defp assign_priority_ids(priorities_map) do
+  defp assign_priority_ids(priorities_map, extra \\ []) do
     # priorities_map: %{user => %{text: "...", direction: "+" | "-" | "~"}}
+    # extra: [{text: "...", direction: "..."}] - included Claude suggestions
     # Returns [{id: "+1", text: "...", direction: "+"}, ...]
-    groups = Enum.group_by(Map.values(priorities_map), & &1.direction)
+    all = Map.values(priorities_map) ++ extra
+    groups = Enum.group_by(all, & &1.direction)
 
     Enum.flat_map(["+", "-", "~"], fn dir ->
       (groups[dir] || [])
