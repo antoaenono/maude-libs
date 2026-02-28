@@ -20,7 +20,7 @@ defmodule MaudeLibsWeb.DecisionLive do
       {:ok, _pid} = Supervisor.start_decision(id, username, "")
       Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
       decision = Server.get_state(id)
-      {:ok, assign(socket, username: username, decision: decision, id: id, modal_open: true)}
+      {:ok, assign(socket, username: username, decision: decision, id: id, modal_open: true, spectator: false)}
     end
   end
 
@@ -41,7 +41,7 @@ defmodule MaudeLibsWeb.DecisionLive do
           if is_participant do
             Server.handle_message(id, {:connect, username})
           end
-          {:ok, assign(socket, username: username, decision: decision, id: id, modal_open: true)}
+          {:ok, assign(socket, username: username, decision: decision, id: id, modal_open: true, spectator: not is_participant)}
       end
     end
   end
@@ -226,25 +226,25 @@ defmodule MaudeLibsWeb.DecisionLive do
 
   defp render_stage(%{decision: %{stage: %Stage.Lobby{}}} = assigns) do
     ~H"""
-    <.lobby_stage decision={@decision} username={@username} />
+    <.lobby_stage decision={@decision} username={@username} spectator={@spectator} />
     """
   end
 
   defp render_stage(%{decision: %{stage: %Stage.Scenario{}}} = assigns) do
     ~H"""
-    <.scenario_stage decision={@decision} username={@username} />
+    <.scenario_stage decision={@decision} username={@username} spectator={@spectator} />
     """
   end
 
   defp render_stage(%{decision: %{stage: %Stage.Priorities{}}} = assigns) do
     ~H"""
-    <.priorities_stage decision={@decision} username={@username} />
+    <.priorities_stage decision={@decision} username={@username} spectator={@spectator} />
     """
   end
 
   defp render_stage(%{decision: %{stage: %Stage.Options{}}} = assigns) do
     ~H"""
-    <.options_stage decision={@decision} username={@username} />
+    <.options_stage decision={@decision} username={@username} spectator={@spectator} />
     """
   end
 
@@ -256,7 +256,7 @@ defmodule MaudeLibsWeb.DecisionLive do
 
   defp render_stage(%{decision: %{stage: %Stage.Dashboard{}}} = assigns) do
     ~H"""
-    <.dashboard_stage decision={@decision} username={@username} />
+    <.dashboard_stage decision={@decision} username={@username} spectator={@spectator} />
     """
   end
 
@@ -271,7 +271,7 @@ defmodule MaudeLibsWeb.DecisionLive do
   # ---------------------------------------------------------------------------
 
   defp lobby_stage(assigns) do
-    is_creator = assigns.username == creator_of(assigns.decision)
+    is_creator = not assigns.spectator and assigns.username == creator_of(assigns.decision)
     is_ready = assigns.username in assigns.decision.stage.ready
     all_ready = MapSet.subset?(assigns.decision.stage.joined, assigns.decision.stage.ready) and
                 MapSet.size(assigns.decision.stage.joined) > 0
@@ -346,22 +346,28 @@ defmodule MaudeLibsWeb.DecisionLive do
         </div>
 
         <%!-- Actions --%>
-        <div class="flex flex-col gap-2 mt-auto">
-          <%= if @username not in @decision.stage.joined do %>
-            <button phx-click="lobby_join" class="btn btn-outline btn-primary">Join</button>
-          <% else %>
-            <button
-              phx-click="lobby_ready"
-              class={"btn #{if @is_ready, do: "btn-success", else: "btn-outline btn-success"}"}
-            >
-              <%= if @is_ready, do: "Ready ✓", else: "Ready up" %>
-            </button>
-          <% end %>
+        <%= if not @spectator do %>
+          <div class="flex flex-col gap-2 mt-auto">
+            <%= if @username not in @decision.stage.joined do %>
+              <button phx-click="lobby_join" class="btn btn-outline btn-primary">Join</button>
+            <% else %>
+              <button
+                phx-click="lobby_ready"
+                class={"btn #{if @is_ready, do: "btn-success", else: "btn-outline btn-success"}"}
+              >
+                <%= if @is_ready, do: "Ready ✓", else: "Ready up" %>
+              </button>
+            <% end %>
 
-          <%= if @is_creator and @all_ready do %>
-            <button phx-click="lobby_start" class="btn btn-primary">Start</button>
-          <% end %>
-        </div>
+            <%= if @is_creator and @all_ready do %>
+              <button phx-click="lobby_start" class="btn btn-primary">Start</button>
+            <% end %>
+          </div>
+        <% else %>
+          <div class="mt-auto">
+            <span class="badge badge-ghost">Spectating</span>
+          </div>
+        <% end %>
       </div>
     </div>
     """
@@ -394,6 +400,7 @@ defmodule MaudeLibsWeb.DecisionLive do
             selected={@my_vote == text}
             username={@username}
             is_synthesis={false}
+            spectator={@spectator}
           />
         <% end %>
 
@@ -405,28 +412,31 @@ defmodule MaudeLibsWeb.DecisionLive do
             selected={@my_vote == @s.synthesis}
             username={@username}
             is_synthesis={true}
+            spectator={@spectator}
           />
         <% end %>
       </div>
 
       <%!-- Optional rephrase input --%>
-      <div class="w-full max-w-md">
-        <form phx-submit="submit_scenario" class="flex gap-2">
-          <input
-            type="text"
-            name="text"
-            placeholder="Submit your own rephrase (optional)"
-            class="input input-bordered flex-1"
-            autocomplete="off"
-          />
-          <button type="submit" class="btn btn-outline">Add</button>
-        </form>
-      </div>
+      <%= if not @spectator do %>
+        <div class="w-full max-w-md">
+          <form phx-submit="submit_scenario" class="flex gap-2">
+            <input
+              type="text"
+              name="text"
+              placeholder="Submit your own rephrase (optional)"
+              class="input input-bordered flex-1"
+              autocomplete="off"
+            />
+            <button type="submit" class="btn btn-outline">Add</button>
+          </form>
+        </div>
+      <% end %>
 
       <%!-- Vote status --%>
       <div class="text-sm text-base-content/50">
         <%= map_size(@s.votes) %> / <%= MapSet.size(@decision.connected) %> voted
-        <%= if @my_vote do %>
+        <%= if @my_vote and not @spectator do %>
           - you voted for "<%= @my_vote %>"
         <% end %>
       </div>
@@ -437,11 +447,12 @@ defmodule MaudeLibsWeb.DecisionLive do
   defp candidate_card(assigns) do
     ~H"""
     <button
-      phx-click="vote_scenario"
+      phx-click={if not @spectator, do: "vote_scenario"}
       phx-value-candidate={@text}
-      class={"card w-64 text-left cursor-pointer transition-all border-2 " <>
+      class={"card w-64 text-left transition-all border-2 " <>
              if(@selected, do: "border-primary bg-primary/10", else: "border-base-300 bg-base-100 hover:border-primary/50") <>
-             if(@is_synthesis, do: " border-dashed", else: "")}
+             if(@is_synthesis, do: " border-dashed", else: "") <>
+             if(@spectator, do: " cursor-default", else: " cursor-pointer")}
     >
       <div class="card-body p-4 gap-2">
         <span class={"badge badge-sm " <> if(@is_synthesis, do: "badge-secondary", else: "badge-ghost")}>
@@ -547,54 +558,58 @@ defmodule MaudeLibsWeb.DecisionLive do
         </p>
       <% end %>
 
-      <%!-- Your input (bottom) --%>
-      <div class="w-full max-w-md">
-        <form phx-change="upsert_priority" phx-submit="upsert_priority" class="flex flex-col gap-3">
-          <label class="label"><span class="label-text font-semibold">Your priority</span></label>
-          <div class="flex gap-2 items-center">
-            <%!-- Direction selector --%>
-            <div class="flex gap-1">
-              <%= for dir <- ["+", "-", "~"] do %>
-                <button
-                  type="button"
-                  phx-click="upsert_priority"
-                  phx-value-direction={dir}
-                  phx-value-text={@my_text}
-                  class={"btn btn-sm font-mono " <> direction_btn_class(dir, @my_direction)}
-                >
-                  <%= dir %>
-                </button>
-              <% end %>
+      <%= if not @spectator do %>
+        <%!-- Your input (bottom) --%>
+        <div class="w-full max-w-md">
+          <form phx-change="upsert_priority" phx-submit="upsert_priority" class="flex flex-col gap-3">
+            <label class="label"><span class="label-text font-semibold">Your priority</span></label>
+            <div class="flex gap-2 items-center">
+              <%!-- Direction selector --%>
+              <div class="flex gap-1">
+                <%= for dir <- ["+", "-", "~"] do %>
+                  <button
+                    type="button"
+                    phx-click="upsert_priority"
+                    phx-value-direction={dir}
+                    phx-value-text={@my_text}
+                    class={"btn btn-sm font-mono " <> direction_btn_class(dir, @my_direction)}
+                  >
+                    <%= dir %>
+                  </button>
+                <% end %>
+              </div>
+              <input type="hidden" name="direction" value={@my_direction} />
+              <input
+                type="text"
+                name="text"
+                value={@my_text}
+                placeholder="e.g. cost, speed, reliability"
+                class="input input-bordered flex-1 input-sm"
+                autocomplete="off"
+              />
             </div>
-            <input type="hidden" name="direction" value={@my_direction} />
-            <input
-              type="text"
-              name="text"
-              value={@my_text}
-              placeholder="e.g. cost, speed, reliability"
-              class="input input-bordered flex-1 input-sm"
-              autocomplete="off"
-            />
-          </div>
-        </form>
+          </form>
 
-        <div class="flex gap-2 mt-4">
-          <button
-            phx-click="confirm_priority"
-            disabled={@my_text == "" or @is_ready}
-            class={"btn btn-sm flex-1 " <> if(@is_confirmed, do: "btn-success", else: "btn-outline btn-success")}
-          >
-            <%= if @is_confirmed, do: "Confirmed ✓", else: "Confirm" %>
-          </button>
-          <button
-            phx-click="ready_priority"
-            disabled={not @is_confirmed or @is_ready}
-            class={"btn btn-sm flex-1 " <> if(@is_ready, do: "btn-primary", else: "btn-outline btn-primary")}
-          >
-            <%= if @is_ready, do: "Ready ✓", else: "Ready up" %>
-          </button>
+          <div class="flex gap-2 mt-4">
+            <button
+              phx-click="confirm_priority"
+              disabled={@my_text == "" or @is_ready}
+              class={"btn btn-sm flex-1 " <> if(@is_confirmed, do: "btn-success", else: "btn-outline btn-success")}
+            >
+              <%= if @is_confirmed, do: "Confirmed ✓", else: "Confirm" %>
+            </button>
+            <button
+              phx-click="ready_priority"
+              disabled={not @is_confirmed or @is_ready}
+              class={"btn btn-sm flex-1 " <> if(@is_ready, do: "btn-primary", else: "btn-outline btn-primary")}
+            >
+              <%= if @is_ready, do: "Ready ✓", else: "Ready up" %>
+            </button>
+          </div>
         </div>
-      </div>
+      <% else %>
+        <span class="badge badge-ghost">Spectating</span>
+      <% end %>
     </div>
     """
   end
@@ -687,45 +702,49 @@ defmodule MaudeLibsWeb.DecisionLive do
         </p>
       <% end %>
 
-      <%!-- Your input (bottom) --%>
-      <div class="w-full max-w-md">
-        <form phx-change="upsert_option" phx-submit="upsert_option" class="flex flex-col gap-3">
-          <label class="label"><span class="label-text font-semibold">Your option</span></label>
-          <input
-            type="text"
-            name="name"
-            value={@my_name}
-            placeholder="Short name (2-4 words)"
-            class="input input-bordered input-sm"
-            autocomplete="off"
-          />
-          <input
-            type="text"
-            name="desc"
-            value={@my_desc}
-            placeholder="One sentence description"
-            class="input input-bordered input-sm"
-            autocomplete="off"
-          />
-        </form>
+      <%= if not @spectator do %>
+        <%!-- Your input (bottom) --%>
+        <div class="w-full max-w-md">
+          <form phx-change="upsert_option" phx-submit="upsert_option" class="flex flex-col gap-3">
+            <label class="label"><span class="label-text font-semibold">Your option</span></label>
+            <input
+              type="text"
+              name="name"
+              value={@my_name}
+              placeholder="Short name (2-4 words)"
+              class="input input-bordered input-sm"
+              autocomplete="off"
+            />
+            <input
+              type="text"
+              name="desc"
+              value={@my_desc}
+              placeholder="One sentence description"
+              class="input input-bordered input-sm"
+              autocomplete="off"
+            />
+          </form>
 
-        <div class="flex gap-2 mt-4">
-          <button
-            phx-click="confirm_option"
-            disabled={@my_name == "" or @is_ready}
-            class={"btn btn-sm flex-1 " <> if(@is_confirmed, do: "btn-success", else: "btn-outline btn-success")}
-          >
-            <%= if @is_confirmed, do: "Confirmed ✓", else: "Confirm" %>
-          </button>
-          <button
-            phx-click="ready_options"
-            disabled={not @is_confirmed or @is_ready}
-            class={"btn btn-sm flex-1 " <> if(@is_ready, do: "btn-primary", else: "btn-outline btn-primary")}
-          >
-            <%= if @is_ready, do: "Ready ✓", else: "Ready up" %>
-          </button>
+          <div class="flex gap-2 mt-4">
+            <button
+              phx-click="confirm_option"
+              disabled={@my_name == "" or @is_ready}
+              class={"btn btn-sm flex-1 " <> if(@is_confirmed, do: "btn-success", else: "btn-outline btn-success")}
+            >
+              <%= if @is_confirmed, do: "Confirmed ✓", else: "Confirm" %>
+            </button>
+            <button
+              phx-click="ready_options"
+              disabled={not @is_confirmed or @is_ready}
+              class={"btn btn-sm flex-1 " <> if(@is_ready, do: "btn-primary", else: "btn-outline btn-primary")}
+            >
+              <%= if @is_ready, do: "Ready ✓", else: "Ready up" %>
+            </button>
+          </div>
         </div>
-      </div>
+      <% else %>
+        <span class="badge badge-ghost">Spectating</span>
+      <% end %>
     </div>
     """
   end
@@ -738,7 +757,7 @@ defmodule MaudeLibsWeb.DecisionLive do
     ~H"""
     <div class="min-h-screen flex flex-col items-center justify-center gap-6">
       <div class="loading loading-spinner loading-lg text-primary"></div>
-      <p class="text-xl font-semibold text-base-content/70" id="scaffold-msg" phx-hook="ScaffoldMsg">
+      <p class="text-xl font-semibold text-base-content/70">
         Spelunking...
       </p>
       <p class="text-sm text-base-content/40">Claude is analysing your options against priorities</p>
@@ -873,15 +892,17 @@ defmodule MaudeLibsWeb.DecisionLive do
       </div>
 
       <%!-- Ready button --%>
-      <div class="flex justify-end">
-        <button
-          phx-click="ready_dashboard"
-          disabled={@my_votes == [] or @is_ready}
-          class={"btn btn-primary " <> if(@is_ready, do: "btn-disabled", else: "")}
-        >
-          <%= if @is_ready, do: "Ready ✓", else: "Ready up" %>
-        </button>
-      </div>
+      <%= if not @spectator do %>
+        <div class="flex justify-end">
+          <button
+            phx-click="ready_dashboard"
+            disabled={@my_votes == [] or @is_ready}
+            class={"btn btn-primary " <> if(@is_ready, do: "btn-disabled", else: "")}
+          >
+            <%= if @is_ready, do: "Ready ✓", else: "Ready up" %>
+          </button>
+        </div>
+      <% end %>
     </div>
     """
   end
