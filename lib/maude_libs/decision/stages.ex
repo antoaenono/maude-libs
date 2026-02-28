@@ -10,6 +10,7 @@ defmodule MaudeLibs.Decision.Stage do
     @moduledoc "Participants submit scenario rephrases; unanimous vote picks one."
     defstruct submissions: %{},
               synthesis: nil,
+              synthesizing: false,
               votes: %{}
   end
 
@@ -23,6 +24,7 @@ defmodule MaudeLibs.Decision.Stage do
     defstruct priorities: %{},
               confirmed: MapSet.new(),
               suggestions: [],
+              suggesting: false,
               ready: MapSet.new()
   end
 
@@ -34,6 +36,7 @@ defmodule MaudeLibs.Decision.Stage do
     defstruct proposals: %{},
               confirmed: MapSet.new(),
               suggestions: [],
+              suggesting: false,
               ready: MapSet.new()
   end
 

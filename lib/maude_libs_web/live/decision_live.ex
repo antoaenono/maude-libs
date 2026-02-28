@@ -463,8 +463,15 @@ defmodule MaudeLibsWeb.DecisionLive do
             is_synthesis={true}
             spectator={@spectator}
             placeholder={nil}
+            thinking={@s.synthesizing}
           />
         </div>
+      <% else %>
+      <%= if @s.synthesizing do %>
+        <div class="absolute" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
+          <.claude_thinking label="Claude" />
+        </div>
+      <% end %>
       <% end %>
 
       <%!-- Your card (bottom center) --%>
@@ -525,7 +532,10 @@ defmodule MaudeLibsWeb.DecisionLive do
   end
 
   defp candidate_card(assigns) do
-    assigns = assign_new(assigns, :placeholder, fn -> nil end)
+    assigns =
+      assigns
+      |> assign_new(:placeholder, fn -> nil end)
+      |> assign_new(:thinking, fn -> false end)
     ~H"""
     <div class={"card w-60 border-2 bg-base-100 shadow-md transition-all " <>
                  if(@selected, do: "border-primary bg-primary/10", else:
@@ -534,9 +544,14 @@ defmodule MaudeLibsWeb.DecisionLive do
     >
       <div class="card-body p-4 gap-2">
         <div class="flex items-center justify-between">
-          <span class={"badge badge-sm " <> if(@is_synthesis, do: "badge-secondary", else: "badge-ghost")}>
-            <%= @label %>
-          </span>
+          <div class="flex items-center gap-1.5">
+            <span class={"badge badge-sm " <> if(@is_synthesis, do: "badge-secondary", else: "badge-ghost")}>
+              <%= @label %>
+            </span>
+            <%= if @thinking do %>
+              <.mini_dots />
+            <% end %>
+          </div>
           <%= if @voted do %>
             <span class="text-xs text-base-content/40">voted ✓</span>
           <% end %>
@@ -627,7 +642,10 @@ defmodule MaudeLibsWeb.DecisionLive do
         <div class="absolute z-20" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
           <div class="card w-72 border-2 border-dashed border-secondary bg-base-100 shadow-lg">
             <div class="card-body p-4 gap-3">
-              <span class="badge badge-secondary badge-sm">Claude - anyone can toggle</span>
+              <div class="flex items-center gap-1.5">
+                <span class="badge badge-secondary badge-sm">Claude - anyone can toggle</span>
+                <%= if @s.suggesting do %><.mini_dots /><% end %>
+              </div>
               <%= for {suggestion, idx} <- Enum.with_index(@s.suggestions) do %>
                 <button
                   phx-click="toggle_priority_suggestion"
@@ -650,6 +668,12 @@ defmodule MaudeLibsWeb.DecisionLive do
             </div>
           </div>
         </div>
+      <% else %>
+      <%= if @s.suggesting do %>
+        <div class="absolute z-20" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
+          <.claude_thinking label="Claude" />
+        </div>
+      <% end %>
       <% end %>
 
       <%!-- Your card (bottom center) --%>
@@ -793,7 +817,10 @@ defmodule MaudeLibsWeb.DecisionLive do
         <div class="absolute z-20" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
           <div class="card w-80 border-2 border-dashed border-secondary bg-base-100 shadow-lg">
             <div class="card-body p-4 gap-3">
-              <span class="badge badge-secondary badge-sm">Claude - anyone can toggle</span>
+              <div class="flex items-center gap-1.5">
+                <span class="badge badge-secondary badge-sm">Claude - anyone can toggle</span>
+                <%= if @s.suggesting do %><.mini_dots /><% end %>
+              </div>
               <%= for {suggestion, idx} <- Enum.with_index(@s.suggestions) do %>
                 <button
                   phx-click="toggle_option_suggestion"
@@ -818,6 +845,12 @@ defmodule MaudeLibsWeb.DecisionLive do
             </div>
           </div>
         </div>
+      <% else %>
+      <%= if @s.suggesting do %>
+        <div class="absolute z-20" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
+          <.claude_thinking label="Claude" />
+        </div>
+      <% end %>
       <% end %>
 
       <%!-- Your card (bottom center) --%>
@@ -1255,6 +1288,31 @@ defmodule MaudeLibsWeb.DecisionLive do
   # ---------------------------------------------------------------------------
   # Helpers
   # ---------------------------------------------------------------------------
+
+  defp claude_thinking(assigns) do
+    ~H"""
+    <div class="card w-52 border-2 border-dashed border-secondary bg-base-100 shadow-md">
+      <div class="card-body p-4 gap-2 items-center">
+        <span class="badge badge-secondary badge-sm"><%= @label %></span>
+        <div class="flex gap-1 items-center py-1">
+          <span class="w-2 h-2 rounded-full bg-secondary opacity-60 animate-bounce" style="animation-delay: 0ms"></span>
+          <span class="w-2 h-2 rounded-full bg-secondary opacity-60 animate-bounce" style="animation-delay: 150ms"></span>
+          <span class="w-2 h-2 rounded-full bg-secondary opacity-60 animate-bounce" style="animation-delay: 300ms"></span>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  defp mini_dots(assigns) do
+    ~H"""
+    <span class="flex gap-0.5 items-center">
+      <span class="w-1 h-1 rounded-full bg-secondary opacity-70 animate-bounce" style="animation-delay: 0ms"></span>
+      <span class="w-1 h-1 rounded-full bg-secondary opacity-70 animate-bounce" style="animation-delay: 150ms"></span>
+      <span class="w-1 h-1 rounded-full bg-secondary opacity-70 animate-bounce" style="animation-delay: 300ms"></span>
+    </span>
+    """
+  end
 
   defp creator_of(decision), do: decision.creator
 

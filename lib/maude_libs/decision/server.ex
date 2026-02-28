@@ -151,10 +151,16 @@ defmodule MaudeLibs.Decision.Server do
 
   # Debounce timer fired
   @impl true
-  def handle_info({:debounce_fire, key, call_spec}, %{timers: timers} = state) do
+  def handle_info({:debounce_fire, key, call_spec}, %{decision: d, timers: timers} = state) do
     state2 = %{state | timers: Map.delete(timers, key)}
+    state3 = case Core.handle(d, :synthesis_started) do
+      {:ok, d2, effects} ->
+        state4 = %{state2 | decision: d2}
+        dispatch_effects(effects, state4)
+      {:error, _} -> state2
+    end
     spawn_llm_task(call_spec, self())
-    {:noreply, state2}
+    {:noreply, state3}
   end
 
   # ---------------------------------------------------------------------------

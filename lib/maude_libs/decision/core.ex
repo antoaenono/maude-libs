@@ -104,12 +104,17 @@ defmodule MaudeLibs.Decision.Core do
   def handle(%__MODULE__{stage: %Stage.Scenario{} = s} = d, {:submit_scenario, user, text}) do
     s2 = %{s | submissions: Map.put(s.submissions, user, text)}
     d2 = %{d | stage: s2}
-    effects = [{:broadcast, d2.id, d2}] ++ maybe_debounce_synthesis(s2)
-    {:ok, d2, effects}
+    {:ok, d2, [{:broadcast, d2.id, d2}] ++ maybe_debounce_synthesis(s2)}
+  end
+
+  def handle(%__MODULE__{stage: %Stage.Scenario{} = s} = d, :synthesis_started) do
+    s2 = %{s | synthesizing: true}
+    d2 = %{d | stage: s2}
+    {:ok, d2, [{:broadcast, d2.id, d2}]}
   end
 
   def handle(%__MODULE__{stage: %Stage.Scenario{} = s} = d, {:synthesis_result, text}) do
-    s2 = %{s | synthesis: text}
+    s2 = %{s | synthesis: text, synthesizing: false}
     d2 = %{d | stage: s2}
     {:ok, d2, [{:broadcast, d2.id, d2}]}
   end
@@ -169,15 +174,15 @@ defmodule MaudeLibs.Decision.Core do
     if not Map.has_key?(s.priorities, user) do
       {:error, :no_entry}
     else
-      s2 = %{s | confirmed: MapSet.put(s.confirmed, user)}
+      llm_effects = maybe_suggest_priorities(%{d | stage: %{s | confirmed: MapSet.put(s.confirmed, user)}})
+      s2 = %{s | confirmed: MapSet.put(s.confirmed, user), suggesting: llm_effects != []}
       d2 = %{d | stage: s2}
-      effects = [{:broadcast, d2.id, d2}] ++ maybe_suggest_priorities(d2)
-      {:ok, d2, effects}
+      {:ok, d2, [{:broadcast, d2.id, d2}] ++ llm_effects}
     end
   end
 
   def handle(%__MODULE__{stage: %Stage.Priorities{} = s} = d, {:priority_suggestions_result, suggestions}) do
-    s2 = %{s | suggestions: Enum.map(suggestions, &Map.put(&1, :included, false))}
+    s2 = %{s | suggestions: Enum.map(suggestions, &Map.put(&1, :included, false)), suggesting: false}
     d2 = %{d | stage: s2}
     {:ok, d2, [{:broadcast, d2.id, d2}]}
   end
@@ -247,15 +252,15 @@ defmodule MaudeLibs.Decision.Core do
     if not Map.has_key?(s.proposals, user) do
       {:error, :no_entry}
     else
-      s2 = %{s | confirmed: MapSet.put(s.confirmed, user)}
+      llm_effects = maybe_suggest_options(%{d | stage: %{s | confirmed: MapSet.put(s.confirmed, user)}})
+      s2 = %{s | confirmed: MapSet.put(s.confirmed, user), suggesting: llm_effects != []}
       d2 = %{d | stage: s2}
-      effects = [{:broadcast, d2.id, d2}] ++ maybe_suggest_options(d2)
-      {:ok, d2, effects}
+      {:ok, d2, [{:broadcast, d2.id, d2}] ++ llm_effects}
     end
   end
 
   def handle(%__MODULE__{stage: %Stage.Options{} = s} = d, {:option_suggestions_result, suggestions}) do
-    s2 = %{s | suggestions: Enum.map(suggestions, &Map.put(&1, :included, false))}
+    s2 = %{s | suggestions: Enum.map(suggestions, &Map.put(&1, :included, false)), suggesting: false}
     d2 = %{d | stage: s2}
     {:ok, d2, [{:broadcast, d2.id, d2}]}
   end
