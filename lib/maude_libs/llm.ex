@@ -215,9 +215,12 @@ defmodule MaudeLibs.LLM do
       body = %{
         model: @model,
         max_tokens: @max_tokens,
-        temperature: 1.0,
         messages: [%{role: "user", content: prompt}]
       }
+
+      body = if call_name in [:suggest_priorities, :suggest_options],
+        do: Map.put(body, :temperature, 1.0),
+        else: body
 
       headers = [
         {"x-api-key", api_key},
