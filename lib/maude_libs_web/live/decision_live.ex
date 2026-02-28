@@ -635,9 +635,9 @@ defmodule MaudeLibsWeb.DecisionLive do
         </div>
       <% end %>
 
-      <%!-- Claude suggestions (lower center, after all confirmed) --%>
-      <%= if @all_confirmed and length(@s.suggestions) > 0 do %>
-        <div class="absolute z-20" style="left: 50%; top: 65%; transform: translate(-50%, -50%);">
+      <%!-- Bottom stack: Claude suggestions above your card, no overlap --%>
+      <div class="absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center gap-3 pb-6 pt-3">
+        <%= if @all_confirmed and length(@s.suggestions) > 0 do %>
           <div class="card w-72 border-2 border-dashed border-secondary bg-base-100 shadow-lg">
             <div class="card-body p-4 gap-3">
               <div class="flex items-center gap-1.5">
@@ -665,17 +665,12 @@ defmodule MaudeLibsWeb.DecisionLive do
               <% end %>
             </div>
           </div>
-        </div>
-      <% else %>
-      <%= if @s.suggesting do %>
-        <div class="absolute z-20" style="left: 50%; top: 65%; transform: translate(-50%, -50%);">
-          <.claude_thinking label="Claude" />
-        </div>
-      <% end %>
-      <% end %>
+        <% else %>
+          <%= if @s.suggesting do %>
+            <.claude_thinking label="Claude" />
+          <% end %>
+        <% end %>
 
-      <%!-- Your card (bottom center) --%>
-      <div class="absolute" style="left: 50%; top: 82%; transform: translate(-50%, -50%);">
         <%= if @spectator do %>
           <span class="badge badge-ghost">Spectating</span>
         <% else %>
@@ -810,9 +805,9 @@ defmodule MaudeLibsWeb.DecisionLive do
         </div>
       <% end %>
 
-      <%!-- Claude suggestions (lower center, after all confirmed) --%>
-      <%= if @all_confirmed and length(@s.suggestions) > 0 do %>
-        <div class="absolute z-20" style="left: 50%; top: 65%; transform: translate(-50%, -50%);">
+      <%!-- Bottom stack: Claude suggestions above your card, no overlap --%>
+      <div class="absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center gap-3 pb-6 pt-3">
+        <%= if @all_confirmed and length(@s.suggestions) > 0 do %>
           <div class="card w-72 border-2 border-dashed border-secondary bg-base-100 shadow-lg">
             <div class="card-body p-4 gap-3">
               <div class="flex items-center gap-1.5">
@@ -839,17 +834,12 @@ defmodule MaudeLibsWeb.DecisionLive do
               <% end %>
             </div>
           </div>
-        </div>
-      <% else %>
-      <%= if @s.suggesting do %>
-        <div class="absolute z-20" style="left: 50%; top: 65%; transform: translate(-50%, -50%);">
-          <.claude_thinking label="Claude" />
-        </div>
-      <% end %>
-      <% end %>
+        <% else %>
+          <%= if @s.suggesting do %>
+            <.claude_thinking label="Claude" />
+          <% end %>
+        <% end %>
 
-      <%!-- Your card (bottom center) --%>
-      <div class="absolute" style="left: 50%; top: 82%; transform: translate(-50%, -50%);">
         <%= if @spectator do %>
           <span class="badge badge-ghost">Spectating</span>
         <% else %>
