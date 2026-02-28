@@ -149,8 +149,13 @@ defmodule MaudeLibsWeb.DecisionLive do
     {:noreply, socket}
   end
 
-  def handle_event("toggle_priority_suggestion", %{"idx" => idx, "included" => included}, socket) do
-    Server.handle_message(socket.assigns.id, {:toggle_priority_suggestion, String.to_integer(idx), included == "true"})
+  def handle_event("toggle_priority_suggestion", %{"idx" => idx}, socket) do
+    s = socket.assigns.decision.stage
+    idx_int = String.to_integer(idx)
+    current = Enum.at(s.suggestions, idx_int)
+    if current do
+      Server.handle_message(socket.assigns.id, {:toggle_priority_suggestion, idx_int, not current.included})
+    end
     {:noreply, socket}
   end
 
@@ -174,8 +179,13 @@ defmodule MaudeLibsWeb.DecisionLive do
     {:noreply, socket}
   end
 
-  def handle_event("toggle_option_suggestion", %{"idx" => idx, "included" => included}, socket) do
-    Server.handle_message(socket.assigns.id, {:toggle_option_suggestion, String.to_integer(idx), included == "true"})
+  def handle_event("toggle_option_suggestion", %{"idx" => idx}, socket) do
+    s = socket.assigns.decision.stage
+    idx_int = String.to_integer(idx)
+    current = Enum.at(s.suggestions, idx_int)
+    if current do
+      Server.handle_message(socket.assigns.id, {:toggle_option_suggestion, idx_int, not current.included})
+    end
     {:noreply, socket}
   end
 
@@ -622,7 +632,6 @@ defmodule MaudeLibsWeb.DecisionLive do
                 <button
                   phx-click="toggle_priority_suggestion"
                   phx-value-idx={idx}
-                  phx-value-included={not suggestion.included}
                   class={"flex items-center gap-3 px-3 py-2 rounded-lg border w-full text-left transition-all " <>
                          if(suggestion.included, do: "border-secondary bg-secondary/10", else: "border-base-300 hover:border-secondary/50")}
                 >
@@ -784,7 +793,6 @@ defmodule MaudeLibsWeb.DecisionLive do
                 <button
                   phx-click="toggle_option_suggestion"
                   phx-value-idx={idx}
-                  phx-value-included={not suggestion.included}
                   class={"flex items-start gap-3 px-3 py-2 rounded-lg border w-full text-left transition-all " <>
                          if(suggestion.included, do: "border-secondary bg-secondary/10", else: "border-base-300 hover:border-secondary/50")}
                 >
