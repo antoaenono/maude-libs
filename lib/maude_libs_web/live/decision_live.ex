@@ -880,7 +880,12 @@ defmodule MaudeLibsWeb.DecisionLive do
                 <button
                   phx-click="ready_options"
                   disabled={not @is_confirmed or @is_ready}
-                  class={"btn btn-sm flex-1 " <> if(@is_ready, do: "btn-primary", else: "btn-outline btn-primary")}
+                  class={"btn btn-sm flex-1 " <>
+                    cond do
+                      @is_ready -> "btn-primary"
+                      @all_confirmed and @is_confirmed -> "btn-primary animate-pulse"
+                      true -> "btn-outline btn-primary"
+                    end}
                 >
                   <%= if @is_ready, do: "Ready ✓", else: "Ready up" %>
                 </button>
