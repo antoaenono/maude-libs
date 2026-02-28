@@ -776,9 +776,18 @@ defmodule MaudeLibsWeb.DecisionLive do
     ~H"""
     <div class="w-screen h-screen overflow-hidden relative select-none">
       <%!-- Sticky header --%>
-      <div class="absolute top-0 left-0 right-0 z-10 bg-base-100/80 backdrop-blur border-b border-base-300 px-8 py-4 flex flex-col items-center gap-1">
+      <div class="absolute top-0 left-0 right-0 z-10 bg-base-100/80 backdrop-blur border-b border-base-300 px-8 py-4 flex flex-col items-center gap-2">
         <span class="text-xs font-mono text-base-content/40 uppercase tracking-widest">Propose options</span>
         <span class="text-lg font-semibold text-base-content"><%= @decision.topic %></span>
+        <%= if length(@decision.priorities) > 0 do %>
+          <div class="flex flex-wrap justify-center gap-1.5">
+            <%= for p <- @decision.priorities do %>
+              <span class={"badge badge-sm badge-outline font-mono " <> priority_badge_class(p.direction)}>
+                <%= p.direction %> <%= p.text %>
+              </span>
+            <% end %>
+          </div>
+        <% end %>
         <span class="text-xs text-base-content/40">Each person enters one concrete option</span>
       </div>
 
@@ -961,7 +970,7 @@ defmodule MaudeLibsWeb.DecisionLive do
         <div class="flex flex-wrap gap-2">
           <%= for p <- @priorities do %>
             <span class={"badge badge-outline font-mono " <> priority_badge_class(p.direction)}>
-              <%= p.id %> <%= p.text %>
+              <%= p.direction %> <%= p.text %>
             </span>
           <% end %>
         </div>
@@ -1111,7 +1120,7 @@ defmodule MaudeLibsWeb.DecisionLive do
           <div class="flex flex-wrap gap-2">
             <%= for p <- @priorities do %>
               <span class={"badge badge-outline font-mono " <> priority_badge_class(p.direction)}>
-                <%= p.id %> <%= p.text %>
+                <%= p.direction %> <%= p.text %>
               </span>
             <% end %>
           </div>
