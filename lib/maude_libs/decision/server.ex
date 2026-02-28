@@ -168,6 +168,14 @@ defmodule MaudeLibs.Decision.Server do
     Logger.debug("broadcasting state", decision_id: id, stage: stage_name(decision.stage))
     Phoenix.PubSub.broadcast(MaudeLibs.PubSub, "decision:#{id}", {:decision_updated, decision})
     MaudeLibs.CanvasServer.update_circle(id, %{stage: stage_atom(decision.stage)})
+    # Notify invited users on their personal topic so canvas can show an invite modal
+    if match?(%Stage.Lobby{}, decision.stage) do
+      for username <- MapSet.to_list(decision.stage.invited) do
+        if username not in decision.stage.joined do
+          Phoenix.PubSub.broadcast(MaudeLibs.PubSub, "user:#{username}", {:invited, id, decision.topic})
+        end
+      end
+    end
     # Fire tagline LLM call when scenario just resolved (topic is now the agreed scenario)
     if match?(%Stage.Priorities{}, decision.stage) and is_binary(decision.topic) do
       spawn_llm_task({:tagline, id, decision.topic}, self())

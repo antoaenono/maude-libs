@@ -12,16 +12,26 @@ defmodule MaudeLibsWeb.CanvasLive do
     else
       if connected?(socket) do
         Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "canvas")
+        Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "user:#{username}")
       end
 
       circles = CanvasServer.get_state()
-      {:ok, assign(socket, username: username, circles: circles)}
+      {:ok, assign(socket, username: username, circles: circles, invite: nil)}
     end
   end
 
   @impl true
   def handle_info({:canvas_updated, circles}, socket) do
     {:noreply, assign(socket, circles: circles)}
+  end
+
+  def handle_info({:invited, id, topic}, socket) do
+    {:noreply, assign(socket, invite: %{id: id, topic: topic})}
+  end
+
+  @impl true
+  def handle_event("dismiss_invite", _params, socket) do
+    {:noreply, assign(socket, invite: nil)}
   end
 
   @impl true
@@ -47,6 +57,23 @@ defmodule MaudeLibsWeb.CanvasLive do
       >
         <span class="text-2xl leading-none">+</span>
       </a>
+
+      <%!-- Invite modal --%>
+      <%= if @invite do %>
+        <div class="fixed inset-0 bg-black/40 z-20 flex items-center justify-center">
+          <div class="bg-base-100 rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 flex flex-col gap-4">
+            <h3 class="text-lg font-bold">You've been invited</h3>
+            <p class="text-base-content/70">
+              Join the decision:
+              <span class="font-semibold text-base-content"><%= @invite.topic || "New decision" %></span>
+            </p>
+            <div class="flex gap-3">
+              <a href={"/d/#{@invite.id}"} class="btn btn-primary flex-1">Join</a>
+              <button phx-click="dismiss_invite" class="btn btn-ghost flex-1">Later</button>
+            </div>
+          </div>
+        </div>
+      <% end %>
     </div>
     """
   end
