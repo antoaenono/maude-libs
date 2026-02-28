@@ -4,6 +4,7 @@ defmodule MaudeLibsWeb.DecisionLive do
 
   alias MaudeLibs.Decision.{Server, Supervisor, Stage}
   alias MaudeLibs.UserRegistry
+  alias MaudeLibsWeb.StageLayout
 
   # ---------------------------------------------------------------------------
   # Mount
@@ -405,38 +406,45 @@ defmodule MaudeLibsWeb.DecisionLive do
   # ---------------------------------------------------------------------------
 
   # Spatial positions for other participants: {left%, top%}
-  # "others" excludes self; Claude goes dead center (50%, 50%)
-  # self always anchored at bottom center (50%, 85%)
-  @other_positions %{
-    1 => [{"50%", "28%"}],
-    2 => [{"28%", "30%"}, {"72%", "30%"}],
-    3 => [{"50%", "25%"}, {"22%", "42%"}, {"78%", "42%"}]
-  }
-
   defp scenario_stage(assigns) do
     s = assigns.decision.stage
     my_vote = Map.get(s.votes, assigns.username)
     other_users = MapSet.to_list(assigns.decision.connected) |> Enum.reject(&(&1 == assigns.username))
-    positions = Map.get(@other_positions, min(length(other_users), 3), [])
-    others_with_pos = Enum.zip(other_users, positions)
-    assigns = assign(assigns, s: s, my_vote: my_vote, other_users: other_users, others_with_pos: others_with_pos)
+
+    stage_context = %{
+      has_content: s.synthesis != nil,
+      is_thinking: s.synthesizing,
+      suggestion_count: if(s.synthesis, do: 1, else: 0)
+    }
+    positions = StageLayout.compute(other_users, stage_context)
+    {claude_x, claude_y} = StageLayout.claude_pos()
+    {your_x, your_y} = StageLayout.your_pos()
+
+    assigns = assign(assigns,
+      s: s, my_vote: my_vote, other_users: other_users, positions: positions,
+      claude_x: claude_x, claude_y: claude_y, your_x: your_x, your_y: your_y
+    )
 
     ~H"""
-    <div class="w-screen h-screen overflow-hidden relative select-none">
-      <%!-- Sticky header --%>
-      <div class="absolute top-0 left-0 right-0 z-10 bg-base-100/80 backdrop-blur border-b border-base-300 px-8 py-4 flex flex-col items-center gap-1">
+    <div class="w-screen h-screen overflow-hidden flex flex-col select-none">
+      <%!-- Header --%>
+      <div class="shrink-0 bg-base-100/80 backdrop-blur border-b border-base-300 px-8 py-4 flex flex-col items-center gap-1">
         <span class="text-xs font-mono text-base-content/40 uppercase tracking-widest">Frame the scenario</span>
         <span class="text-lg font-semibold text-base-content"><%= @decision.topic %></span>
         <span class="text-xs text-base-content/40">Vote on a framing - everyone must agree to proceed</span>
       </div>
 
+      <%!-- Canvas area --%>
+      <div class="flex-1 relative overflow-hidden">
+
       <%!-- Other participants' cards --%>
-      <%= for {user, {left, top}} <- @others_with_pos do %>
+      <%= for user <- @other_users do %>
+        <% {x, y} = Map.get(@positions, user, {50.0, 30.0}) %>
         <% text = Map.get(@s.submissions, user, "") %>
         <% voted = Map.get(@s.votes, user) %>
         <div
-          class="absolute"
-          style={"left: #{left}; top: #{top}; transform: translate(-50%, -50%);"}
+          class="absolute transition-all duration-700 ease-in-out"
+          style={"left: #{x}%; top: #{y}%; transform: translate(-50%, -50%);"}
         >
           <.candidate_card
             text={if text != "", do: text, else: nil}
@@ -450,9 +458,10 @@ defmodule MaudeLibsWeb.DecisionLive do
         </div>
       <% end %>
 
-      <%!-- Claude synthesis (dead center) --%>
-      <%= if @s.synthesis do %>
-        <div class="absolute" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
+      <%!-- Claude synthesis (always at center, invisible when empty) --%>
+      <div class={"absolute transition-all duration-700 ease-in-out " <> if(@s.synthesis || @s.synthesizing, do: "opacity-100", else: "opacity-0 pointer-events-none")}
+           style={"left: #{@claude_x}%; top: #{@claude_y}%; transform: translate(-50%, -50%);"}>
+        <%= if @s.synthesis do %>
           <.candidate_card
             text={@s.synthesis}
             label="Claude"
@@ -463,17 +472,13 @@ defmodule MaudeLibsWeb.DecisionLive do
             placeholder={nil}
             thinking={@s.synthesizing}
           />
-        </div>
-      <% else %>
-      <%= if @s.synthesizing do %>
-        <div class="absolute" style="left: 50%; top: 50%; transform: translate(-50%, -50%);">
+        <% else %>
           <.claude_thinking label="Claude" />
-        </div>
-      <% end %>
-      <% end %>
+        <% end %>
+      </div>
 
       <%!-- Your card (bottom center) --%>
-      <div class="absolute" style="left: 50%; top: 82%; transform: translate(-50%, -50%);">
+      <div class="absolute transition-all duration-700 ease-in-out" style={"left: #{@your_x}%; top: #{@your_y}%; transform: translate(-50%, -50%);"}>
         <% my_text = Map.get(@s.submissions, @username, "") %>
         <%= if @spectator do %>
           <.candidate_card
@@ -524,6 +529,7 @@ defmodule MaudeLibsWeb.DecisionLive do
       <%!-- Vote tally (bottom right) --%>
       <div class="absolute bottom-4 right-4 text-xs text-base-content/40 font-mono">
         <%= map_size(@s.votes) %> / <%= MapSet.size(@decision.connected) %> voted
+      </div>
       </div>
     </div>
     """
@@ -588,6 +594,15 @@ defmodule MaudeLibsWeb.DecisionLive do
     waiting_count = MapSet.size(assigns.decision.connected) - MapSet.size(s.confirmed)
     other_users = MapSet.to_list(assigns.decision.connected) |> Enum.reject(&(&1 == assigns.username))
 
+    stage_context = %{
+      has_content: all_confirmed and length(s.suggestions) > 0,
+      is_thinking: s.suggesting,
+      suggestion_count: length(s.suggestions)
+    }
+    positions = StageLayout.compute(other_users, stage_context)
+    {claude_x, claude_y} = StageLayout.claude_pos()
+    {your_x, your_y} = StageLayout.your_pos()
+
     assigns = assign(assigns,
       s: s,
       my_priority: my_priority,
@@ -598,22 +613,28 @@ defmodule MaudeLibsWeb.DecisionLive do
       all_confirmed: all_confirmed,
       waiting_count: waiting_count,
       other_users: other_users,
-      other_positions: @other_positions
+      positions: positions,
+      claude_x: claude_x, claude_y: claude_y,
+      your_x: your_x, your_y: your_y
     )
 
     ~H"""
-    <div class="w-screen h-screen overflow-hidden relative select-none">
-      <%!-- Sticky header --%>
-      <div class="absolute top-0 left-0 right-0 z-10 bg-base-100/80 backdrop-blur border-b border-base-300 px-8 py-4 flex flex-col items-center gap-1">
+    <div class="w-screen h-screen overflow-hidden flex flex-col select-none">
+      <%!-- Header --%>
+      <div class="shrink-0 bg-base-100/80 backdrop-blur border-b border-base-300 px-8 py-4 flex flex-col items-center gap-1">
         <span class="text-xs font-mono text-base-content/40 uppercase tracking-widest">Name your priorities</span>
         <span class="text-lg font-semibold text-base-content"><%= @decision.topic %></span>
         <span class="text-xs text-base-content/40">Name a dimension, not a directional statement - e.g. "cost" not "too expensive"</span>
       </div>
 
+      <%!-- Canvas area --%>
+      <div class="flex-1 relative overflow-hidden">
+
       <%!-- Other participants' priority cards --%>
-      <%= for {user, {left, top}} <- Enum.zip(@other_users, Map.get(@other_positions, min(length(@other_users), 3), [])) do %>
+      <%= for user <- @other_users do %>
+        <% {x, y} = Map.get(@positions, user, {50.0, 30.0}) %>
         <% p = Map.get(@s.priorities, user) %>
-        <div class="absolute" style={"left: #{left}; top: #{top}; transform: translate(-50%, -50%);"}>
+        <div class="absolute transition-all duration-700 ease-in-out" style={"left: #{x}%; top: #{y}%; transform: translate(-50%, -50%);"}>
           <div class={"card w-52 border-2 bg-base-100 shadow-md " <> if(user in @s.confirmed, do: "border-success", else: "border-base-300")}>
             <div class="card-body p-4 gap-2">
               <div class="flex items-center justify-between">
@@ -635,8 +656,10 @@ defmodule MaudeLibsWeb.DecisionLive do
         </div>
       <% end %>
 
-      <%!-- Bottom stack: Claude suggestions above your card, no overlap --%>
-      <div class="absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center gap-3 pb-6 pt-3">
+      <%!-- Claude suggestions (always at center, invisible when empty) --%>
+      <% has_claude_content = (@all_confirmed and length(@s.suggestions) > 0) or @s.suggesting %>
+      <div class={"absolute z-20 transition-all duration-700 ease-in-out " <> if(has_claude_content, do: "opacity-100", else: "opacity-0 pointer-events-none")}
+           style={"left: #{@claude_x}%; top: #{@claude_y}%; transform: translate(-50%, -50%);"}>
         <%= if @all_confirmed and length(@s.suggestions) > 0 do %>
           <div class="card w-72 border-2 border-dashed border-secondary bg-base-100 shadow-lg">
             <div class="card-body p-4 gap-3">
@@ -666,11 +689,12 @@ defmodule MaudeLibsWeb.DecisionLive do
             </div>
           </div>
         <% else %>
-          <%= if @s.suggesting do %>
-            <.claude_thinking label="Claude" />
-          <% end %>
+          <.claude_thinking label="Claude" />
         <% end %>
+      </div>
 
+      <%!-- Your card (bottom center) --%>
+      <div class="absolute z-20 transition-all duration-700 ease-in-out" style={"left: #{@your_x}%; top: #{@your_y}%; transform: translate(-50%, -50%);"}>
         <%= if @spectator do %>
           <span class="badge badge-ghost">Spectating</span>
         <% else %>
@@ -741,6 +765,7 @@ defmodule MaudeLibsWeb.DecisionLive do
       <div class="absolute bottom-4 right-4 text-xs text-base-content/40 font-mono">
         <%= MapSet.size(@s.confirmed) %> / <%= MapSet.size(@decision.connected) %> confirmed
       </div>
+      </div>
     </div>
     """
   end
@@ -760,6 +785,15 @@ defmodule MaudeLibsWeb.DecisionLive do
     waiting_count = MapSet.size(assigns.decision.connected) - MapSet.size(s.confirmed)
     other_users = MapSet.to_list(assigns.decision.connected) |> Enum.reject(&(&1 == assigns.username))
 
+    stage_context = %{
+      has_content: all_confirmed and length(s.suggestions) > 0,
+      is_thinking: s.suggesting,
+      suggestion_count: length(s.suggestions)
+    }
+    positions = StageLayout.compute(other_users, stage_context)
+    {claude_x, claude_y} = StageLayout.claude_pos()
+    {your_x, your_y} = StageLayout.your_pos()
+
     assigns = assign(assigns,
       s: s,
       my_option: my_option,
@@ -770,13 +804,15 @@ defmodule MaudeLibsWeb.DecisionLive do
       all_confirmed: all_confirmed,
       waiting_count: waiting_count,
       other_users: other_users,
-      other_positions: @other_positions
+      positions: positions,
+      claude_x: claude_x, claude_y: claude_y,
+      your_x: your_x, your_y: your_y
     )
 
     ~H"""
-    <div class="w-screen h-screen overflow-hidden relative select-none">
-      <%!-- Sticky header --%>
-      <div class="absolute top-0 left-0 right-0 z-10 bg-base-100/80 backdrop-blur border-b border-base-300 px-8 py-4 flex flex-col items-center gap-2">
+    <div class="w-screen h-screen overflow-hidden flex flex-col select-none">
+      <%!-- Header --%>
+      <div class="shrink-0 bg-base-100/80 backdrop-blur border-b border-base-300 px-8 py-4 flex flex-col items-center gap-2">
         <span class="text-xs font-mono text-base-content/40 uppercase tracking-widest">Propose options</span>
         <span class="text-lg font-semibold text-base-content"><%= @decision.topic %></span>
         <%= if length(@decision.priorities) > 0 do %>
@@ -791,10 +827,14 @@ defmodule MaudeLibsWeb.DecisionLive do
         <span class="text-xs text-base-content/40">Each person enters one concrete option</span>
       </div>
 
+      <%!-- Canvas area --%>
+      <div class="flex-1 relative overflow-hidden">
+
       <%!-- Other participants' option cards --%>
-      <%= for {user, {left, top}} <- Enum.zip(@other_users, Map.get(@other_positions, min(length(@other_users), 3), [])) do %>
+      <%= for user <- @other_users do %>
+        <% {x, y} = Map.get(@positions, user, {50.0, 30.0}) %>
         <% opt = Map.get(@s.proposals, user) %>
-        <div class="absolute" style={"left: #{left}; top: #{top}; transform: translate(-50%, -50%);"}>
+        <div class="absolute transition-all duration-700 ease-in-out" style={"left: #{x}%; top: #{y}%; transform: translate(-50%, -50%);"}>
           <div class={"card w-52 border-2 bg-base-100 shadow-md " <> if(user in @s.confirmed, do: "border-success", else: "border-base-300")}>
             <div class="card-body p-4 gap-2">
               <div class="flex items-center justify-between">
@@ -814,8 +854,10 @@ defmodule MaudeLibsWeb.DecisionLive do
         </div>
       <% end %>
 
-      <%!-- Bottom stack: Claude suggestions above your card, no overlap --%>
-      <div class="absolute bottom-0 left-0 right-0 z-20 flex flex-col items-center gap-3 pb-6 pt-3">
+      <%!-- Claude suggestions (always at center, invisible when empty) --%>
+      <% has_claude_content = (@all_confirmed and length(@s.suggestions) > 0) or @s.suggesting %>
+      <div class={"absolute z-20 transition-all duration-700 ease-in-out " <> if(has_claude_content, do: "opacity-100", else: "opacity-0 pointer-events-none")}
+           style={"left: #{@claude_x}%; top: #{@claude_y}%; transform: translate(-50%, -50%);"}>
         <%= if @all_confirmed and length(@s.suggestions) > 0 do %>
           <div class="card w-72 border-2 border-dashed border-secondary bg-base-100 shadow-lg">
             <div class="card-body p-4 gap-3">
@@ -844,11 +886,12 @@ defmodule MaudeLibsWeb.DecisionLive do
             </div>
           </div>
         <% else %>
-          <%= if @s.suggesting do %>
-            <.claude_thinking label="Claude" />
-          <% end %>
+          <.claude_thinking label="Claude" />
         <% end %>
+      </div>
 
+      <%!-- Your card (bottom center) --%>
+      <div class="absolute z-20 transition-all duration-700 ease-in-out" style={"left: #{@your_x}%; top: #{@your_y}%; transform: translate(-50%, -50%);"}>
         <%= if @spectator do %>
           <span class="badge badge-ghost">Spectating</span>
         <% else %>
@@ -912,6 +955,7 @@ defmodule MaudeLibsWeb.DecisionLive do
       <%!-- Tally (bottom right) --%>
       <div class="absolute bottom-4 right-4 text-xs text-base-content/40 font-mono">
         <%= MapSet.size(@s.confirmed) %> / <%= MapSet.size(@decision.connected) %> confirmed
+      </div>
       </div>
     </div>
     """

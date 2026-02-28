@@ -120,23 +120,31 @@ defmodule MaudeLibs.CanvasServer do
   end
 
   defp repulsion_force(id, circle, circles, ids) do
-    Enum.reduce(ids, {0.0, 0.0}, fn other_id, {fx, fy} ->
+    # Phantom repulsion from the fixed + button at canvas center
+    {fx0, fy0} = point_repulsion(circle, @width / 2, @height / 2)
+
+    Enum.reduce(ids, {fx0, fy0}, fn other_id, {fx, fy} ->
       if other_id == id do
         {fx, fy}
       else
         other = circles[other_id]
-        dx = circle.x - other.x
-        dy = circle.y - other.y
-        dist = max(:math.sqrt(dx * dx + dy * dy), @min_dist)
-        force = @repulsion / (dist * dist)
-        {fx + force * dx / dist, fy + force * dy / dist}
+        {rx, ry} = point_repulsion(circle, other.x, other.y)
+        {fx + rx, fy + ry}
       end
     end)
   end
 
+  defp point_repulsion(circle, ox, oy) do
+    dx = circle.x - ox
+    dy = circle.y - oy
+    dist = max(:math.sqrt(dx * dx + dy * dy), @min_dist)
+    force = @repulsion / (dist * dist)
+    {force * dx / dist, force * dy / dist}
+  end
+
   defp center_force(circle) do
     cx = (@width / 2 - circle.x) * @center_pull
-    cy = (@height * 0.38 - circle.y) * @center_pull
+    cy = (@height / 2 - circle.y) * @center_pull
     {cx, cy}
   end
 
