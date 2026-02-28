@@ -12,11 +12,11 @@
 #   - Ex: docker.io/hexpm/elixir:1.19.5-erlang-28.3.3-debian-trixie-20260223-slim
 #
 ARG ELIXIR_VERSION=1.18.3
-ARG OTP_VERSION=27.3.3
-ARG DEBIAN_VERSION=bookworm-20250317-slim
+ARG OTP_VERSION=27.2
+ARG UBUNTU_VERSION=jammy-20251013
 
-ARG BUILDER_IMAGE="docker.io/hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-debian-${DEBIAN_VERSION}"
-ARG RUNNER_IMAGE="docker.io/debian:${DEBIAN_VERSION}"
+ARG BUILDER_IMAGE="docker.io/hexpm/elixir:${ELIXIR_VERSION}-erlang-${OTP_VERSION}-ubuntu-${UBUNTU_VERSION}"
+ARG RUNNER_IMAGE="docker.io/ubuntu:${UBUNTU_VERSION}"
 
 FROM ${BUILDER_IMAGE} AS builder
 
@@ -72,11 +72,8 @@ FROM ${RUNNER_IMAGE} AS final
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends libstdc++6 openssl libncurses6 locales ca-certificates \
+  && locale-gen en_US.UTF-8 \
   && rm -rf /var/lib/apt/lists/*
-
-# Set the locale
-RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen \
-  && locale-gen
 
 ENV LANG=en_US.UTF-8
 ENV LANGUAGE=en_US:en
