@@ -11,9 +11,9 @@ defmodule MaudeLibs.Application do
       MaudeLibsWeb.Telemetry,
       {DNSCluster, query: Application.get_env(:maude_libs, :dns_cluster_query) || :ignore},
       {Phoenix.PubSub, name: MaudeLibs.PubSub},
-      # Start a worker by calling: MaudeLibs.Worker.start_link(arg)
-      # {MaudeLibs.Worker, arg},
-      # Start to serve requests, typically the last entry
+      {Registry, keys: :unique, name: MaudeLibs.Decision.Registry},
+      MaudeLibs.Decision.Supervisor,
+      MaudeLibs.UserRegistry,
       MaudeLibsWeb.Endpoint
     ]
 
