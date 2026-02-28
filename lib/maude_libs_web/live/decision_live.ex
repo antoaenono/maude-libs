@@ -996,8 +996,12 @@ defmodule MaudeLibsWeb.DecisionLive do
         <div class="flex gap-4 overflow-x-auto pb-2 flex-1">
           <%= for opt <- @s.options do %>
             <% votes_for = Map.get(@vote_counts, opt.name, 0) %>
-            <div class={"card w-72 flex-shrink-0 border-2 " <>
-                        if(opt.name in @my_votes, do: "border-primary bg-primary/5", else: "border-base-300 bg-base-100")}>
+            <div
+              phx-click={if not @spectator, do: "toggle_vote"}
+              phx-value-option={opt.name}
+              class={"card w-72 flex-shrink-0 border-2 transition-all " <>
+                        if(opt.name in @my_votes, do: "border-primary bg-primary/5", else: "border-base-300 bg-base-100") <>
+                        if(not @spectator, do: " cursor-pointer hover:border-primary/50", else: "")}>
               <div class="card-body p-4 gap-3">
                 <%!-- Header --%>
                 <div class="flex items-start justify-between gap-2">
