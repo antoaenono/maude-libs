@@ -619,19 +619,24 @@ defmodule MaudeLibsWeb.DecisionLive do
             <div class="card-body p-4 gap-3">
               <span class="badge badge-secondary badge-sm">Claude - anyone can toggle</span>
               <%= for {suggestion, idx} <- Enum.with_index(@s.suggestions) do %>
-                <label class={"flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all select-none " <>
-                              if(suggestion.included, do: "border-secondary bg-secondary/10", else: "border-base-300 hover:border-secondary/50")}>
-                  <input
-                    type="checkbox"
-                    class="checkbox checkbox-secondary checkbox-sm"
-                    checked={suggestion.included}
-                    phx-click="toggle_priority_suggestion"
-                    phx-value-idx={idx}
-                    phx-value-included={not suggestion.included}
-                  />
+                <button
+                  phx-click="toggle_priority_suggestion"
+                  phx-value-idx={idx}
+                  phx-value-included={not suggestion.included}
+                  class={"flex items-center gap-3 px-3 py-2 rounded-lg border w-full text-left transition-all " <>
+                         if(suggestion.included, do: "border-secondary bg-secondary/10", else: "border-base-300 hover:border-secondary/50")}
+                >
+                  <div class={"w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 " <>
+                               if(suggestion.included, do: "border-secondary bg-secondary", else: "border-base-300")}>
+                    <%= if suggestion.included do %>
+                      <svg class="w-2.5 h-2.5 text-secondary-content" fill="currentColor" viewBox="0 0 12 12">
+                        <path d="M10 3L5 8.5 2 5.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+                      </svg>
+                    <% end %>
+                  </div>
                   <span class={direction_color(suggestion.direction) <> " font-mono font-bold text-lg w-4"}><%= suggestion.direction %></span>
                   <span class="text-sm flex-1"><%= suggestion.text %></span>
-                </label>
+                </button>
               <% end %>
             </div>
           </div>
@@ -776,21 +781,26 @@ defmodule MaudeLibsWeb.DecisionLive do
             <div class="card-body p-4 gap-3">
               <span class="badge badge-secondary badge-sm">Claude - anyone can toggle</span>
               <%= for {suggestion, idx} <- Enum.with_index(@s.suggestions) do %>
-                <label class={"flex items-start gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-all select-none " <>
-                              if(suggestion.included, do: "border-secondary bg-secondary/10", else: "border-base-300 hover:border-secondary/50")}>
-                  <input
-                    type="checkbox"
-                    class="checkbox checkbox-secondary checkbox-sm mt-0.5"
-                    checked={suggestion.included}
-                    phx-click="toggle_option_suggestion"
-                    phx-value-idx={idx}
-                    phx-value-included={not suggestion.included}
-                  />
+                <button
+                  phx-click="toggle_option_suggestion"
+                  phx-value-idx={idx}
+                  phx-value-included={not suggestion.included}
+                  class={"flex items-start gap-3 px-3 py-2 rounded-lg border w-full text-left transition-all " <>
+                         if(suggestion.included, do: "border-secondary bg-secondary/10", else: "border-base-300 hover:border-secondary/50")}
+                >
+                  <div class={"w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 mt-0.5 " <>
+                               if(suggestion.included, do: "border-secondary bg-secondary", else: "border-base-300")}>
+                    <%= if suggestion.included do %>
+                      <svg class="w-2.5 h-2.5 text-secondary-content" fill="currentColor" viewBox="0 0 12 12">
+                        <path d="M10 3L5 8.5 2 5.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+                      </svg>
+                    <% end %>
+                  </div>
                   <div class="flex flex-col gap-0.5">
                     <span class="text-sm font-semibold"><%= suggestion.name %></span>
                     <span class="text-xs text-base-content/60"><%= suggestion.desc %></span>
                   </div>
-                </label>
+                </button>
               <% end %>
             </div>
           </div>
