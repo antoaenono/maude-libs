@@ -18,6 +18,10 @@ defmodule MaudeLibsWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+    live "/join", JoinLive
+    post "/session", SessionController, :create
+    live "/canvas", CanvasLive
+    live "/d/:id", DecisionLive
   end
 
   # Other scopes may use custom stacks.
