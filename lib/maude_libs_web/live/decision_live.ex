@@ -207,9 +207,7 @@ defmodule MaudeLibsWeb.DecisionLive do
       else
         [option_name | current_votes]
       end
-    if new_votes != [] do
-      Server.handle_message(socket.assigns.id, {:vote, socket.assigns.username, new_votes})
-    end
+    Server.handle_message(socket.assigns.id, {:vote, socket.assigns.username, new_votes})
     {:noreply, socket}
   end
 

@@ -336,17 +336,13 @@ defmodule MaudeLibs.Decision.Core do
   # ---------------------------------------------------------------------------
 
   def handle(%__MODULE__{stage: %Stage.Dashboard{} = s} = d, {:vote, user, option_names}) do
-    if option_names == [] do
-      {:error, :empty_vote}
+    valid_names = Enum.map(s.options, & &1.name)
+    if Enum.all?(option_names, &(&1 in valid_names)) do
+      s2 = %{s | votes: Map.put(s.votes, user, option_names)}
+      d2 = %{d | stage: s2}
+      {:ok, d2, [{:broadcast, d2.id, d2}]}
     else
-      valid_names = Enum.map(s.options, & &1.name)
-      if Enum.all?(option_names, &(&1 in valid_names)) do
-        s2 = %{s | votes: Map.put(s.votes, user, option_names)}
-        d2 = %{d | stage: s2}
-        {:ok, d2, [{:broadcast, d2.id, d2}]}
-      else
-        {:error, :invalid_option}
-      end
+      {:error, :invalid_option}
     end
   end
 
