@@ -11,7 +11,8 @@ defmodule MaudeLibs.MixProject do
       aliases: aliases(),
       deps: deps(),
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
-      listeners: [Phoenix.CodeReloader]
+      listeners: [Phoenix.CodeReloader],
+      usage_rules: usage_rules()
     ]
   end
 
@@ -28,6 +29,13 @@ defmodule MaudeLibs.MixProject do
   def cli do
     [
       preferred_envs: [precommit: :test]
+    ]
+  end
+
+  defp usage_rules do
+    [
+      file: "AGENTS.md",
+      usage_rules: :all
     ]
   end
 
@@ -61,7 +69,8 @@ defmodule MaudeLibs.MixProject do
       {:dns_cluster, "~> 0.2.0"},
       {:bandit, "~> 1.5"},
       {:req, "~> 0.5"},
-      {:tidewave, "~> 0.5", only: :dev}
+      {:tidewave, "~> 0.5", only: :dev},
+      {:usage_rules, "~> 1.2", only: :dev}
     ]
   end
 
@@ -73,7 +82,8 @@ defmodule MaudeLibs.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      setup: ["deps.get", "assets.setup", "assets.build"],
+      setup: ["deps.get", "usage_rules.sync --yes", "assets.setup", "assets.build"],
+      "deps.sync": ["deps.update --all", "usage_rules.sync --yes"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["compile", "tailwind maude_libs", "esbuild maude_libs"],
       "assets.deploy": [
