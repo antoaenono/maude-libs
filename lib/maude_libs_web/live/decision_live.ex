@@ -1560,7 +1560,8 @@ defmodule MaudeLibsWeb.DecisionLive do
     ~H"""
     <div
       class="fixed inset-0 bg-black/40 z-20 flex items-center justify-center"
-      phx-click="close_modal"
+      phx-window-keydown="close_modal"
+      phx-key="Escape"
     >
       <div
         class="bg-base-100 rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 flex flex-col gap-4"
