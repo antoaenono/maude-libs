@@ -21,6 +21,22 @@ defmodule MaudeLibs.Decision.ServerTest do
   defp msg(id, message), do: Server.handle_message(id, message)
   defp state(id), do: Server.get_state(id)
 
+  defp do_await(pred, timeout) do
+    receive do
+      {:decision_updated, d} ->
+        if pred.(d), do: d, else: do_await(pred, timeout)
+    after
+      timeout -> flunk("timed out waiting for matching broadcast")
+    end
+  end
+
+  # Subscribe first, then run action, then drain
+  defp subscribe_and_run(id, action_fn, pred, timeout \\ 500) do
+    Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
+    action_fn.()
+    do_await(pred, timeout)
+  end
+
   # ---------------------------------------------------------------------------
   # Registry + supervision
   # ---------------------------------------------------------------------------
@@ -88,10 +104,12 @@ defmodule MaudeLibs.Decision.ServerTest do
   describe "broadcast effect" do
     test "state change broadcasts to decision topic", %{id: id} do
       start(id, "alice")
-      Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
-      msg(id, {:ready, "alice"})
-      assert_receive {:decision_updated, decision}, 500
-      assert "alice" in decision.stage.ready
+
+      d = subscribe_and_run(id, fn -> msg(id, {:ready, "alice"}) end, fn d ->
+        "alice" in d.stage.ready
+      end)
+
+      assert "alice" in d.stage.ready
     end
   end
 
@@ -102,13 +120,10 @@ defmodule MaudeLibs.Decision.ServerTest do
   describe "disconnect" do
     test "participant disconnect removes from connected set", %{id: id} do
       start(id, "alice")
-      d_before = state(id)
-      assert "alice" in d_before.connected
 
-      Server.disconnect(id, "alice")
-      Process.sleep(10)
-      d_after = state(id)
-      refute "alice" in d_after.connected
+      subscribe_and_run(id, fn -> Server.disconnect(id, "alice") end, fn d ->
+        not MapSet.member?(d.connected, "alice")
+      end)
     end
 
     test "disconnect on unknown decision does not crash", %{id: _id} do
@@ -121,11 +136,6 @@ defmodule MaudeLibs.Decision.ServerTest do
   # ---------------------------------------------------------------------------
 
   describe "llm integration" do
-    # Walk decision through lobby -> scenario, then submit two scenario rephrases
-    # to trigger the synthesis debounce.
-    # We verify the debounce fires and stores a synthesis result.
-    # Uses real LLM only if ANTHROPIC_API_KEY is set; skips gracefully otherwise.
-
     @tag :llm
     test "synthesis debounce fires and stores result", %{id: id} do
       start(id, "alice")
@@ -133,15 +143,243 @@ defmodule MaudeLibs.Decision.ServerTest do
       msg(id, {:ready, "alice"})
       msg(id, {:start, "alice"})
 
-      # Submit two rephrases to trigger debounce
-      msg(id, {:submit_scenario, "alice", "where should we eat tonight?"})
-      msg(id, {:submit_scenario, "bob", "what restaurant for dinner?"})
+      # Subscribe before triggering debounce
+      d = subscribe_and_run(id, fn ->
+        msg(id, {:submit_scenario, "alice", "where should we eat tonight?"})
+        msg(id, {:submit_scenario, "bob", "what restaurant for dinner?"})
+      end, fn d ->
+        d.stage.synthesis != nil
+      end)
 
-      # Debounce is 0ms in test env, mock LLM is instant
-      Process.sleep(20)
-      d = state(id)
-      assert %Stage.Scenario{} = d.stage
-      assert d.stage.synthesis != nil
+      assert is_binary(d.stage.synthesis)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Async LLM: priority suggestions
+  # ---------------------------------------------------------------------------
+
+  describe "async LLM: priority suggestions" do
+    test "suggestions arrive after all confirm", %{id: id} do
+      decision = %MaudeLibs.Decision.Core{
+        id: id,
+        creator: "alice",
+        topic: "dinner?",
+        connected: MapSet.new(["alice"]),
+        stage: %Stage.Priorities{
+          priorities: %{"alice" => %{text: "cost", direction: "-"}}
+        }
+      }
+
+      DecisionSup.start_with_state(decision)
+
+      d = subscribe_and_run(id, fn ->
+        msg(id, {:confirm_priority, "alice"})
+      end, fn d ->
+        d.stage.suggestions != []
+      end)
+
+      assert length(d.stage.suggestions) == 3
+      assert d.stage.suggesting == false
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Async LLM: option suggestions
+  # ---------------------------------------------------------------------------
+
+  describe "async LLM: option suggestions" do
+    test "suggestions arrive after all confirm", %{id: id} do
+      decision = %MaudeLibs.Decision.Core{
+        id: id,
+        creator: "alice",
+        topic: "dinner?",
+        connected: MapSet.new(["alice"]),
+        priorities: [%{id: "+1", text: "speed", direction: "+"}],
+        stage: %Stage.Options{
+          proposals: %{"alice" => %{name: "tacos", desc: "quick tacos"}}
+        }
+      }
+
+      DecisionSup.start_with_state(decision)
+
+      d = subscribe_and_run(id, fn ->
+        msg(id, {:confirm_option, "alice"})
+      end, fn d ->
+        match?(%Stage.Options{suggestions: [_ | _]}, d.stage)
+      end)
+
+      assert length(d.stage.suggestions) == 3
+      assert d.stage.suggesting == false
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Async LLM: scaffolding
+  # ---------------------------------------------------------------------------
+
+  describe "async LLM: scaffolding" do
+    test "scaffolding result advances to dashboard", %{id: id} do
+      decision = %MaudeLibs.Decision.Core{
+        id: id,
+        creator: "alice",
+        topic: "dinner?",
+        connected: MapSet.new(["alice"]),
+        priorities: [%{id: "+1", text: "speed", direction: "+"}],
+        stage: %Stage.Options{
+          proposals: %{"alice" => %{name: "tacos", desc: "x"}}
+        }
+      }
+
+      DecisionSup.start_with_state(decision)
+
+      d = subscribe_and_run(id, fn ->
+        msg(id, {:ready_options, "alice"})
+      end, fn d ->
+        match?(%Stage.Dashboard{}, d.stage)
+      end)
+
+      assert length(d.stage.options) > 0
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Async LLM: why_statement
+  # ---------------------------------------------------------------------------
+
+  describe "async LLM: why_statement" do
+    test "why_statement stored on complete stage", %{id: id} do
+      decision = %MaudeLibs.Decision.Core{
+        id: id,
+        creator: "alice",
+        topic: "dinner?",
+        connected: MapSet.new(["alice"]),
+        stage: %Stage.Dashboard{
+          options: [
+            %{name: "tacos", desc: "x", for: [], against: []},
+            %{name: "pizza", desc: "y", for: [], against: []}
+          ],
+          votes: %{"alice" => ["tacos"]}
+        }
+      }
+
+      DecisionSup.start_with_state(decision)
+
+      d = subscribe_and_run(id, fn ->
+        msg(id, {:ready_dashboard, "alice"})
+      end, fn d ->
+        match?(%Stage.Complete{why_statement: s} when is_binary(s), d.stage)
+      end)
+
+      assert d.stage.why_statement =~ "tacos"
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Tagline side effect
+  # ---------------------------------------------------------------------------
+
+  describe "tagline" do
+    test "canvas circle gets tagline after scenario resolution", %{id: id} do
+      decision = %MaudeLibs.Decision.Core{
+        id: id,
+        creator: "alice",
+        topic: "dinner?",
+        connected: MapSet.new(["alice"]),
+        stage: %Stage.Scenario{
+          submissions: %{"alice" => "dinner?"},
+          votes: %{}
+        }
+      }
+
+      DecisionSup.start_with_state(decision)
+      # Tagline updates canvas via CanvasServer which broadcasts on "canvas"
+      Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "canvas")
+      msg(id, {:vote_scenario, "alice", "dinner?"})
+
+      # Drain canvas broadcasts until we see one with the tagline set
+      assert_tagline_broadcast(id)
+    end
+  end
+
+  defp assert_tagline_broadcast(id) do
+    receive do
+      {:canvas_updated, canvas} ->
+        if canvas[id] && canvas[id].tagline != nil do
+          assert canvas[id].tagline == "Decision Time"
+        else
+          assert_tagline_broadcast(id)
+        end
+    after
+      500 -> flunk("timed out waiting for tagline canvas broadcast")
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # LLM error resilience
+  # ---------------------------------------------------------------------------
+
+  describe "LLM error resilience" do
+    test "server survives :noop llm_result", %{id: id} do
+      {:ok, pid} = DecisionSup.start_decision(id, "alice", "dinner?")
+      send(pid, {:llm_result, :noop})
+      assert Process.alive?(pid)
+      assert state(id) != nil
+    end
+
+    test "server survives llm_result for wrong stage", %{id: id} do
+      {:ok, pid} = DecisionSup.start_decision(id, "alice", "dinner?")
+
+      capture_log(fn ->
+        send(pid, {:llm_result, {:synthesis_result, "text"}})
+        # Drain the GenServer mailbox with a sync call
+        _ = state(id)
+      end)
+
+      assert Process.alive?(pid)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Invited user notifications
+  # ---------------------------------------------------------------------------
+
+  describe "invite notifications" do
+    test "invited but not yet joined users get notified", %{id: id} do
+      start(id, "alice")
+      Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "user:bob")
+      msg(id, {:lobby_update, "alice", "dinner?", ["bob"]})
+      assert_receive {:invited, ^id, "dinner?"}, 100
+    end
+
+    test "already joined users do not get re-notified", %{id: id} do
+      start(id, "alice")
+      msg(id, {:lobby_update, "alice", "dinner?", ["bob"]})
+      msg(id, {:join, "bob"})
+
+      Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "user:bob")
+      msg(id, {:ready, "alice"})
+
+      refute_receive {:invited, ^id, _}, 50
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Supervision
+  # ---------------------------------------------------------------------------
+
+  describe "supervision" do
+    test "stop_decision terminates the server", %{id: id} do
+      start(id)
+      pid = Server.whereis(id)
+      assert is_pid(pid)
+      ref = Process.monitor(pid)
+      DecisionSup.stop_decision(id)
+      assert_receive {:DOWN, ^ref, :process, ^pid, _}, 100
+    end
+
+    test "stop nonexistent decision is :ok" do
+      assert :ok = DecisionSup.stop_decision("no-such-#{System.unique_integer()}")
     end
   end
 end
