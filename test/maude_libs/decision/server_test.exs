@@ -1,6 +1,8 @@
 defmodule MaudeLibs.Decision.ServerTest do
   use ExUnit.Case, async: false
 
+  import ExUnit.CaptureLog
+
   alias MaudeLibs.Decision.Server
   alias MaudeLibs.Decision.Supervisor, as: DecisionSup
   alias MaudeLibs.Decision.Stage
@@ -31,7 +33,9 @@ defmodule MaudeLibs.Decision.ServerTest do
 
     test "duplicate start for same ID returns existing pid", %{id: id} do
       {:ok, pid1} = DecisionSup.start_decision(id, "alice", "topic")
-      assert {:error, {:already_started, ^pid1}} = DecisionSup.start_decision(id, "alice", "topic")
+
+      assert {:error, {:already_started, ^pid1}} =
+               DecisionSup.start_decision(id, "alice", "topic")
     end
 
     test "whereis returns nil for unknown ID" do
@@ -70,7 +74,10 @@ defmodule MaudeLibs.Decision.ServerTest do
 
     test "invalid message returns {:error, reason}", %{id: id} do
       start(id, "alice")
-      assert {:error, _} = msg(id, {:ready, "charlie"})
+
+      capture_log(fn ->
+        assert {:error, _} = msg(id, {:ready, "charlie"})
+      end)
     end
   end
 
@@ -99,8 +106,7 @@ defmodule MaudeLibs.Decision.ServerTest do
       assert "alice" in d_before.connected
 
       Server.disconnect(id, "alice")
-      # Give the cast time to process
-      Process.sleep(50)
+      Process.sleep(10)
       d_after = state(id)
       refute "alice" in d_after.connected
     end
@@ -122,25 +128,20 @@ defmodule MaudeLibs.Decision.ServerTest do
 
     @tag :llm
     test "synthesis debounce fires and stores result", %{id: id} do
-      if System.get_env("ANTHROPIC_API_KEY") == nil do
-        # Skip gracefully in CI without key
-        :ok
-      else
-        start(id, "alice")
-        msg(id, {:lobby_update, "alice", "where to eat?", []})
-        msg(id, {:ready, "alice"})
-        msg(id, {:start, "alice"})
+      start(id, "alice")
+      msg(id, {:lobby_update, "alice", "where to eat?", []})
+      msg(id, {:ready, "alice"})
+      msg(id, {:start, "alice"})
 
-        # Submit two rephrases to trigger debounce
-        msg(id, {:submit_scenario, "alice", "where should we eat tonight?"})
-        msg(id, {:submit_scenario, "bob", "what restaurant for dinner?"})
+      # Submit two rephrases to trigger debounce
+      msg(id, {:submit_scenario, "alice", "where should we eat tonight?"})
+      msg(id, {:submit_scenario, "bob", "what restaurant for dinner?"})
 
-        # Wait for debounce (800ms) + LLM call (up to 10s)
-        Process.sleep(12_000)
-        d = state(id)
-        # synthesis may be nil if LLM failed, but stage should still be Scenario
-        assert %Stage.Scenario{} = d.stage
-      end
+      # Debounce is 0ms in test env, mock LLM is instant
+      Process.sleep(20)
+      d = state(id)
+      assert %Stage.Scenario{} = d.stage
+      assert d.stage.synthesis != nil
     end
   end
 end

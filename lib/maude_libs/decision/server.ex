@@ -27,6 +27,7 @@ defmodule MaudeLibs.Decision.Server do
 
   def child_spec(opts) do
     id = Keyword.fetch!(opts, :id)
+
     %{
       id: {__MODULE__, id},
       start: {__MODULE__, :start_link, [opts]},
@@ -62,6 +63,13 @@ defmodule MaudeLibs.Decision.Server do
 
   @impl true
   def init(opts) do
+    case Keyword.get(opts, :decision) do
+      nil -> init_from_scratch(opts)
+      decision -> init_from_state(decision)
+    end
+  end
+
+  defp init_from_scratch(opts) do
     id = Keyword.fetch!(opts, :id)
     creator = Keyword.fetch!(opts, :creator)
     topic = Keyword.fetch!(opts, :topic)
@@ -84,6 +92,13 @@ defmodule MaudeLibs.Decision.Server do
 
     MaudeLibs.CanvasServer.add_circle(id, topic)
 
+    {:ok, %{decision: decision, timers: %{}}}
+  end
+
+  defp init_from_state(decision) do
+    Logger.metadata(decision_id: decision.id)
+    Logger.info("decision seeded", stage: stage_name(decision.stage))
+    MaudeLibs.CanvasServer.add_circle(decision.id, decision.topic || "")
     {:ok, %{decision: decision, timers: %{}}}
   end
 
@@ -116,7 +131,11 @@ defmodule MaudeLibs.Decision.Server do
   @impl true
   def handle_cast({:disconnect, user}, %{decision: d} = state) do
     Logger.metadata(decision_id: d.id, stage: stage_name(d.stage))
-    Logger.info("user disconnected", user: user, connected_remaining: MapSet.size(d.connected) - 1)
+
+    Logger.info("user disconnected",
+      user: user,
+      connected_remaining: MapSet.size(d.connected) - 1
+    )
 
     case Core.handle(d, {:disconnect, user}) do
       {:ok, d2, effects} ->
@@ -144,7 +163,7 @@ defmodule MaudeLibs.Decision.Server do
         {:noreply, state3}
 
       {:error, reason} ->
-        Logger.warning("llm result rejected by core", reason: inspect(reason))
+        Logger.debug("llm result rejected by core", reason: inspect(reason))
         {:noreply, state}
     end
   end
@@ -153,12 +172,17 @@ defmodule MaudeLibs.Decision.Server do
   @impl true
   def handle_info({:debounce_fire, key, call_spec}, %{decision: d, timers: timers} = state) do
     state2 = %{state | timers: Map.delete(timers, key)}
-    state3 = case Core.handle(d, :synthesis_started) do
-      {:ok, d2, effects} ->
-        state4 = %{state2 | decision: d2}
-        dispatch_effects(effects, state4)
-      {:error, _} -> state2
-    end
+
+    state3 =
+      case Core.handle(d, :synthesis_started) do
+        {:ok, d2, effects} ->
+          state4 = %{state2 | decision: d2}
+          dispatch_effects(effects, state4)
+
+        {:error, _} ->
+          state2
+      end
+
     spawn_llm_task(call_spec, self())
     {:noreply, state3}
   end
@@ -179,14 +203,20 @@ defmodule MaudeLibs.Decision.Server do
     if match?(%Stage.Lobby{}, decision.stage) do
       for username <- MapSet.to_list(decision.stage.invited) do
         if username not in decision.stage.joined do
-          Phoenix.PubSub.broadcast(MaudeLibs.PubSub, "user:#{username}", {:invited, id, decision.topic})
+          Phoenix.PubSub.broadcast(
+            MaudeLibs.PubSub,
+            "user:#{username}",
+            {:invited, id, decision.topic}
+          )
         end
       end
     end
+
     # Fire tagline LLM call when scenario just resolved (topic is now the agreed scenario)
     if match?(%Stage.Priorities{}, decision.stage) and is_binary(decision.topic) do
       spawn_llm_task({:tagline, id, decision.topic}, self())
     end
+
     state
   end
 
@@ -213,22 +243,28 @@ defmodule MaudeLibs.Decision.Server do
     end)
   end
 
-  # Maps LLM call specs to MaudeLibs.LLM calls and converts results to Core messages
+  defp llm_module, do: Application.get_env(:maude_libs, :llm_module, MaudeLibs.LLM)
+
+  # Maps LLM call specs to LLM module calls and converts results to Core messages
   defp execute_llm_call({:tagline, id, scenario}) do
-    case MaudeLibs.LLM.tagline(scenario) do
+    case llm_module().tagline(scenario) do
       {:ok, text} ->
         MaudeLibs.CanvasServer.update_circle(id, %{tagline: text})
         Logger.info("tagline set", decision_id: id, tagline: text)
+
       {:error, reason} ->
         Logger.error("llm call failed", call: :tagline, reason: inspect(reason))
     end
+
     # No Core message needed - canvas update is the side effect
     :noop
   end
 
   defp execute_llm_call({:synthesize_scenario, submissions}) do
-    case MaudeLibs.LLM.synthesize_scenario(submissions) do
-      {:ok, text} -> {:synthesis_result, text}
+    case llm_module().synthesize_scenario(submissions) do
+      {:ok, text} ->
+        {:synthesis_result, text}
+
       {:error, reason} ->
         Logger.error("llm call failed", call: :synthesize_scenario, reason: inspect(reason))
         {:synthesis_result, nil}
@@ -236,8 +272,10 @@ defmodule MaudeLibs.Decision.Server do
   end
 
   defp execute_llm_call({:suggest_priorities, scenario, priorities}) do
-    case MaudeLibs.LLM.suggest_priorities(scenario, priorities) do
-      {:ok, suggestions} -> {:priority_suggestions_result, suggestions}
+    case llm_module().suggest_priorities(scenario, priorities) do
+      {:ok, suggestions} ->
+        {:priority_suggestions_result, suggestions}
+
       {:error, reason} ->
         Logger.error("llm call failed", call: :suggest_priorities, reason: inspect(reason))
         {:priority_suggestions_result, []}
@@ -245,8 +283,10 @@ defmodule MaudeLibs.Decision.Server do
   end
 
   defp execute_llm_call({:suggest_options, scenario, priorities, options}) do
-    case MaudeLibs.LLM.suggest_options(scenario, priorities, options) do
-      {:ok, suggestions} -> {:option_suggestions_result, suggestions}
+    case llm_module().suggest_options(scenario, priorities, options) do
+      {:ok, suggestions} ->
+        {:option_suggestions_result, suggestions}
+
       {:error, reason} ->
         Logger.error("llm call failed", call: :suggest_options, reason: inspect(reason))
         {:option_suggestions_result, []}
@@ -254,8 +294,10 @@ defmodule MaudeLibs.Decision.Server do
   end
 
   defp execute_llm_call({:scaffold, scenario, priorities, options}) do
-    case MaudeLibs.LLM.scaffold(scenario, priorities, options) do
-      {:ok, scaffolded_options} -> {:scaffolding_result, scaffolded_options}
+    case llm_module().scaffold(scenario, priorities, options) do
+      {:ok, scaffolded_options} ->
+        {:scaffolding_result, scaffolded_options}
+
       {:error, reason} ->
         Logger.error("llm call failed", call: :scaffold, reason: inspect(reason))
         {:scaffolding_result, []}
@@ -263,8 +305,10 @@ defmodule MaudeLibs.Decision.Server do
   end
 
   defp execute_llm_call({:why_statement, scenario, priorities, winner, vote_counts}) do
-    case MaudeLibs.LLM.why_statement(scenario, priorities, winner, vote_counts) do
-      {:ok, text} -> {:why_statement_result, text}
+    case llm_module().why_statement(scenario, priorities, winner, vote_counts) do
+      {:ok, text} ->
+        {:why_statement_result, text}
+
       {:error, reason} ->
         Logger.error("llm call failed", call: :why_statement, reason: inspect(reason))
         {:why_statement_result, nil}

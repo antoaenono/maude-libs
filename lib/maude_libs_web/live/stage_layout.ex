@@ -44,11 +44,12 @@ defmodule MaudeLibsWeb.StageLayout do
     |> Enum.with_index()
     |> Enum.map(fn {username, i} ->
       # Spread in upper arc
-      angle = if n == 1 do
-        :math.pi() * 0.5
-      else
-        :math.pi() * (0.2 + 0.6 * i / (n - 1))
-      end
+      angle =
+        if n == 1 do
+          :math.pi() * 0.5
+        else
+          :math.pi() * (0.2 + 0.6 * i / (n - 1))
+        end
 
       r = 22.0 + rem(:erlang.phash2(username, 1000), 8) * 1.0
       {cx, cy} = @claude_pos
@@ -69,12 +70,15 @@ defmodule MaudeLibsWeb.StageLayout do
         # Repulsion from your card
         {f2x, f2y} = point_repulsion(node, yx, yy, your_r + other_r + @gap)
         # Repulsion from other nodes
-        {f3x, f3y} = Enum.reduce(acc, {0.0, 0.0}, fn
-          {other_name, other_node}, {fx, fy} when other_name != username ->
-            {rx, ry} = point_repulsion(node, other_node.x, other_node.y, other_r * 2 + @gap)
-            {fx + rx, fy + ry}
-          _, acc_inner -> acc_inner
-        end)
+        {f3x, f3y} =
+          Enum.reduce(acc, {0.0, 0.0}, fn
+            {other_name, other_node}, {fx, fy} when other_name != username ->
+              {rx, ry} = point_repulsion(node, other_node.x, other_node.y, other_r * 2 + @gap)
+              {fx + rx, fy + ry}
+
+            _, acc_inner ->
+              acc_inner
+          end)
 
         # Gentle pull toward center-ish area
         {pull_x, pull_y} = {(50.0 - node.x) * 0.015, (40.0 - node.y) * 0.01}

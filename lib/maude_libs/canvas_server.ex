@@ -74,6 +74,7 @@ defmodule MaudeLibs.CanvasServer do
     case Map.fetch(state, id) do
       {:ok, circle} ->
         {:noreply, Map.put(state, id, Map.merge(circle, attrs))}
+
       :error ->
         {:noreply, state}
     end

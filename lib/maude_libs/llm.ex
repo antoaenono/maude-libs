@@ -9,6 +9,23 @@ defmodule MaudeLibs.LLM do
 
   require Logger
 
+  @callback synthesize_scenario(submissions :: list()) :: {:ok, String.t()} | {:error, term()}
+  @callback tagline(scenario :: String.t()) :: {:ok, String.t()} | {:error, term()}
+  @callback suggest_priorities(scenario :: String.t(), priorities :: list()) ::
+              {:ok, list(map())} | {:error, term()}
+  @callback suggest_options(scenario :: String.t(), priorities :: list(), options :: list()) ::
+              {:ok, list(map())} | {:error, term()}
+  @callback scaffold(scenario :: String.t(), priorities :: list(), options :: list()) ::
+              {:ok, list(map())} | {:error, term()}
+  @callback why_statement(
+              scenario :: String.t(),
+              priorities :: list(),
+              winner :: String.t(),
+              vote_counts :: map()
+            ) :: {:ok, String.t()} | {:error, term()}
+
+  @behaviour __MODULE__
+
   @model "claude-sonnet-4-6"
   @base_url "https://api.anthropic.com/v1/messages"
   @max_tokens 2048
@@ -74,14 +91,19 @@ defmodule MaudeLibs.LLM do
       {:ok, body} ->
         case body do
           %{"suggestions" => suggestions} when is_list(suggestions) ->
-            parsed = Enum.map(suggestions, fn s ->
-              %{text: s["text"], direction: s["direction"]}
-            end)
+            parsed =
+              Enum.map(suggestions, fn s ->
+                %{text: s["text"], direction: s["direction"]}
+              end)
+
             {:ok, parsed}
+
           _ ->
             {:error, :unexpected_shape}
         end
-      err -> err
+
+      err ->
+        err
     end
   end
 
@@ -106,14 +128,19 @@ defmodule MaudeLibs.LLM do
       {:ok, body} ->
         case body do
           %{"suggestions" => suggestions} when is_list(suggestions) ->
-            parsed = Enum.map(suggestions, fn s ->
-              %{name: s["name"]}
-            end)
+            parsed =
+              Enum.map(suggestions, fn s ->
+                %{name: s["name"]}
+              end)
+
             {:ok, parsed}
+
           _ ->
             {:error, :unexpected_shape}
         end
-      err -> err
+
+      err ->
+        err
     end
   end
 
@@ -154,19 +181,24 @@ defmodule MaudeLibs.LLM do
       {:ok, body} ->
         case body do
           %{"options" => scaffolded} when is_list(scaffolded) ->
-            parsed = Enum.map(scaffolded, fn opt ->
-              %{
-                name: opt["name"],
-                desc: find_desc(opt["name"], options),
-                for: parse_points(opt["for"]),
-                against: parse_points(opt["against"])
-              }
-            end)
+            parsed =
+              Enum.map(scaffolded, fn opt ->
+                %{
+                  name: opt["name"],
+                  desc: find_desc(opt["name"], options),
+                  for: parse_points(opt["for"]),
+                  against: parse_points(opt["against"])
+                }
+              end)
+
             {:ok, parsed}
+
           _ ->
             {:error, :unexpected_shape}
         end
-      err -> err
+
+      err ->
+        err
     end
   end
 
@@ -197,8 +229,9 @@ defmodule MaudeLibs.LLM do
   # ---------------------------------------------------------------------------
 
   defp call(prompt, call_name) do
-    api_key = Application.get_env(:maude_libs, :anthropic_api_key) ||
-              System.get_env("ANTHROPIC_API_KEY")
+    api_key =
+      Application.get_env(:maude_libs, :anthropic_api_key) ||
+        System.get_env("ANTHROPIC_API_KEY")
 
     if is_nil(api_key) do
       Logger.error("anthropic_api_key not configured", call: call_name)
@@ -212,9 +245,10 @@ defmodule MaudeLibs.LLM do
         messages: [%{role: "user", content: prompt}]
       }
 
-      body = if call_name in [:suggest_priorities, :suggest_options],
-        do: Map.put(body, :temperature, 1.0),
-        else: body
+      body =
+        if call_name in [:suggest_priorities, :suggest_options],
+          do: Map.put(body, :temperature, 1.0),
+          else: body
 
       headers = [
         {"x-api-key", api_key},
@@ -240,12 +274,15 @@ defmodule MaudeLibs.LLM do
 
   defp parse_json(text) do
     # Strip possible ``` fences
-    cleaned = text
-    |> String.trim()
-    |> strip_code_fences()
+    cleaned =
+      text
+      |> String.trim()
+      |> strip_code_fences()
 
     case Jason.decode(cleaned) do
-      {:ok, map} -> {:ok, map}
+      {:ok, map} ->
+        {:ok, map}
+
       {:error, _} ->
         Logger.warning("failed to parse llm json response", text: text)
         {:error, :parse_failed}
@@ -269,6 +306,7 @@ defmodule MaudeLibs.LLM do
   defp parse_field(err, _field), do: err
 
   defp parse_points(nil), do: []
+
   defp parse_points(points) when is_list(points) do
     Enum.map(points, fn p ->
       %{text: p["text"], priority_id: p["priority_id"]}

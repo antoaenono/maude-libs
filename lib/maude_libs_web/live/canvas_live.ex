@@ -40,15 +40,13 @@ defmodule MaudeLibsWeb.CanvasLive do
     <div class="w-screen h-screen bg-base-200 overflow-hidden relative select-none">
       <%!-- Username badge --%>
       <div class="fixed top-4 left-4 z-10">
-        <span class="badge badge-ghost font-mono"><%= @username %></span>
+        <span class="badge badge-ghost font-mono">{@username}</span>
       </div>
-
-      <%!-- Decision circles --%>
+       <%!-- Decision circles --%>
       <%= for {id, circle} <- @circles do %>
         <.circle id={id} circle={circle} />
       <% end %>
-
-      <%!-- Plus button fixed at center --%>
+       <%!-- Plus button fixed at center --%>
       <a
         href="/d/new"
         class="fixed z-10 btn btn-circle btn-primary shadow-lg"
@@ -56,17 +54,17 @@ defmodule MaudeLibsWeb.CanvasLive do
         title="New Decision"
       >
         <span class="text-2xl leading-none">+</span>
-      </a>
-
-      <%!-- Invite modal --%>
+      </a> <%!-- Invite modal --%>
       <%= if @invite do %>
         <div class="fixed inset-0 bg-black/40 z-20 flex items-center justify-center">
           <div class="bg-base-100 rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4 flex flex-col gap-4">
             <h3 class="text-lg font-bold">You've been invited</h3>
+            
             <p class="text-base-content/70">
               Join the decision:
-              <span class="font-semibold text-base-content"><%= @invite.topic || "New decision" %></span>
+              <span class="font-semibold text-base-content">{@invite.topic || "New decision"}</span>
             </p>
+            
             <div class="flex gap-3">
               <a href={"/d/#{@invite.id}"} class="btn btn-primary flex-1">Join</a>
               <button phx-click="dismiss_invite" class="btn btn-ghost flex-1">Later</button>
@@ -80,6 +78,7 @@ defmodule MaudeLibsWeb.CanvasLive do
 
   defp circle(assigns) do
     assigns = assign(assigns, :stage_color, stage_color(assigns.circle.stage))
+
     ~H"""
     <a
       href={"/d/#{@id}"}
@@ -89,15 +88,17 @@ defmodule MaudeLibsWeb.CanvasLive do
               hover:scale-110 hover:shadow-2xl"}
       style={"left: #{@circle.x}%; top: #{@circle.y}%; transform: translate(-50%, -50%);"}
     >
-      <span class="font-bold text-xs px-2 leading-tight line-clamp-2"><%= @circle.title %></span>
+      <span class="font-bold text-xs px-2 leading-tight line-clamp-2">{@circle.title}</span>
       <%= if @circle.tagline do %>
-        <span class="text-xs opacity-70 px-2 mt-1 leading-tight line-clamp-2"><%= @circle.tagline %></span>
+        <span class="text-xs opacity-70 px-2 mt-1 leading-tight line-clamp-2">{@circle.tagline}</span>
       <% end %>
     </a>
     """
   end
 
-  defp stage_color(:complete), do: "bg-success text-success-content border-2 border-success-content/20"
+  defp stage_color(:complete),
+    do: "bg-success text-success-content border-2 border-success-content/20"
+
   defp stage_color(:lobby), do: "bg-base-100 text-base-content border-2 border-base-300"
   defp stage_color(_), do: "bg-primary text-primary-content border-2 border-primary-content/20"
 end

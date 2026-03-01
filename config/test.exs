@@ -7,6 +7,12 @@ config :maude_libs, MaudeLibsWeb.Endpoint,
   secret_key_base: "8L/nUcSrMw1AvreRvSEjvtDVaP+3RBdGiOXq2mewVGN8agvYp8saATdFIDAB1pTL",
   server: false
 
+# Use mock LLM module so tests never hit the real Anthropic API
+config :maude_libs, :llm_module, MaudeLibs.LLM.Mock
+
+# Short debounce so synthesis test doesn't wait 800ms
+config :maude_libs, :synthesis_debounce_ms, 10
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

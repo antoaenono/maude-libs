@@ -24,6 +24,13 @@ defmodule MaudeLibsWeb.Router do
     live "/d/:id", DecisionLive
   end
 
+  if Mix.env() == :dev do
+    scope "/dev", MaudeLibsWeb.Dev do
+      pipe_through :browser
+      get "/seed/:stage", SeedController, :create
+    end
+  end
+
   # Other scopes may use custom stacks.
   # scope "/api", MaudeLibsWeb do
   #   pipe_through :api

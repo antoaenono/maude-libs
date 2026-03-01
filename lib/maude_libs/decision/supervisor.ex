@@ -21,6 +21,11 @@ defmodule MaudeLibs.Decision.Supervisor do
     DynamicSupervisor.start_child(__MODULE__, spec)
   end
 
+  def start_with_state(decision) do
+    spec = {Server, id: decision.id, decision: decision}
+    DynamicSupervisor.start_child(__MODULE__, spec)
+  end
+
   def stop_decision(id) do
     case Server.whereis(id) do
       nil -> :ok
