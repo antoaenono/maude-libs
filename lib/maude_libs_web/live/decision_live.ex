@@ -295,6 +295,8 @@ defmodule MaudeLibsWeb.DecisionLive do
       <%= if @modal_open do %>
         <.stage_modal stage={@decision.stage} is_creator={creator_of(@decision) == @username} />
       <% end %>
+       <%!-- Breadcrumbs --%>
+      <.breadcrumbs stage={@decision.stage} />
        <%!-- Route to correct stage component --%> {render_stage(assigns)}
     </div>
     """

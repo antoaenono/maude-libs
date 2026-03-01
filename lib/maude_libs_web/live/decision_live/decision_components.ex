@@ -119,6 +119,66 @@ defmodule MaudeLibsWeb.DecisionLive.DecisionComponents do
     """
   end
 
+  @stages [
+    {:lobby, "Lobby"},
+    {:scenario, "Scenario"},
+    {:priorities, "Priorities"},
+    {:options, "Options"},
+    {:dashboard, "Dashboard"},
+    {:complete, "Complete"}
+  ]
+
+  def breadcrumbs(assigns) do
+    current = stage_key(assigns.stage)
+    stage_order = Enum.map(@stages, fn {key, _} -> key end)
+    current_idx = Enum.find_index(stage_order, &(&1 == current))
+
+    steps =
+      Enum.with_index(@stages)
+      |> Enum.map(fn {{key, label}, idx} ->
+        status =
+          cond do
+            idx < current_idx -> :done
+            idx == current_idx -> :current
+            true -> :upcoming
+          end
+
+        %{key: key, label: label, status: status}
+      end)
+
+    assigns = assign(assigns, steps: steps)
+
+    ~H"""
+    <nav class="w-full bg-base-100/60 backdrop-blur border-b border-base-300/50 px-4 py-2" data-testid="breadcrumbs" aria-label="Decision progress">
+      <ol class="flex items-center justify-center gap-1 text-xs font-mono">
+        <%= for {step, idx} <- Enum.with_index(@steps) do %>
+          <%= if idx > 0 do %>
+            <li class="text-base-content/20 select-none" aria-hidden="true">›</li>
+          <% end %>
+          <li class={breadcrumb_class(step.status)} data-stage={step.key} aria-current={if(step.status == :current, do: "step")}>
+            <%= if step.status == :done do %>
+              <span class="text-success">✓</span>
+            <% end %>
+            {step.label}
+          </li>
+        <% end %>
+      </ol>
+    </nav>
+    """
+  end
+
+  defp breadcrumb_class(:done), do: "text-success/70"
+  defp breadcrumb_class(:current), do: "text-base-content font-semibold"
+  defp breadcrumb_class(:upcoming), do: "text-base-content/30"
+
+  defp stage_key(%MaudeLibs.Decision.Stage.Lobby{}), do: :lobby
+  defp stage_key(%MaudeLibs.Decision.Stage.Scenario{}), do: :scenario
+  defp stage_key(%MaudeLibs.Decision.Stage.Priorities{}), do: :priorities
+  defp stage_key(%MaudeLibs.Decision.Stage.Options{}), do: :options
+  defp stage_key(%MaudeLibs.Decision.Stage.Scaffolding{}), do: :dashboard
+  defp stage_key(%MaudeLibs.Decision.Stage.Dashboard{}), do: :dashboard
+  defp stage_key(%MaudeLibs.Decision.Stage.Complete{}), do: :complete
+
   def priority_badge_class("+"), do: "text-success border-success"
   def priority_badge_class("-"), do: "text-error border-error"
   def priority_badge_class(_), do: "text-base-content/50"
