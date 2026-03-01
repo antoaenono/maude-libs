@@ -83,7 +83,7 @@ defmodule MaudeLibsWeb.CanvasLive do
     <a
       href={"/d/#{@id}"}
       class={"absolute z-10 flex flex-col items-center justify-center rounded-full shadow-xl
-              cursor-pointer transition-all duration-700 ease-in-out
+              cursor-pointer transition-all duration-[1500ms] ease-linear
               w-32 h-32 text-center #{@stage_color}
               hover:scale-110 hover:shadow-2xl"}
       style={"left: #{@circle.x}%; top: #{@circle.y}%; transform: translate(-50%, -50%);"}

@@ -8,10 +8,8 @@ defmodule MaudeLibs.CanvasServer do
   require Logger
 
   @tick_ms 1500
-  @repulsion 8_000.0
-  @center_pull 0.03
+  @ideal_dist 20.0
   @damping 0.85
-  @min_dist 80.0
   # Canvas bounds (logical units, mapped to % in CSS)
   @width 100.0
   @height 100.0
@@ -101,52 +99,55 @@ defmodule MaudeLibs.CanvasServer do
 
   defp simulate(circles) do
     ids = Map.keys(circles)
+    k = @ideal_dist
 
+    # Compute forces for each circle
     Enum.reduce(ids, circles, fn id, acc ->
       circle = acc[id]
-      {fx, fy} = repulsion_force(id, circle, acc, ids)
-      {cx, cy} = center_force(circle)
 
-      ax = fx + cx
-      ay = fy + cy
+      # Repulsion from every other circle: force = k^2 / dist, directed away
+      {rx, ry} =
+        Enum.reduce(ids, {0.0, 0.0}, fn other_id, {fx, fy} ->
+          if other_id == id do
+            {fx, fy}
+          else
+            other = acc[other_id]
+            dx = circle.x - other.x
+            dy = circle.y - other.y
+            dist = max(:math.sqrt(dx * dx + dy * dy), 1.0)
+            force = k * k / dist
+            {fx + force * dx / dist, fy + force * dy / dist}
+          end
+        end)
 
-      vx = (circle.vx + ax) * @damping
-      vy = (circle.vy + ay) * @damping
+      # Repulsion from the + button at center (phantom node)
+      cdx = circle.x - @width / 2
+      cdy = circle.y - @height / 2
+      cdist = max(:math.sqrt(cdx * cdx + cdy * cdy), 1.0)
+      cforce = k * k / cdist
+      {prx, pry} = {cforce * cdx / cdist, cforce * cdy / cdist}
 
-      x = clamp(circle.x + vx, 5.0, 95.0)
-      y = clamp(circle.y + vy, 5.0, 95.0)
+      # Attraction toward center: force = dist^2 / k, directed inward
+      adist = cdist
+      aforce = adist * adist / (k * 4.0)
+      {ax, ay} = {-aforce * cdx / cdist, -aforce * cdy / cdist}
+
+      # Sum forces
+      fx = rx + prx + ax
+      fy = ry + pry + ay
+
+      # Apply with velocity and damping, cap displacement
+      vx = (circle.vx + fx) * @damping
+      vy = (circle.vy + fy) * @damping
+      speed = max(:math.sqrt(vx * vx + vy * vy), 0.001)
+      max_step = k * 0.5
+      {vx, vy} = if speed > max_step, do: {vx * max_step / speed, vy * max_step / speed}, else: {vx, vy}
+
+      x = clamp(circle.x + vx, 8.0, 92.0)
+      y = clamp(circle.y + vy, 8.0, 92.0)
 
       Map.put(acc, id, %{circle | x: x, y: y, vx: vx, vy: vy})
     end)
-  end
-
-  defp repulsion_force(id, circle, circles, ids) do
-    # Phantom repulsion from the fixed + button at canvas center
-    {fx0, fy0} = point_repulsion(circle, @width / 2, @height / 2)
-
-    Enum.reduce(ids, {fx0, fy0}, fn other_id, {fx, fy} ->
-      if other_id == id do
-        {fx, fy}
-      else
-        other = circles[other_id]
-        {rx, ry} = point_repulsion(circle, other.x, other.y)
-        {fx + rx, fy + ry}
-      end
-    end)
-  end
-
-  defp point_repulsion(circle, ox, oy) do
-    dx = circle.x - ox
-    dy = circle.y - oy
-    dist = max(:math.sqrt(dx * dx + dy * dy), @min_dist)
-    force = @repulsion / (dist * dist)
-    {force * dx / dist, force * dy / dist}
-  end
-
-  defp center_force(circle) do
-    cx = (@width / 2 - circle.x) * @center_pull
-    cy = (@height / 2 - circle.y) * @center_pull
-    {cx, cy}
   end
 
   defp clamp(val, min, max) do
