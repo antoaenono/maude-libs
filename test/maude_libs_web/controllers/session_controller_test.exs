@@ -44,7 +44,7 @@ defmodule MaudeLibsWeb.SessionControllerTest do
       assert redirected_to(conn) == "/canvas"
     end
 
-    test "special characters rejected", %{conn: conn} do
+    test "special characters rejected", %{conn: _conn} do
       for bad <- ["al-ice", "al_ice", "al ice", "al!ce", "al@ce", "al.ce"] do
         conn = post(build_conn(), "/session", %{"username" => bad})
         assert redirected_to(conn) == "/join",
