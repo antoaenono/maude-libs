@@ -88,4 +88,37 @@ defmodule MaudeLibsWeb.DecisionLive.OptionsTest do
       assert Enum.at(state.stage.suggestions, 0).included
     end
   end
+
+  describe "layout data attributes" do
+    @tag stage: :options
+    test "renders data-node-id for other users" do
+      decision = seed_decision(:options, ["alice", "bob"], topic: "Pick lunch")
+      {:ok, _view, html} = mount_as("alice", decision.id)
+      assert html =~ ~s(data-node-id="bob")
+    end
+
+    @tag stage: :options
+    test "renders data-node-role attributes" do
+      decision = seed_decision(:options, ["alice", "bob"], topic: "Pick lunch")
+      {:ok, _view, html} = mount_as("alice", decision.id)
+      assert html =~ ~s(data-node-role="claude")
+      assert html =~ ~s(data-node-role="you")
+      assert html =~ ~s(data-node-role="other")
+    end
+
+    @tag stage: :options
+    test "virtual canvas has phx-hook StageForce" do
+      decision = seed_decision(:options, ["alice", "bob"], topic: "Pick lunch")
+      {:ok, _view, html} = mount_as("alice", decision.id)
+      assert html =~ ~s(phx-hook="StageForce")
+    end
+
+    @tag stage: :options
+    test "card wrappers have no inline left/top styles" do
+      decision = seed_decision(:options, ["alice", "bob"], topic: "Pick lunch")
+      {:ok, view, _html} = mount_as("alice", decision.id)
+      html = render(view)
+      refute html =~ ~r/data-node-id="[^"]*"[^>]*style="[^"]*left:/
+    end
+  end
 end

@@ -3,8 +3,6 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
   import MaudeLibsWeb.DecisionLive.DecisionComponents
   import MaudeLibsWeb.DecisionLive.StageShell
 
-  alias MaudeLibsWeb.StageLayout
-
   def scenario_stage(assigns) do
     s = assigns.decision.stage
     my_vote = Map.get(s.votes, assigns.username)
@@ -12,33 +10,28 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
     other_users =
       MapSet.to_list(assigns.decision.connected) |> Enum.reject(&(&1 == assigns.username))
 
-    stage_context = %{
-      has_content: s.synthesis != nil,
-      is_thinking: s.synthesizing,
-      suggestion_count: if(s.synthesis, do: 1, else: 0)
-    }
+    # Derive winner_node_id from winner text
+    winner_node_id =
+      cond do
+        s.winner == nil ->
+          nil
 
-    {{your_x, your_y}, positions} = StageLayout.compute(other_users, stage_context)
-    {claude_x, claude_y} = StageLayout.claude_pos()
-    {virtual_w, virtual_h} = StageLayout.virtual_size()
+        s.synthesis == s.winner ->
+          "claude"
 
-    {center_x, center_y} = {virtual_w / 2.0, virtual_h / 2.0}
+        true ->
+          Enum.find_value(s.submissions, fn {user, text} ->
+            if text == s.winner, do: if(user == assigns.username, do: "you", else: user)
+          end)
+      end
 
     assigns =
       assign(assigns,
         s: s,
         my_vote: my_vote,
         other_users: other_users,
-        positions: positions,
-        claude_x: claude_x,
-        claude_y: claude_y,
-        your_x: your_x,
-        your_y: your_y,
-        virtual_w: virtual_w,
-        virtual_h: virtual_h,
-        center_x: center_x,
-        center_y: center_y,
-        winner: s.winner
+        winner: s.winner,
+        winner_node_id: winner_node_id
       )
 
     ~H"""
@@ -47,27 +40,31 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
         <div class="bg-base-100/80 backdrop-blur border-b border-base-300 px-8 py-4 flex flex-col items-center gap-1">
           <span class="text-xs font-mono text-base-content/40 uppercase tracking-widest">
             Frame the scenario
-          </span> <span class="text-lg font-semibold text-base-content">{@decision.topic}</span>
+          </span>
+           <span class="text-lg font-semibold text-base-content">{@decision.topic}</span>
           <span class="text-xs text-base-content/40">
             Vote on a framing - everyone must agree to proceed
           </span>
         </div>
       </:header>
 
-      <div id="scenario-canvas" phx-hook="ScaleToFit"
-           class="w-full h-full overflow-hidden relative">
-        <div data-testid="virtual-canvas"
-             class="absolute select-none"
-             style={"width: #{@virtual_w}px; height: #{@virtual_h}px;"}>
+      <div id="scenario-canvas" phx-hook="ScaleToFit" class="w-full h-full overflow-hidden relative">
+        <div
+          id="scenario-force"
+          phx-hook="StageForce"
+          data-testid="virtual-canvas"
+          class="absolute select-none"
+          style="width: 1000px; height: 700px;"
+          {if @winner_node_id, do: [{"data-winner-id", @winner_node_id}], else: []}
+        >
           <%!-- Other participants' cards --%>
           <%= for user <- @other_users do %>
-            <% {x, y} = Map.get(@positions, user, {500.0, 210.0}) %> <% text =
-              Map.get(@s.submissions, user, "") %> <% voted = Map.get(@s.votes, user) %>
-            <% is_winner = @winner != nil and text == @winner %>
-            <% is_loser = @winner != nil and not is_winner %>
+            <% text = Map.get(@s.submissions, user, "") %>
+            <% voted = Map.get(@s.votes, user) %>
             <div
-              class={"absolute transition-all duration-700 ease-in-out " <> if(is_loser, do: "opacity-0 scale-95", else: "")}
-              style={"left: #{if(is_winner, do: @center_x, else: x)}px; top: #{if(is_winner, do: @center_y, else: y)}px; transform: translate(-50%, -50%);"}
+              data-node-id={user}
+              data-node-role="other"
+              class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
             >
               <.candidate_card
                 text={if text != "", do: text, else: nil}
@@ -82,17 +79,11 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
           <% end %>
 
           <%!-- Claude synthesis (always at center, invisible when empty) --%>
-          <% claude_is_winner = @winner != nil and @s.synthesis == @winner %>
-          <% claude_is_loser = @winner != nil and not claude_is_winner %>
           <div
-            class={"absolute transition-all duration-700 ease-in-out " <>
-              cond do
-                claude_is_loser -> "opacity-0 scale-95"
-                claude_is_winner -> "opacity-100"
-                @s.synthesis || @s.synthesizing -> "opacity-100"
-                true -> "opacity-0 pointer-events-none"
-              end}
-            style={"left: #{if(claude_is_winner, do: @center_x, else: @claude_x)}px; top: #{if(claude_is_winner, do: @center_y, else: @claude_y)}px; transform: translate(-50%, -50%);"}
+            data-node-id="claude"
+            data-node-role="claude"
+            class={"absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 " <>
+              if(@s.synthesis || @s.synthesizing, do: "opacity-100", else: "opacity-0 pointer-events-none")}
           >
             <%= if @s.synthesis do %>
               <.candidate_card
@@ -112,11 +103,10 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
 
           <%!-- Your card (bottom center) --%>
           <% my_text = Map.get(@s.submissions, @username, "") %>
-          <% my_is_winner = @winner != nil and my_text == @winner %>
-          <% my_is_loser = @winner != nil and not my_is_winner %>
           <div
-            class={"absolute transition-all duration-700 ease-in-out " <> if(my_is_loser, do: "opacity-0 scale-95", else: "")}
-            style={"left: #{if(my_is_winner, do: @center_x, else: @your_x)}px; top: #{if(my_is_winner, do: @center_y, else: @your_y)}px; transform: translate(-50%, -50%);"}
+            data-node-id="you"
+            data-node-role="you"
+            class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
           >
             <%= if @spectator do %>
               <.candidate_card
@@ -131,7 +121,7 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
             <% else %>
               <div class={"card w-96 border-2 bg-base-100 shadow-xl " <> if(@my_vote != nil, do: "border-primary", else: "border-base-300")}>
                 <div class="card-body p-4 gap-3">
-                   <% my_sub = Map.get(@s.submissions, @username) %>
+                  <% my_sub = Map.get(@s.submissions, @username) %>
                   <%= if my_sub && my_sub != "" do %>
                     <button
                       phx-click="vote_scenario"
