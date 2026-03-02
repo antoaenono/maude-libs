@@ -11,7 +11,8 @@ defmodule MaudeLibs.Decision.Stage do
     defstruct submissions: %{},
               synthesis: nil,
               synthesizing: false,
-              votes: %{}
+              votes: %{},
+              winner: nil
   end
 
   defmodule Priorities do

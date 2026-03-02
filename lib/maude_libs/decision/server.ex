@@ -169,6 +169,13 @@ defmodule MaudeLibs.Decision.Server do
     end
   end
 
+  # Delayed broadcast (e.g. scenario winner animation before stage transition)
+  @impl true
+  def handle_info({:delayed_broadcast, id, decision}, state) do
+    dispatch_effect({:broadcast, id, decision}, state)
+    {:noreply, state}
+  end
+
   # Debounce timer fired
   @impl true
   def handle_info({:debounce_fire, key, call_spec}, %{decision: d, timers: timers} = state) do
@@ -218,6 +225,15 @@ defmodule MaudeLibs.Decision.Server do
       spawn_llm_task({:tagline, id, decision.topic}, self())
     end
 
+    state
+  end
+
+  defp dispatch_effect({:delayed_broadcast, id, decision, 0}, state) do
+    dispatch_effect({:broadcast, id, decision}, state)
+  end
+
+  defp dispatch_effect({:delayed_broadcast, id, decision, delay_ms}, state) do
+    Process.send_after(self(), {:delayed_broadcast, id, decision}, delay_ms)
     state
   end
 

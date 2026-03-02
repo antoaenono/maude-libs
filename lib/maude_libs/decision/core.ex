@@ -145,9 +145,19 @@ defmodule MaudeLibs.Decision.Core do
 
       if unanimous?(d2) do
         winner = candidate
+        # Broadcast the resolved scenario (with winner) first for animation,
+        # then transition to Priorities after a delay
+        resolved = %{d2 | stage: %{s2 | winner: winner}, topic: winner}
         priorities_stage = %Stage.Priorities{}
         d3 = %{d2 | stage: priorities_stage, topic: winner}
-        {:ok, d3, [{:broadcast, d3.id, d3}]}
+
+        delay = Application.get_env(:maude_libs, :scenario_resolve_delay_ms, 1500)
+
+        {:ok, d3,
+         [
+           {:broadcast, d3.id, resolved},
+           {:delayed_broadcast, d3.id, d3, delay}
+         ]}
       else
         {:ok, d2, [{:broadcast, d2.id, d2}]}
       end

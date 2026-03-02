@@ -13,6 +13,9 @@ config :maude_libs, :llm_module, MaudeLibs.LLM.Mock
 # Short debounce so synthesis test doesn't wait 800ms
 config :maude_libs, :synthesis_debounce_ms, 10
 
+# No delay on scenario winner animation in tests
+config :maude_libs, :scenario_resolve_delay_ms, 0
+
 # Print only warnings and errors during test
 config :logger, level: :warning
 

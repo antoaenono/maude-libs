@@ -23,6 +23,8 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
     {your_x, your_y} = StageLayout.your_pos()
     {virtual_w, virtual_h} = StageLayout.virtual_size()
 
+    {center_x, center_y} = {virtual_w / 2.0, virtual_h / 2.0}
+
     assigns =
       assign(assigns,
         s: s,
@@ -34,7 +36,10 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
         your_x: your_x,
         your_y: your_y,
         virtual_w: virtual_w,
-        virtual_h: virtual_h
+        virtual_h: virtual_h,
+        center_x: center_x,
+        center_y: center_y,
+        winner: s.winner
       )
 
     ~H"""
@@ -58,9 +63,11 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
           <%= for user <- @other_users do %>
             <% {x, y} = Map.get(@positions, user, {500.0, 210.0}) %> <% text =
               Map.get(@s.submissions, user, "") %> <% voted = Map.get(@s.votes, user) %>
+            <% is_winner = @winner != nil and text == @winner %>
+            <% is_loser = @winner != nil and not is_winner %>
             <div
-              class="absolute transition-all duration-700 ease-in-out"
-              style={"left: #{x}px; top: #{y}px; transform: translate(-50%, -50%);"}
+              class={"absolute transition-all duration-700 ease-in-out " <> if(is_loser, do: "opacity-0 scale-95", else: "")}
+              style={"left: #{if(is_winner, do: @center_x, else: x)}px; top: #{if(is_winner, do: @center_y, else: y)}px; transform: translate(-50%, -50%);"}
             >
               <.candidate_card
                 text={if text != "", do: text, else: nil}
@@ -75,9 +82,17 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
           <% end %>
 
           <%!-- Claude synthesis (always at center, invisible when empty) --%>
+          <% claude_is_winner = @winner != nil and @s.synthesis == @winner %>
+          <% claude_is_loser = @winner != nil and not claude_is_winner %>
           <div
-            class={"absolute transition-all duration-700 ease-in-out " <> if(@s.synthesis || @s.synthesizing, do: "opacity-100", else: "opacity-0 pointer-events-none")}
-            style={"left: #{@claude_x}px; top: #{@claude_y}px; transform: translate(-50%, -50%);"}
+            class={"absolute transition-all duration-700 ease-in-out " <>
+              cond do
+                claude_is_loser -> "opacity-0 scale-95"
+                claude_is_winner -> "opacity-100"
+                @s.synthesis || @s.synthesizing -> "opacity-100"
+                true -> "opacity-0 pointer-events-none"
+              end}
+            style={"left: #{if(claude_is_winner, do: @center_x, else: @claude_x)}px; top: #{if(claude_is_winner, do: @center_y, else: @claude_y)}px; transform: translate(-50%, -50%);"}
           >
             <%= if @s.synthesis do %>
               <.candidate_card
@@ -96,11 +111,13 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
           </div>
 
           <%!-- Your card (bottom center) --%>
+          <% my_text = Map.get(@s.submissions, @username, "") %>
+          <% my_is_winner = @winner != nil and my_text == @winner %>
+          <% my_is_loser = @winner != nil and not my_is_winner %>
           <div
-            class="absolute transition-all duration-700 ease-in-out"
-            style={"left: #{@your_x}px; top: #{@your_y}px; transform: translate(-50%, -50%);"}
+            class={"absolute transition-all duration-700 ease-in-out " <> if(my_is_loser, do: "opacity-0 scale-95", else: "")}
+            style={"left: #{if(my_is_winner, do: @center_x, else: @your_x)}px; top: #{if(my_is_winner, do: @center_y, else: @your_y)}px; transform: translate(-50%, -50%);"}
           >
-            <% my_text = Map.get(@s.submissions, @username, "") %>
             <%= if @spectator do %>
               <.candidate_card
                 text={if my_text != "", do: my_text, else: nil}
