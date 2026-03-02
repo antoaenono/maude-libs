@@ -63,7 +63,7 @@ defmodule MaudeLibsWeb.CanvasLive do
         <span class="badge badge-ghost font-mono">{@username}</span>
       </div>
 
-      <%!-- Plus button fixed at center (rendered by server, D3 positions circles around it) --%>
+      <%!-- Plus button fixed at center (D3 treats it as a fixed node that repels circles) --%>
       <a
         href="/d/new"
         class="fixed z-10 btn btn-circle btn-primary shadow-lg"

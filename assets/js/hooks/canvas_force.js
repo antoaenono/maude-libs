@@ -1,6 +1,5 @@
 import {
   forceSimulation,
-  forceCenter,
   forceManyBody,
   forceCollide,
 } from "d3-force";
@@ -26,7 +25,6 @@ const CanvasForce = {
 
     this.sim = forceSimulation()
       .force("charge", forceManyBody().strength(-300))
-      .force("center", forceCenter(0, 0))
       .force("collide", forceCollide((d) => d.size + 6).strength(1))
       .alphaDecay(0.02)
       .on("tick", () => {
