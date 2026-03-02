@@ -43,6 +43,7 @@ defmodule MaudeLibsWeb.DecisionLive.LobbyStage do
                   placeholder="e.g. where should we go for dinner?"
                   class="input input-bordered"
                   autocomplete="off"
+                  phx-debounce="150"
                 />
               </div>
 
