@@ -122,8 +122,7 @@ const CanvasForce = {
         el = document.createElement("a");
         el.href = `/d/${node.id}`;
         el.className = `absolute z-10 flex flex-col items-center justify-center rounded-full shadow-xl
-                        cursor-pointer w-32 h-32 text-center
-                        hover:scale-110 hover:shadow-2xl transition-shadow duration-200 ${stageClasses(node.stage)}`;
+                        cursor-pointer w-32 h-32 text-center ${stageClasses(node.stage)}`;
         el.innerHTML = `
           <span class="font-bold text-xs px-2 leading-tight line-clamp-2"></span>
           <span class="text-xs opacity-70 px-2 mt-1 leading-tight line-clamp-2"></span>
@@ -148,8 +147,7 @@ const CanvasForce = {
       if (el.dataset.stage !== node.stage) {
         // Strip old stage classes and apply new ones
         el.className = `absolute z-10 flex flex-col items-center justify-center rounded-full shadow-xl
-                        cursor-pointer w-32 h-32 text-center
-                        hover:scale-110 hover:shadow-2xl transition-shadow duration-200 ${newClasses}`;
+                        cursor-pointer w-32 h-32 text-center ${newClasses}`;
         el.dataset.stage = node.stage;
       }
 
