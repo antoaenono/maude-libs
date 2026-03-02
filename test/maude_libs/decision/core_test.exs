@@ -40,6 +40,32 @@ defmodule MaudeLibs.Decision.CoreTest do
       {:ok, d2, _effects} = Core.handle(d, {:connect, "alice"})
       assert "alice" in d2.connected
     end
+
+    test "broadcast includes the reconnected user in connected" do
+      d = decision(connected: connected(["bob"]))
+      {:ok, d2, [{:broadcast, _id, broadcast_state}]} = Core.handle(d, {:connect, "alice"})
+      assert "alice" in d2.connected
+      assert "alice" in broadcast_state.connected
+    end
+
+    test "reconnect after disconnect restores user in broadcast" do
+      d =
+        decision(
+          connected: connected(["alice", "bob"]),
+          stage: %Stage.Scenario{
+            submissions: %{"alice" => "my scenario", "bob" => "bob's take"},
+            votes: %{}
+          }
+        )
+
+      {:ok, d2, _} = Core.handle(d, {:disconnect, "alice"})
+      refute "alice" in d2.connected
+
+      {:ok, d3, [{:broadcast, _id, broadcast_state}]} = Core.handle(d2, {:connect, "alice"})
+      assert "alice" in d3.connected
+      assert "alice" in broadcast_state.connected
+      assert broadcast_state.stage.submissions["alice"] == "my scenario"
+    end
   end
 
   describe "disconnect" do

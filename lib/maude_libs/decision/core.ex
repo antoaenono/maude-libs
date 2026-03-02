@@ -369,7 +369,8 @@ defmodule MaudeLibs.Decision.Core do
   # Connect / Disconnect (cross-stage, must come after all stage-specific clauses)
 
   def handle(%__MODULE__{} = d, {:connect, user}) do
-    {:ok, %{d | connected: MapSet.put(d.connected, user)}, [{:broadcast, d.id, d}]}
+    d2 = %{d | connected: MapSet.put(d.connected, user)}
+    {:ok, d2, [{:broadcast, d2.id, d2}]}
   end
 
   def handle(%__MODULE__{} = d, {:disconnect, user}) do
