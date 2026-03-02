@@ -86,7 +86,7 @@ defmodule MaudeLibsWeb.DecisionLive do
              username: username,
              decision: decision,
              id: id,
-             modal_open: true,
+             modal_open: false,
              spectator: not is_participant
            )}
       end
