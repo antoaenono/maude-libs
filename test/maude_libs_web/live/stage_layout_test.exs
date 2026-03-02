@@ -4,42 +4,46 @@ defmodule MaudeLibsWeb.StageLayoutTest do
   alias MaudeLibsWeb.StageLayout
 
   # ---------------------------------------------------------------------------
-  # compute/2
+  # compute/2 - returns {your_pos, others_map}
   # ---------------------------------------------------------------------------
 
   describe "compute/2" do
     test "returns empty map for no other users" do
-      assert StageLayout.compute([], %{}) == %{}
+      {your_pos, others} = StageLayout.compute([], %{})
+      assert others == %{}
+      assert {x, y} = your_pos
+      assert is_float(x)
+      assert is_float(y)
     end
 
     test "returns one position for one other user" do
-      result = StageLayout.compute(["bob"], %{})
-      assert map_size(result) == 1
-      assert {x, y} = result["bob"]
+      {_your_pos, others} = StageLayout.compute(["bob"], %{})
+      assert map_size(others) == 1
+      assert {x, y} = others["bob"]
       assert is_float(x)
       assert is_float(y)
     end
 
     test "returns positions for multiple users" do
-      result = StageLayout.compute(["bob", "charlie", "dave"], %{})
-      assert map_size(result) == 3
-      assert Map.has_key?(result, "bob")
-      assert Map.has_key?(result, "charlie")
-      assert Map.has_key?(result, "dave")
+      {_your_pos, others} = StageLayout.compute(["bob", "charlie", "dave"], %{})
+      assert map_size(others) == 3
+      assert Map.has_key?(others, "bob")
+      assert Map.has_key?(others, "charlie")
+      assert Map.has_key?(others, "dave")
     end
 
     test "positions are within virtual pixel bounds" do
-      result = StageLayout.compute(["b", "c", "d"], %{})
+      {_your_pos, others} = StageLayout.compute(["b", "c", "d"], %{})
 
-      for {_user, {x, y}} <- result do
+      for {_user, {x, y}} <- others do
         assert x >= 80.0 and x <= 920.0, "x=#{x} out of bounds"
-        assert y >= 35.0 and y <= 504.0, "y=#{y} out of bounds"
+        assert y >= 35.0 and y <= 574.0, "y=#{y} out of bounds"
       end
     end
 
     test "no two users overlap (positions differ)" do
-      result = StageLayout.compute(["b", "c", "d"], %{})
-      positions = Map.values(result)
+      {_your_pos, others} = StageLayout.compute(["b", "c", "d"], %{})
+      positions = Map.values(others)
       assert length(Enum.uniq(positions)) == length(positions)
     end
 
@@ -68,8 +72,8 @@ defmodule MaudeLibsWeb.StageLayoutTest do
       large_ctx = %{has_content: true, suggestion_count: 3}
       users = ["bob", "charlie", "dave"]
 
-      small = StageLayout.compute(users, small_ctx)
-      large = StageLayout.compute(users, large_ctx)
+      {_your_small, small} = StageLayout.compute(users, small_ctx)
+      {_your_large, large} = StageLayout.compute(users, large_ctx)
 
       # At least one user should be at a different position
       any_different =
@@ -82,11 +86,11 @@ defmodule MaudeLibsWeb.StageLayoutTest do
 
     test "positions remain in virtual pixel bounds regardless of claude size" do
       for ctx <- [%{}, %{is_thinking: true}, %{has_content: true, suggestion_count: 3}] do
-        result = StageLayout.compute(["b", "c", "d"], ctx)
+        {_your_pos, others} = StageLayout.compute(["b", "c", "d"], ctx)
 
-        for {_user, {x, y}} <- result do
+        for {_user, {x, y}} <- others do
           assert x >= 80.0 and x <= 920.0
-          assert y >= 35.0 and y <= 504.0
+          assert y >= 35.0 and y <= 574.0
         end
       end
     end
@@ -98,20 +102,20 @@ defmodule MaudeLibsWeb.StageLayoutTest do
 
   describe "vertical positioning" do
     test "all participants positioned above your card" do
-      {_yx, yy} = StageLayout.your_pos()
-      result = StageLayout.compute(["b", "c", "d"], %{})
+      {your_pos, others} = StageLayout.compute(["b", "c", "d"], %{})
+      {_yx, yy} = your_pos
 
-      for {_user, {_x, y}} <- result do
+      for {_user, {_x, y}} <- others do
         assert y < yy, "participant y=#{y} should be above your card y=#{yy}"
       end
     end
 
     test "participants positioned above claude center" do
       {_cx, cy} = StageLayout.claude_pos()
-      result = StageLayout.compute(["b", "c"], %{})
+      {_your_pos, others} = StageLayout.compute(["b", "c"], %{})
 
       # At least some should be above claude (they start in upper arc)
-      above = Enum.count(result, fn {_user, {_x, y}} -> y < cy end)
+      above = Enum.count(others, fn {_user, {_x, y}} -> y < cy end)
       assert above > 0
     end
   end
@@ -121,21 +125,21 @@ defmodule MaudeLibsWeb.StageLayoutTest do
   # ---------------------------------------------------------------------------
 
   describe "fixed positions" do
-    test "claude_pos returns center-ish virtual pixel coordinates" do
+    test "claude_pos returns center virtual pixel coordinates" do
       {x, y} = StageLayout.claude_pos()
       assert x == 500.0
-      assert y == 315.0
+      assert y == 350.0
     end
 
-    test "your_pos returns bottom-center virtual pixel coordinates" do
-      {x, y} = StageLayout.your_pos()
-      assert x == 500.0
-      assert y == 616.0
+    test "your card is positioned below claude" do
+      {your_pos, _others} = StageLayout.compute([], %{})
+      {_cx, cy} = StageLayout.claude_pos()
+      {_yx, yy} = your_pos
+      assert yy > cy, "your card y=#{yy} should be below claude y=#{cy}"
     end
 
     test "virtual_size returns the canonical canvas dimensions" do
       assert StageLayout.virtual_size() == {1000, 700}
     end
   end
-
 end
