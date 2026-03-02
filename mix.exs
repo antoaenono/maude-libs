@@ -82,7 +82,13 @@ defmodule MaudeLibs.MixProject do
   # See the documentation for `Mix` for more info on aliases.
   defp aliases do
     [
-      setup: ["deps.get", "usage_rules.sync --yes", "assets.setup", "assets.build"],
+      setup: [
+        "deps.get",
+        "usage_rules.sync --yes",
+        "cmd npm install --prefix assets",
+        "assets.setup",
+        "assets.build"
+      ],
       "deps.sync": ["deps.update --all", "usage_rules.sync --yes"],
       "assets.setup": ["tailwind.install --if-missing", "esbuild.install --if-missing"],
       "assets.build": ["compile", "tailwind maude_libs", "esbuild maude_libs"],
@@ -91,7 +97,14 @@ defmodule MaudeLibs.MixProject do
         "esbuild maude_libs --minify",
         "phx.digest"
       ],
-      precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
+      "test.js": ["cmd npm test --prefix assets"],
+      precommit: [
+        "compile --warnings-as-errors",
+        "deps.unlock --unused",
+        "format",
+        "test.js",
+        "test"
+      ]
     ]
   end
 end

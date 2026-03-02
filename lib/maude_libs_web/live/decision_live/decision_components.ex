@@ -14,7 +14,7 @@ defmodule MaudeLibsWeb.DecisionLive.DecisionComponents do
       >
         <div class="flex justify-between items-start">
           <div class="flex flex-col gap-4">{render_slot(@inner_block)}</div>
-           <button phx-click="close_modal" class="btn btn-sm btn-circle btn-ghost ml-4">✕</button>
+          <button phx-click="close_modal" class="btn btn-sm btn-circle btn-ghost ml-4">✕</button>
         </div>
 
         <p class="text-xs text-base-content/40 text-right">Press Escape or click outside to close</p>
@@ -139,13 +139,21 @@ defmodule MaudeLibsWeb.DecisionLive.DecisionComponents do
     assigns = assign(assigns, steps: steps)
 
     ~H"""
-    <nav class="w-full bg-base-100/60 backdrop-blur border-b border-base-300/50 px-4 py-2" data-testid="breadcrumbs" aria-label="Decision progress">
+    <nav
+      class="w-full bg-base-100/60 backdrop-blur border-b border-base-300/50 px-4 py-2"
+      data-testid="breadcrumbs"
+      aria-label="Decision progress"
+    >
       <ol class="flex items-center justify-center gap-1 text-xs font-mono">
         <%= for {step, idx} <- Enum.with_index(@steps) do %>
           <%= if idx > 0 do %>
             <li class="text-base-content/20 select-none" aria-hidden="true">›</li>
           <% end %>
-          <li class={breadcrumb_class(step.status)} data-stage={step.key} aria-current={if(step.status == :current, do: "step")}>
+          <li
+            class={breadcrumb_class(step.status)}
+            data-stage={step.key}
+            aria-current={if(step.status == :current, do: "step")}
+          >
             <%= if step.status == :done do %>
               <span class="text-success">✓</span>
             <% end %>

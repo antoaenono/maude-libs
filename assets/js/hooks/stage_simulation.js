@@ -20,13 +20,13 @@ export function computeTargets(nodes, canvasW, canvasH) {
     if (node.role === "claude") {
       targets[node.id] = { x: centerX, y: centerY };
     } else if (node.role === "you") {
-      targets[node.id] = { x: centerX, y: centerY + 250 };
+      targets[node.id] = { x: centerX, y: centerY + 300 };
     } else {
       const idx = otherNodes.indexOf(node);
       const angle = count === 1
         ? Math.PI / 2
         : Math.PI * (0.2 + 0.6 * idx / (count - 1));
-      const r = 200;
+      const r = 250;
       targets[node.id] = {
         x: centerX + Math.cos(angle) * r,
         y: centerY - Math.sin(angle) * r,

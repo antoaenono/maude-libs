@@ -56,7 +56,7 @@ defmodule MaudeLibsWeb.DecisionLive.PrioritiesStage do
           phx-hook="StageForce"
           data-testid="virtual-canvas"
           class="absolute select-none"
-          style="width: 1000px; height: 700px;"
+          style="width: 1000px; height: 900px;"
         >
           <%!-- Other participants' priority cards --%>
           <%= for user <- @other_users do %>

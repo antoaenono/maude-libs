@@ -1,6 +1,9 @@
 defmodule MaudeLibsWeb.DecisionLive.CompleteStage do
   use Phoenix.Component
-  import MaudeLibsWeb.DecisionLive.DecisionComponents, only: [priority_badge_class: 1, modal_overlay: 1]
+
+  import MaudeLibsWeb.DecisionLive.DecisionComponents,
+    only: [priority_badge_class: 1, modal_overlay: 1]
+
   import MaudeLibsWeb.DecisionLive.StageShell
 
   def complete_stage(assigns) do
@@ -72,7 +75,7 @@ defmodule MaudeLibsWeb.DecisionLive.CompleteStage do
                     <% end %>
 
                     <h3 class="font-bold">{opt.name}</h3>
-                     <span class="text-xs text-base-content/50 ml-auto">{opt.desc}</span>
+                    <span class="text-xs text-base-content/50 ml-auto">{opt.desc}</span>
                   </div>
 
                   <div class="grid grid-cols-2 gap-3">
@@ -107,7 +110,9 @@ defmodule MaudeLibsWeb.DecisionLive.CompleteStage do
             <% end %>
           </div>
 
-          <div class="text-center"><a href="/canvas" class="btn btn-ghost btn-sm">Back to canvas</a></div>
+          <div class="text-center">
+            <a href="/canvas" class="btn btn-ghost btn-sm">Back to canvas</a>
+          </div>
         </div>
       </div>
     </.stage_shell>

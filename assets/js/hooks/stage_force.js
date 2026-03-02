@@ -1,7 +1,7 @@
 import { createStageSimulation, clampToBounds, pinWinner } from "./stage_simulation";
 
 const CANVAS_W = 1000;
-const CANVAS_H = 700;
+const CANVAS_H = 900;
 const CENTER_X = CANVAS_W / 2;
 const CENTER_Y = CANVAS_H / 2;
 

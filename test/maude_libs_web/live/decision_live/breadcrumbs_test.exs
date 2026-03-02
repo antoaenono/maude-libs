@@ -225,8 +225,16 @@ defmodule MaudeLibsWeb.DecisionLive.BreadcrumbsTest do
       assert has_element?(view, "[data-stage=options].text-base-content.font-semibold")
 
       # Drive through options -> scaffolding -> dashboard via server
-      Server.handle_message(decision.id, {:upsert_option, "alice", %{name: "Tacos", desc: "Quick"}})
-      Server.handle_message(decision.id, {:upsert_option, "bob", %{name: "Pizza", desc: "Classic"}})
+      Server.handle_message(
+        decision.id,
+        {:upsert_option, "alice", %{name: "Tacos", desc: "Quick"}}
+      )
+
+      Server.handle_message(
+        decision.id,
+        {:upsert_option, "bob", %{name: "Pizza", desc: "Classic"}}
+      )
+
       Server.handle_message(decision.id, {:confirm_option, "alice"})
       Server.handle_message(decision.id, {:confirm_option, "bob"})
       Server.handle_message(decision.id, {:ready_options, "alice"})
@@ -274,7 +282,9 @@ defmodule MaudeLibsWeb.DecisionLive.BreadcrumbsTest do
         # Scope to the nav to avoid font-semibold matches in stage content
         [nav_html] = Regex.run(~r/<nav[^>]*data-testid="breadcrumbs"[^>]*>.*?<\/nav>/s, html)
         nav_current = length(Regex.scan(~r/font-semibold/, nav_html))
-        assert nav_current == 1, "Expected 1 current stage in breadcrumbs at #{stage}, got #{nav_current}"
+
+        assert nav_current == 1,
+               "Expected 1 current stage in breadcrumbs at #{stage}, got #{nav_current}"
       end
     end
 

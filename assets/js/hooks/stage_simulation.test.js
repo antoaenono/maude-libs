@@ -7,7 +7,7 @@ import {
 } from "./stage_simulation";
 
 const CANVAS_W = 1000;
-const CANVAS_H = 700;
+const CANVAS_H = 900;
 const CENTER_X = CANVAS_W / 2;
 const CENTER_Y = CANVAS_H / 2;
 
@@ -285,7 +285,7 @@ describe("clampToBounds", () => {
     expect(nodes[0].x).toBeGreaterThanOrEqual(40);
     expect(nodes[0].y).toBeGreaterThanOrEqual(30);
     expect(nodes[1].x).toBeLessThanOrEqual(960);
-    expect(nodes[1].y).toBeLessThanOrEqual(670);
+    expect(nodes[1].y).toBeLessThanOrEqual(870);
   });
 
   it("does not clamp claude (fixed node)", () => {

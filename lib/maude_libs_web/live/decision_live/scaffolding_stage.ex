@@ -10,7 +10,9 @@ defmodule MaudeLibsWeb.DecisionLive.ScaffoldingStage do
 
         <p class="text-xl font-semibold text-base-content/70">Spelunking...</p>
 
-        <p class="text-sm text-base-content/40">Claude is analyzing your options against priorities</p>
+        <p class="text-sm text-base-content/40">
+          Claude is analyzing your options against priorities
+        </p>
       </div>
     </.stage_shell>
     """

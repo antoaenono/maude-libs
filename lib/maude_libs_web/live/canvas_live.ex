@@ -57,7 +57,11 @@ defmodule MaudeLibsWeb.CanvasLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <div id="canvas" phx-hook="CanvasForce" class="w-screen h-screen bg-base-200 overflow-hidden relative select-none">
+    <div
+      id="canvas"
+      phx-hook="CanvasForce"
+      class="w-screen h-screen bg-base-200 overflow-hidden relative select-none"
+    >
       <%!-- Username badge --%>
       <div class="fixed top-4 left-4 z-10">
         <span class="badge badge-ghost font-mono">{@username}</span>

@@ -105,9 +105,10 @@ defmodule MaudeLibs.Decision.ServerTest do
     test "state change broadcasts to decision topic", %{id: id} do
       start(id, "alice")
 
-      d = subscribe_and_run(id, fn -> msg(id, {:ready, "alice"}) end, fn d ->
-        "alice" in d.stage.ready
-      end)
+      d =
+        subscribe_and_run(id, fn -> msg(id, {:ready, "alice"}) end, fn d ->
+          "alice" in d.stage.ready
+        end)
 
       assert "alice" in d.stage.ready
     end
@@ -185,12 +186,17 @@ defmodule MaudeLibs.Decision.ServerTest do
       msg(id, {:start, "alice"})
 
       # Subscribe before triggering debounce
-      d = subscribe_and_run(id, fn ->
-        msg(id, {:submit_scenario, "alice", "where should we eat tonight?"})
-        msg(id, {:submit_scenario, "bob", "what restaurant for dinner?"})
-      end, fn d ->
-        d.stage.synthesis != nil
-      end)
+      d =
+        subscribe_and_run(
+          id,
+          fn ->
+            msg(id, {:submit_scenario, "alice", "where should we eat tonight?"})
+            msg(id, {:submit_scenario, "bob", "what restaurant for dinner?"})
+          end,
+          fn d ->
+            d.stage.synthesis != nil
+          end
+        )
 
       assert is_binary(d.stage.synthesis)
     end
@@ -214,11 +220,16 @@ defmodule MaudeLibs.Decision.ServerTest do
 
       DecisionSup.start_with_state(decision)
 
-      d = subscribe_and_run(id, fn ->
-        msg(id, {:confirm_priority, "alice"})
-      end, fn d ->
-        d.stage.suggestions != []
-      end)
+      d =
+        subscribe_and_run(
+          id,
+          fn ->
+            msg(id, {:confirm_priority, "alice"})
+          end,
+          fn d ->
+            d.stage.suggestions != []
+          end
+        )
 
       assert length(d.stage.suggestions) == 3
       assert d.stage.suggesting == false
@@ -244,11 +255,16 @@ defmodule MaudeLibs.Decision.ServerTest do
 
       DecisionSup.start_with_state(decision)
 
-      d = subscribe_and_run(id, fn ->
-        msg(id, {:confirm_option, "alice"})
-      end, fn d ->
-        match?(%Stage.Options{suggestions: [_ | _]}, d.stage)
-      end)
+      d =
+        subscribe_and_run(
+          id,
+          fn ->
+            msg(id, {:confirm_option, "alice"})
+          end,
+          fn d ->
+            match?(%Stage.Options{suggestions: [_ | _]}, d.stage)
+          end
+        )
 
       assert length(d.stage.suggestions) == 3
       assert d.stage.suggesting == false
@@ -274,11 +290,16 @@ defmodule MaudeLibs.Decision.ServerTest do
 
       DecisionSup.start_with_state(decision)
 
-      d = subscribe_and_run(id, fn ->
-        msg(id, {:ready_options, "alice"})
-      end, fn d ->
-        match?(%Stage.Dashboard{}, d.stage)
-      end)
+      d =
+        subscribe_and_run(
+          id,
+          fn ->
+            msg(id, {:ready_options, "alice"})
+          end,
+          fn d ->
+            match?(%Stage.Dashboard{}, d.stage)
+          end
+        )
 
       assert length(d.stage.options) > 0
     end
@@ -306,11 +327,16 @@ defmodule MaudeLibs.Decision.ServerTest do
 
       DecisionSup.start_with_state(decision)
 
-      d = subscribe_and_run(id, fn ->
-        msg(id, {:ready_dashboard, "alice"})
-      end, fn d ->
-        match?(%Stage.Complete{why_statement: s} when is_binary(s), d.stage)
-      end)
+      d =
+        subscribe_and_run(
+          id,
+          fn ->
+            msg(id, {:ready_dashboard, "alice"})
+          end,
+          fn d ->
+            match?(%Stage.Complete{why_statement: s} when is_binary(s), d.stage)
+          end
+        )
 
       assert d.stage.why_statement =~ "tacos"
     end

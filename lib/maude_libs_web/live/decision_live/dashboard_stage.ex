@@ -1,6 +1,9 @@
 defmodule MaudeLibsWeb.DecisionLive.DashboardStage do
   use Phoenix.Component
-  import MaudeLibsWeb.DecisionLive.DecisionComponents, only: [priority_badge_class: 1, modal_overlay: 1]
+
+  import MaudeLibsWeb.DecisionLive.DecisionComponents,
+    only: [priority_badge_class: 1, modal_overlay: 1]
+
   import MaudeLibsWeb.DecisionLive.StageShell
 
   alias MaudeLibs.Decision.Stage
@@ -82,9 +85,9 @@ defmodule MaudeLibsWeb.DecisionLive.DashboardStage do
 
                         <p class="text-xs text-base-content/60">{opt.desc}</p>
                       </div>
-                       <span class="badge badge-sm flex-shrink-0">{votes_for} votes</span>
+                      <span class="badge badge-sm flex-shrink-0">{votes_for} votes</span>
                     </div>
-                     <%!-- For points --%>
+                    <%!-- For points --%>
                     <%= if length(opt.for) > 0 do %>
                       <div class="flex flex-col gap-1">
                         <p class="text-xs font-semibold text-success">For</p>
@@ -104,7 +107,7 @@ defmodule MaudeLibsWeb.DecisionLive.DashboardStage do
                         </table>
                       </div>
                     <% end %>
-                     <%!-- Against points --%>
+                    <%!-- Against points --%>
                     <%= if length(opt.against) > 0 do %>
                       <div class="flex flex-col gap-1">
                         <p class="text-xs font-semibold text-error">Against</p>
@@ -124,7 +127,7 @@ defmodule MaudeLibsWeb.DecisionLive.DashboardStage do
                         </table>
                       </div>
                     <% end %>
-                     <%!-- Participant vote checkboxes --%>
+                    <%!-- Participant vote checkboxes --%>
                     <div class="flex flex-wrap gap-1 mt-auto pt-2 border-t border-base-200">
                       <%= for user <- @participants do %>
                         <% user_voted = opt.name in Map.get(@s.votes, user, []) %>
@@ -138,7 +141,7 @@ defmodule MaudeLibsWeb.DecisionLive.DashboardStage do
                           <%= if user_voted do %>
                             <span>✓</span>
                           <% end %>
-                           {user}
+                          {user}
                         </button>
                       <% end %>
                     </div>

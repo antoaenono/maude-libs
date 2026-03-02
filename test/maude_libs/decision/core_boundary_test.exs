@@ -247,7 +247,9 @@ defmodule MaudeLibs.Decision.CoreBoundaryTest do
           stage: %Stage.Priorities{suggesting: true}
         )
 
-      {:ok, d2, _} = Core.handle(d, {:priority_suggestions_result, [%{text: "x", direction: "+"}]})
+      {:ok, d2, _} =
+        Core.handle(d, {:priority_suggestions_result, [%{text: "x", direction: "+"}]})
+
       assert d2.stage.suggesting == false
     end
   end
@@ -492,7 +494,10 @@ defmodule MaudeLibs.Decision.CoreBoundaryTest do
 
     test "priority upsert emits broadcast" do
       d = decision(connected: connected(["alice"]), stage: %Stage.Priorities{})
-      {:ok, _, effects} = Core.handle(d, {:upsert_priority, "alice", %{text: "x", direction: "+"}})
+
+      {:ok, _, effects} =
+        Core.handle(d, {:upsert_priority, "alice", %{text: "x", direction: "+"}})
+
       assert Enum.any?(effects, &match?({:broadcast, _, _}, &1))
     end
 
@@ -534,7 +539,9 @@ defmodule MaudeLibs.Decision.CoreBoundaryTest do
 
     test "priorities message during options" do
       d = decision(connected: connected(["alice"]), stage: %Stage.Options{})
-      assert {:error, _} = Core.handle(d, {:upsert_priority, "alice", %{text: "x", direction: "+"}})
+
+      assert {:error, _} =
+               Core.handle(d, {:upsert_priority, "alice", %{text: "x", direction: "+"}})
     end
 
     test "options message during scaffolding" do

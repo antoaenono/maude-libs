@@ -54,7 +54,7 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
           phx-hook="StageForce"
           data-testid="virtual-canvas"
           class="absolute select-none"
-          style="width: 1000px; height: 700px;"
+          style="width: 1000px; height: 900px;"
           {if @winner_node_id, do: [{"data-winner-id", @winner_node_id}], else: []}
         >
           <%!-- Other participants' cards --%>
