@@ -131,6 +131,47 @@ defmodule MaudeLibs.Decision.ServerTest do
     end
   end
 
+  describe "disconnect grace period" do
+    setup do
+      prev = Application.get_env(:maude_libs, :disconnect_grace_ms)
+      Application.put_env(:maude_libs, :disconnect_grace_ms, 200)
+      on_exit(fn -> Application.put_env(:maude_libs, :disconnect_grace_ms, prev || 0) end)
+      :ok
+    end
+
+    test "user stays connected during grace period", %{id: id} do
+      start(id, "alice")
+      Server.disconnect(id, "alice")
+      # Should still be connected immediately after disconnect
+      d = state(id)
+      assert "alice" in d.connected
+    end
+
+    test "reconnect within grace cancels disconnect", %{id: id} do
+      start(id, "alice")
+      Server.disconnect(id, "alice")
+      msg(id, {:connect, "alice"})
+      # Wait past the grace period
+      Process.sleep(300)
+      d = state(id)
+      assert "alice" in d.connected
+    end
+
+    test "user disconnected after grace expires", %{id: id} do
+      start(id, "alice")
+      Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
+      Server.disconnect(id, "alice")
+
+      # Wait for the grace period to expire and disconnect to broadcast
+      receive do
+        {:decision_updated, d} ->
+          refute "alice" in d.connected
+      after
+        500 -> flunk("timed out waiting for disconnect broadcast")
+      end
+    end
+  end
+
   # ---------------------------------------------------------------------------
   # LLM integration (debounce + async_llm)
   # ---------------------------------------------------------------------------

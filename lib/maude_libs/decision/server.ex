@@ -117,6 +117,9 @@ defmodule MaudeLibs.Decision.Server do
     Logger.metadata(decision_id: d.id, stage: stage_name(d.stage))
     Logger.debug("message received", action: elem(msg, 0))
 
+    # Cancel pending disconnect if user is reconnecting
+    state = cancel_pending_disconnect(state, msg)
+
     case Core.handle(d, msg) do
       {:ok, d2, effects} ->
         state2 = %{state | decision: d2}
@@ -132,20 +135,56 @@ defmodule MaudeLibs.Decision.Server do
   @impl true
   def handle_cast({:disconnect, user}, %{decision: d} = state) do
     Logger.metadata(decision_id: d.id, stage: stage_name(d.stage))
+    Logger.info("user disconnect scheduled", user: user)
 
-    Logger.info("user disconnected",
+    grace = Application.get_env(:maude_libs, :disconnect_grace_ms, 5_000)
+    disconnect_timers = Map.get(state, :disconnect_timers, %{})
+
+    # Cancel any existing timer for this user
+    if prev = Map.get(disconnect_timers, user) do
+      Process.cancel_timer(prev)
+    end
+
+    if grace == 0 do
+      # Immediate disconnect (used in tests)
+      state2 = Map.put(state, :disconnect_timers, Map.delete(disconnect_timers, user))
+
+      case Core.handle(d, {:disconnect, user}) do
+        {:ok, d2, effects} ->
+          state3 = %{state2 | decision: d2}
+          state4 = dispatch_effects(effects, state3)
+          {:noreply, state4}
+
+        {:error, _} ->
+          {:noreply, state2}
+      end
+    else
+      ref = Process.send_after(self(), {:disconnect_timeout, user}, grace)
+      {:noreply, Map.put(state, :disconnect_timers, Map.put(disconnect_timers, user, ref))}
+    end
+  end
+
+  # Disconnect grace period expired - actually disconnect the user
+  @impl true
+  def handle_info({:disconnect_timeout, user}, %{decision: d} = state) do
+    Logger.metadata(decision_id: d.id, stage: stage_name(d.stage))
+
+    Logger.info("user disconnected (grace expired)",
       user: user,
       connected_remaining: MapSet.size(d.connected) - 1
     )
 
+    disconnect_timers = Map.get(state, :disconnect_timers, %{})
+    state2 = Map.put(state, :disconnect_timers, Map.delete(disconnect_timers, user))
+
     case Core.handle(d, {:disconnect, user}) do
       {:ok, d2, effects} ->
-        state2 = %{state | decision: d2}
-        state3 = dispatch_effects(effects, state2)
-        {:noreply, state3}
+        state3 = %{state2 | decision: d2}
+        state4 = dispatch_effects(effects, state3)
+        {:noreply, state4}
 
       {:error, _} ->
-        {:noreply, state}
+        {:noreply, state2}
     end
   end
 
@@ -347,4 +386,24 @@ defmodule MaudeLibs.Decision.Server do
   defp stage_atom(%Stage.Scaffolding{}), do: :scaffolding
   defp stage_atom(%Stage.Dashboard{}), do: :dashboard
   defp stage_atom(%Stage.Complete{}), do: :complete
+
+  defp cancel_pending_disconnect(state, {:connect, user}) do
+    disconnect_timers = Map.get(state, :disconnect_timers, %{})
+
+    case Map.get(disconnect_timers, user) do
+      nil ->
+        state
+
+      ref ->
+        Process.cancel_timer(ref)
+        Logger.info("disconnect cancelled (reconnected)", user: user)
+        Map.put(state, :disconnect_timers, Map.delete(disconnect_timers, user))
+    end
+  end
+
+  defp cancel_pending_disconnect(state, {:join, user}) do
+    cancel_pending_disconnect(state, {:connect, user})
+  end
+
+  defp cancel_pending_disconnect(state, _msg), do: state
 end
