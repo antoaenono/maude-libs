@@ -143,7 +143,7 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
                       type="text"
                       name="text"
                       value={my_sub || ""}
-                      placeholder="What's your perspective?"
+                      placeholder={scenario_placeholder(@username)}
                       class="input input-bordered input-sm flex-1"
                       autocomplete="off"
                     /> <button type="submit" class="btn btn-sm btn-outline">Save</button>
@@ -161,6 +161,19 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
       </div>
     </.stage_shell>
     """
+  end
+
+  defp scenario_placeholder(username) do
+    Enum.random([
+      "So what's the scenario?",
+      "What's the scenario?",
+      "What, so what's the scenario?",
+      "So what, so what's the scenario?",
+      "What, so what, so what's the scenario?",
+      "So what, so what, so what's the scenario?",
+      "#{username} with the scenario:",
+      "So here's #{username} with the scenario:"
+    ])
   end
 
   def scenario_modal(assigns) do
