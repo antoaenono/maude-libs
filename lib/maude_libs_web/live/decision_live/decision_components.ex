@@ -84,35 +84,25 @@ defmodule MaudeLibsWeb.DecisionLive.DecisionComponents do
                    if(@is_synthesis, do: "border-dashed border-secondary", else: "border-base-300")) <>
                  if(@spectator or is_nil(@text), do: " cursor-default", else: " cursor-pointer hover:border-primary/60 hover:shadow-lg")}>
       <div class="card-body p-4 gap-2">
-        <div class="flex items-center justify-between">
+        <%= if @text do %>
+          <p class="text-sm">{@text}</p>
+        <% else %>
           <div class="flex items-center gap-1.5">
-            <span class={"badge badge-sm " <> if(@is_synthesis, do: "badge-secondary", else: "badge-ghost")}>
-              {@label}
-            </span>
+            <span class="text-xs text-base-content/30 italic">{@placeholder || "..."}</span>
             <%= if @thinking do %>
               <.mini_dots />
             <% end %>
           </div>
+        <% end %>
 
-          <%= if @voted do %>
-            <span class="text-xs text-base-content/40">voted ✓</span>
-          <% end %>
-        </div>
-
-        <%= if @text do %>
-          <p class="text-sm">{@text}</p>
-
-          <%= if not @spectator and @text do %>
-            <button
-              phx-click="vote_scenario"
-              phx-value-candidate={@text}
-              class={"btn btn-xs mt-1 " <> if(@selected, do: "btn-primary", else: "btn-outline btn-primary")}
-            >
-              {if @selected, do: "Your vote ✓", else: "Vote"}
-            </button>
-          <% end %>
-        <% else %>
-          <p class="text-xs text-base-content/30 italic">{@placeholder || "..."}</p>
+        <%= if not @spectator and @text do %>
+          <button
+            phx-click="vote_scenario"
+            phx-value-candidate={@text}
+            class={"btn btn-xs " <> if(@selected, do: "btn-primary", else: "btn-outline btn-primary")}
+          >
+            {if @selected, do: "Your vote ✓", else: "Vote for #{@label}"}
+          </button>
         <% end %>
       </div>
     </div>

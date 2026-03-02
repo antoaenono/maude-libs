@@ -114,22 +114,14 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
             <% else %>
               <div class={"card w-96 border-2 bg-base-100 shadow-xl " <> if(@my_vote != nil, do: "border-primary", else: "border-base-300")}>
                 <div class="card-body p-4 gap-3">
-                  <div class="flex items-center justify-between">
-                    <span class="badge badge-ghost badge-sm">you</span>
-                    <%= if @my_vote != nil do %>
-                      <span class="text-xs text-primary font-semibold">voted ✓</span>
-                    <% end %>
-                  </div>
                    <% my_sub = Map.get(@s.submissions, @username) %>
                   <%= if my_sub && my_sub != "" do %>
-                    <p class="text-sm font-medium">{my_sub}</p>
-
                     <button
                       phx-click="vote_scenario"
                       phx-value-candidate={my_sub}
                       class={"btn btn-xs " <> if(@my_vote == my_sub, do: "btn-primary", else: "btn-outline btn-primary")}
                     >
-                      {if @my_vote == my_sub, do: "Your vote ✓", else: "Vote for yours"}
+                      {if @my_vote == my_sub, do: "Your vote ✓", else: "Vote for yourself"}
                     </button>
                   <% end %>
 
