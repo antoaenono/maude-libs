@@ -6,42 +6,52 @@ defmodule MaudeLibsWeb.DecisionLive.LobbyStage do
   alias MaudeLibs.UserRegistry
 
   def lobby_stage(assigns) do
+    s = assigns.decision.stage
     is_creator = not assigns.spectator and assigns.username == assigns.decision.creator
-    is_ready = assigns.username in assigns.decision.stage.ready
+    is_ready = assigns.username in s.ready
 
     all_ready =
-      MapSet.subset?(assigns.decision.stage.joined, assigns.decision.stage.ready) and
-        MapSet.size(assigns.decision.stage.joined) > 0
+      MapSet.subset?(s.joined, s.ready) and
+        MapSet.size(s.joined) > 0
 
     all_usernames = UserRegistry.list_usernames()
 
+    other_users =
+      s.joined |> MapSet.to_list() |> Enum.reject(&(&1 == assigns.username))
+
+    ghost_users =
+      MapSet.difference(s.invited, s.joined) |> MapSet.to_list()
+
     assigns =
       assign(assigns,
+        s: s,
         is_creator: is_creator,
         is_ready: is_ready,
         all_ready: all_ready,
-        all_usernames: all_usernames
+        all_usernames: all_usernames,
+        other_users: other_users,
+        ghost_users: ghost_users
       )
 
     ~H"""
     <.stage_shell stage={@decision.stage}>
-      <div class="h-full flex flex-col lg:flex-row p-8 gap-8 max-w-4xl mx-auto">
-        <%!-- Left: topic + invite --%>
-        <div class="flex-1 flex flex-col gap-6">
-          <h2 class="text-2xl font-bold">New Decision</h2>
-
+      <div class="h-full flex">
+        <%!-- Sidebar --%>
+        <div class="w-72 shrink-0 border-r border-base-300 bg-base-100/80 p-6 flex flex-col gap-6 overflow-y-auto">
           <%= if @is_creator do %>
+            <h2 class="text-lg font-bold">New Decision</h2>
+
             <form phx-submit="lobby_update" phx-change="lobby_update" class="flex flex-col gap-4">
               <div class="form-control">
                 <label class="label">
-                  <span class="label-text font-semibold">What are you deciding?</span>
+                  <span class="label-text font-semibold text-sm">What are you deciding?</span>
                 </label>
                 <input
                   type="text"
                   name="topic"
                   value={@decision.topic || ""}
                   placeholder="e.g. where should we go for dinner?"
-                  class="input input-bordered"
+                  class="input input-bordered input-sm"
                   autocomplete="off"
                   phx-debounce="150"
                 />
@@ -49,20 +59,20 @@ defmodule MaudeLibsWeb.DecisionLive.LobbyStage do
 
               <div class="form-control">
                 <label class="label">
-                  <span class="label-text font-semibold">Invite participants</span>
-                  <span class="label-text-alt text-base-content/50">comma-separated usernames</span>
+                  <span class="label-text font-semibold text-sm">Invite participants</span>
+                  <span class="label-text-alt text-base-content/50 text-xs">comma-separated</span>
                 </label>
                 <input
                   type="text"
                   name="invite"
                   value={
-                    @decision.stage.invited
+                    @s.invited
                     |> MapSet.to_list()
                     |> Enum.reject(&(&1 == @username))
                     |> Enum.join(", ")
                   }
                   placeholder="bob, charlie"
-                  class="input input-bordered"
+                  class="input input-bordered input-sm"
                   list="known-usernames"
                   autocomplete="off"
                 />
@@ -74,37 +84,132 @@ defmodule MaudeLibsWeb.DecisionLive.LobbyStage do
               </div>
             </form>
           <% else %>
-            <div class="flex flex-col gap-2">
-              <p class="text-base-content/70">Decision topic:</p>
+            <h2 class="text-lg font-bold">Lobby</h2>
 
-              <p class="text-xl font-semibold">{@decision.topic || "(waiting for creator...)"}</p>
+            <div class="flex flex-col gap-2">
+              <span class="text-xs text-base-content/50 uppercase tracking-wide">Topic</span>
+              <p class="font-semibold">{@decision.topic || "(waiting for creator...)"}</p>
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <span class="text-xs text-base-content/50 uppercase tracking-wide">Participants</span>
+              <%= for user <- MapSet.to_list(@s.joined) do %>
+                <div class="flex items-center gap-2">
+                  <span class={"w-2 h-2 rounded-full " <> if(user in @s.ready, do: "bg-success", else: "bg-base-content/20")} />
+                  <span class={"font-mono text-sm " <> if(user == @username, do: "font-bold", else: "")}>{user}</span>
+                </div>
+              <% end %>
+              <%= for user <- @ghost_users do %>
+                <div class="flex items-center gap-2 opacity-40">
+                  <span class="w-2 h-2 rounded-full bg-base-content/20" />
+                  <span class="font-mono text-sm italic">{user} (invited)</span>
+                </div>
+              <% end %>
             </div>
           <% end %>
         </div>
 
-        <%!-- Right: participant list --%>
-        <div class="w-64 flex flex-col gap-4">
-          <h3 class="font-semibold text-base-content/70">Participants</h3>
+        <%!-- Canvas --%>
+        <div id="lobby-canvas" phx-hook="ScaleToFit" class="flex-1 h-full overflow-hidden relative">
+          <div
+            id="lobby-force"
+            phx-hook="StageForce"
+            data-testid="virtual-canvas"
+            class="absolute select-none"
+            style="width: 1000px; height: 900px;"
+          >
+            <%!-- Invisible center anchor (keeps D3 layout consistent with other stages) --%>
+            <div
+              data-node-id="center"
+              data-node-role="claude"
+              class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 pointer-events-none"
+            >
+              <div style="width: 1px; height: 1px;"></div>
+            </div>
 
-          <div class="flex flex-col gap-2">
-            <%= for user <- MapSet.to_list(@decision.stage.joined) do %>
-              <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <span class={"w-2 h-2 rounded-full #{if user in @decision.stage.ready, do: "bg-success", else: "bg-base-content/20"}"} />
-                  <span class={"font-mono #{if user == @username, do: "font-bold"}"}>{user}</span>
+            <%!-- Other joined users --%>
+            <%= for user <- @other_users do %>
+              <div
+                data-node-id={user}
+                data-node-role="other"
+                class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+              >
+                <div class="card w-44 border-2 bg-base-100 shadow-md border-base-300">
+                  <div class="card-body p-4 gap-2">
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class={"w-2 h-2 rounded-full " <> if(user in @s.ready, do: "bg-success", else: "bg-base-content/20")} />
+                        <span class="font-mono text-sm">{user}</span>
+                      </div>
+                      <%= if @is_creator and user not in @s.ready do %>
+                        <button
+                          phx-click="remove_participant"
+                          phx-value-user={user}
+                          class="btn btn-xs btn-ghost text-error"
+                        >
+                          ×
+                        </button>
+                      <% end %>
+                    </div>
+                    <%= if user in @s.ready do %>
+                      <span class="text-xs text-success">ready ✓</span>
+                    <% end %>
+                  </div>
                 </div>
-
-                <%= if @is_creator and user != @username and user not in @decision.stage.ready do %>
-                  <button
-                    phx-click="remove_participant"
-                    phx-value-user={user}
-                    class="btn btn-xs btn-ghost text-error"
-                  >
-                    ×
-                  </button>
-                <% end %>
               </div>
             <% end %>
+
+            <%!-- Ghost users (invited, not yet joined) --%>
+            <%= for user <- @ghost_users do %>
+              <div
+                data-node-id={user}
+                data-node-role="other"
+                class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transition-opacity duration-500"
+              >
+                <div class="card w-44 border-2 border-dashed bg-base-100/50 shadow-sm border-base-300 opacity-40">
+                  <div class="card-body p-4 gap-2">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2 h-2 rounded-full bg-base-content/20" />
+                      <span class="font-mono text-sm italic">{user}</span>
+                    </div>
+                    <span class="text-xs text-base-content/30">invited</span>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+
+            <%!-- Your card --%>
+            <div
+              data-node-id="you"
+              data-node-role="you"
+              class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+            >
+              <%= if @spectator do %>
+                <div class="card w-44 border-2 border-dashed bg-base-100/50 shadow-sm border-base-300">
+                  <div class="card-body p-4 gap-2">
+                    <span class="font-mono text-sm">{@username}</span>
+                    <span class="badge badge-ghost badge-sm">spectating</span>
+                  </div>
+                </div>
+              <% else %>
+                <div class={"card w-44 border-2 bg-base-100 shadow-xl " <> if(@is_ready, do: "border-success", else: "border-base-300")}>
+                  <div class="card-body p-4 gap-2">
+                    <div class="flex items-center gap-2">
+                      <span class={"w-2 h-2 rounded-full " <> if(@is_ready, do: "bg-success", else: "bg-base-content/20")} />
+                      <span class="font-mono text-sm font-bold">{@username}</span>
+                    </div>
+                    <%= if @is_ready do %>
+                      <span class="text-xs text-success">ready ✓</span>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+
+            <%!-- Tally (bottom right) --%>
+            <div class="absolute bottom-4 right-4 text-xs text-base-content/40 font-mono">
+              {MapSet.size(@s.ready)} / {MapSet.size(@s.joined)} ready
+            </div>
           </div>
         </div>
       </div>
@@ -112,12 +217,12 @@ defmodule MaudeLibsWeb.DecisionLive.LobbyStage do
       <:footer>
         <%= if not @spectator do %>
           <div class="bg-base-100/80 backdrop-blur border-t border-base-300 px-8 py-3 flex justify-center gap-2">
-            <%= if @username not in @decision.stage.joined do %>
+            <%= if @username not in @s.joined do %>
               <button phx-click="lobby_join" class="btn btn-outline btn-primary">Join</button>
             <% else %>
               <button
                 phx-click="lobby_ready"
-                class={"btn #{if @is_ready, do: "btn-success", else: "btn-outline btn-success"}"}
+                class={"btn " <> if(@is_ready, do: "btn-success", else: "btn-outline btn-success")}
               >
                 {if @is_ready, do: "Ready ✓", else: "Ready up"}
               </button>

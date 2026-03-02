@@ -26,7 +26,7 @@ defmodule MaudeLibsWeb.DecisionLive.LobbyTest do
       decision = seed_decision(:lobby, ["alice", "bob"])
       {:ok, _view, html} = mount_as("bob", decision.id)
       refute html =~ "What are you deciding?"
-      assert html =~ "Decision topic:"
+      assert html =~ "Topic"
     end
 
     @tag stage: :lobby
