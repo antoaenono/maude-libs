@@ -76,7 +76,7 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
                 selected={@my_vote != nil and @my_vote == text and text != ""}
                 is_synthesis={false}
                 spectator={@spectator}
-                placeholder="thinking..."
+                placeholder={"#{user} is thinking..."}
               />
             </div>
           <% end %>
