@@ -112,7 +112,7 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
                 placeholder="spectating"
               />
             <% else %>
-              <div class={"card w-72 border-2 bg-base-100 shadow-xl " <> if(@my_vote != nil, do: "border-primary", else: "border-base-300")}>
+              <div class={"card w-96 border-2 bg-base-100 shadow-xl " <> if(@my_vote != nil, do: "border-primary", else: "border-base-300")}>
                 <div class="card-body p-4 gap-3">
                   <div class="flex items-center justify-between">
                     <span class="badge badge-ghost badge-sm">you</span>
