@@ -18,7 +18,7 @@ defmodule MaudeLibsWeb.DecisionLive.StageShell do
         </div>
       <% end %>
 
-      <div class="flex-1 min-h-0 relative">
+      <div class="flex-1 min-h-0 relative isolate overflow-hidden">
         {render_slot(@inner_block)}
       </div>
 

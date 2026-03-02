@@ -18,9 +18,8 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
       suggestion_count: if(s.synthesis, do: 1, else: 0)
     }
 
-    positions = StageLayout.compute(other_users, stage_context)
+    {{your_x, your_y}, positions} = StageLayout.compute(other_users, stage_context)
     {claude_x, claude_y} = StageLayout.claude_pos()
-    {your_x, your_y} = StageLayout.your_pos()
     {virtual_w, virtual_h} = StageLayout.virtual_size()
 
     {center_x, center_y} = {virtual_w / 2.0, virtual_h / 2.0}
@@ -56,9 +55,10 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
       </:header>
 
       <div id="scenario-canvas" phx-hook="ScaleToFit"
-           class="w-full h-full flex items-center justify-center overflow-hidden">
-        <div data-testid="virtual-canvas" class="relative select-none"
-             style={"width: #{@virtual_w}px; height: #{@virtual_h}px; transform: scale(var(--canvas-scale, 1)); transform-origin: center center;"}>
+           class="w-full h-full overflow-hidden relative">
+        <div data-testid="virtual-canvas"
+             class="absolute select-none"
+             style={"width: #{@virtual_w}px; height: #{@virtual_h}px;"}>
           <%!-- Other participants' cards --%>
           <%= for user <- @other_users do %>
             <% {x, y} = Map.get(@positions, user, {500.0, 210.0}) %> <% text =
