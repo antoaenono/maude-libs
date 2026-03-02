@@ -18,7 +18,7 @@ defmodule MaudeLibsWeb.DecisionLive.LobbyTest do
       assert html =~ "What are you deciding?"
       assert html =~ "Invite participants"
       assert has_element?(view, "input[name=\"topic\"]")
-      assert has_element?(view, "input[name=\"invite\"]")
+      assert has_element?(view, "input[name=\"username\"]")
     end
 
     @tag stage: :lobby
@@ -35,8 +35,8 @@ defmodule MaudeLibsWeb.DecisionLive.LobbyTest do
       {:ok, view, _html} = mount_as("alice", decision.id)
 
       view
-      |> element("form[phx-submit=\"lobby_update\"]")
-      |> render_submit(%{"topic" => "Where to eat?", "invite" => ""})
+      |> element("form[phx-change=\"lobby_update\"]")
+      |> render_change(%{"topic" => "Where to eat?"})
 
       # State updated via PubSub broadcast
       html = render(view)
@@ -78,7 +78,7 @@ defmodule MaudeLibsWeb.DecisionLive.LobbyTest do
       {:ok, view, _html} = mount_as("alice", decision.id)
 
       view
-      |> element("button[phx-click=\"remove_participant\"][phx-value-user=\"bob\"]")
+      |> element(".w-72 button[phx-click=\"remove_participant\"][phx-value-user=\"bob\"]")
       |> render_click()
 
       html = render(view)

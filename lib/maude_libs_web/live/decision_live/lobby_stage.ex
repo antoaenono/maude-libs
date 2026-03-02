@@ -41,48 +41,79 @@ defmodule MaudeLibsWeb.DecisionLive.LobbyStage do
           <%= if @is_creator do %>
             <h2 class="text-lg font-bold">New Decision</h2>
 
-            <form phx-submit="lobby_update" phx-change="lobby_update" class="flex flex-col gap-4">
-              <div class="form-control">
-                <label class="label">
-                  <span class="label-text font-semibold text-sm">What are you deciding?</span>
-                </label>
-                <input
-                  type="text"
-                  name="topic"
-                  value={@decision.topic || ""}
-                  placeholder="e.g. where should we go for dinner?"
-                  class="input input-bordered input-sm"
-                  autocomplete="off"
-                  phx-debounce="150"
-                />
-              </div>
+            <form phx-change="lobby_update" class="form-control">
+              <label class="label">
+                <span class="label-text font-semibold text-sm">What are you deciding?</span>
+              </label>
+              <input
+                type="text"
+                name="topic"
+                value={@decision.topic || ""}
+                placeholder="e.g. where should we go for dinner?"
+                class="input input-bordered input-sm"
+                autocomplete="off"
+                phx-debounce="150"
+              />
+            </form>
 
-              <div class="form-control">
-                <label class="label">
-                  <span class="label-text font-semibold text-sm">Invite participants</span>
-                  <span class="label-text-alt text-base-content/50 text-xs">comma-separated</span>
-                </label>
+            <div class="flex flex-col gap-2">
+              <span class="label-text font-semibold text-sm">Invite participants</span>
+
+              <form phx-submit="add_invite" class="flex gap-1">
                 <input
                   type="text"
-                  name="invite"
-                  value={
-                    @s.invited
-                    |> MapSet.to_list()
-                    |> Enum.reject(&(&1 == @username))
-                    |> Enum.join(", ")
-                  }
-                  placeholder="bob, charlie"
-                  class="input input-bordered input-sm"
+                  name="username"
+                  placeholder="username"
+                  class="input input-bordered input-sm flex-1"
                   list="known-usernames"
                   autocomplete="off"
+                  phx-hook="ClearOnSubmit"
+                  id="invite-input"
                 />
+                <button type="submit" class="btn btn-sm btn-ghost">+</button>
                 <datalist id="known-usernames">
                   <%= for u <- @all_usernames, u != @username do %>
                     <option value={u} />
                   <% end %>
                 </datalist>
+              </form>
+
+              <%!-- Participant list --%>
+              <div class="flex flex-col gap-1">
+                <%!-- Joined users (other than creator) --%>
+                <%= for user <- @other_users do %>
+                  <div class="flex items-center justify-between text-sm">
+                    <div class="flex items-center gap-2">
+                      <span class={"w-2 h-2 rounded-full " <> if(user in @s.ready, do: "bg-success", else: "bg-base-content/20")} />
+                      <span class="font-mono">{user}</span>
+                    </div>
+                    <button
+                      phx-click="remove_participant"
+                      phx-value-user={user}
+                      class="btn btn-xs btn-ghost text-error"
+                    >
+                      ×
+                    </button>
+                  </div>
+                <% end %>
+                <%!-- Invited but not yet joined --%>
+                <%= for user <- @ghost_users do %>
+                  <div class="flex items-center justify-between text-sm opacity-50">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2 h-2 rounded-full bg-base-content/20" />
+                      <span class="font-mono italic">{user}</span>
+                    </div>
+                    <button
+                      phx-click="remove_invite"
+                      phx-value-user={user}
+                      class="btn btn-xs btn-ghost text-error"
+                    >
+                      ×
+                    </button>
+                  </div>
+                <% end %>
               </div>
-            </form>
+            </div>
           <% else %>
             <h2 class="text-lg font-bold">Lobby</h2>
 
@@ -141,7 +172,7 @@ defmodule MaudeLibsWeb.DecisionLive.LobbyStage do
                         <span class={"w-2 h-2 rounded-full " <> if(user in @s.ready, do: "bg-success", else: "bg-base-content/20")} />
                         <span class="font-mono text-sm">{user}</span>
                       </div>
-                      <%= if @is_creator and user not in @s.ready do %>
+                      <%= if @is_creator do %>
                         <button
                           phx-click="remove_participant"
                           phx-value-user={user}
@@ -168,9 +199,20 @@ defmodule MaudeLibsWeb.DecisionLive.LobbyStage do
               >
                 <div class="card w-44 border-2 border-dashed bg-base-100/50 shadow-sm border-base-300 opacity-40">
                   <div class="card-body p-4 gap-2">
-                    <div class="flex items-center gap-2">
-                      <span class="w-2 h-2 rounded-full bg-base-content/20" />
-                      <span class="font-mono text-sm italic">{user}</span>
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-base-content/20" />
+                        <span class="font-mono text-sm italic">{user}</span>
+                      </div>
+                      <%= if @is_creator do %>
+                        <button
+                          phx-click="remove_invite"
+                          phx-value-user={user}
+                          class="btn btn-xs btn-ghost text-error"
+                        >
+                          ×
+                        </button>
+                      <% end %>
                     </div>
                     <span class="text-xs text-base-content/30">invited</span>
                   </div>

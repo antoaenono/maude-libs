@@ -130,13 +130,41 @@ defmodule MaudeLibsWeb.DecisionLive do
   # Lobby events
   # ---------------------------------------------------------------------------
 
-  def handle_event("lobby_update", %{"topic" => topic, "invite" => invite_raw}, socket) do
-    invited =
-      invite_raw |> String.split(",") |> Enum.map(&String.trim/1) |> Enum.reject(&(&1 == ""))
+  def handle_event("lobby_update", %{"topic" => topic}, socket) do
+    decision = socket.assigns.decision
+    invited = decision.stage.invited |> MapSet.to_list()
 
     Server.handle_message(
       socket.assigns.id,
       {:lobby_update, socket.assigns.username, topic, invited}
+    )
+
+    {:noreply, socket}
+  end
+
+  def handle_event("add_invite", %{"username" => username}, socket) do
+    username = String.trim(username)
+
+    if username != "" do
+      decision = socket.assigns.decision
+      invited = MapSet.put(decision.stage.invited, username) |> MapSet.to_list()
+
+      Server.handle_message(
+        socket.assigns.id,
+        {:lobby_update, socket.assigns.username, decision.topic, invited}
+      )
+    end
+
+    {:noreply, socket}
+  end
+
+  def handle_event("remove_invite", %{"user" => user}, socket) do
+    decision = socket.assigns.decision
+    invited = MapSet.delete(decision.stage.invited, user) |> MapSet.to_list()
+
+    Server.handle_message(
+      socket.assigns.id,
+      {:lobby_update, socket.assigns.username, decision.topic, invited}
     )
 
     {:noreply, socket}

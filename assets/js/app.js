@@ -27,12 +27,13 @@ import topbar from "../vendor/topbar"
 import CanvasForce from "./hooks/canvas_force"
 import ScaleToFit from "./hooks/scale_to_fit"
 import StageForce from "./hooks/stage_force"
+import ClearOnSubmit from "./hooks/clear_on_submit"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...colocatedHooks, CanvasForce, ScaleToFit, StageForce},
+  hooks: {...colocatedHooks, CanvasForce, ScaleToFit, StageForce, ClearOnSubmit},
 })
 
 // Show progress bar on live navigation and form submits
