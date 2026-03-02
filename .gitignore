@@ -39,4 +39,8 @@ npm-debug.log
 .env
 .env.local
 
+# Elixir secrets
 config/dev.secret.exs
+
+# Apple
+.DS_Store
