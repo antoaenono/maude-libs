@@ -83,6 +83,7 @@ defmodule MaudeLibs.Decision.Server do
       creator: creator,
       topic: topic,
       connected: MapSet.new([creator]),
+      participants: MapSet.new([creator]),
       stage: %Stage.Lobby{
         invited: MapSet.new([creator]),
         joined: MapSet.new([creator]),

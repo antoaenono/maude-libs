@@ -18,6 +18,8 @@ defmodule MaudeLibs.Decision.Core do
             # [{id: "+1", text: "...", direction: "+"}, ...]
             priorities: [],
             connected: MapSet.new(),
+            # Persists across stage transitions so users can rejoin after refresh
+            participants: MapSet.new(),
             stage: %Stage.Lobby{}
 
   # ---------------------------------------------------------------------------
@@ -45,7 +47,14 @@ defmodule MaudeLibs.Decision.Core do
 
       true ->
         s2 = %{s | joined: MapSet.put(s.joined, user)}
-        d2 = %{d | connected: MapSet.put(d.connected, user), stage: s2}
+
+        d2 = %{
+          d
+          | connected: MapSet.put(d.connected, user),
+            participants: MapSet.put(d.participants, user),
+            stage: s2
+        }
+
         {:ok, d2, [{:broadcast, d2.id, d2}]}
     end
   end
@@ -75,7 +84,13 @@ defmodule MaudeLibs.Decision.Core do
             invited: MapSet.delete(s.invited, user)
         }
 
-        d2 = %{d | connected: MapSet.delete(d.connected, user), stage: s2}
+        d2 = %{
+          d
+          | connected: MapSet.delete(d.connected, user),
+            participants: MapSet.delete(d.participants, user),
+            stage: s2
+        }
+
         {:ok, d2, [{:broadcast, d2.id, d2}]}
     end
   end

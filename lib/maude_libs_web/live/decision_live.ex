@@ -60,10 +60,16 @@ defmodule MaudeLibsWeb.DecisionLive do
           is_invited =
             match?(%Stage.Lobby{}, decision.stage) and username in decision.stage.invited
 
-          is_participant = username in decision.connected or is_invited
+          is_participant =
+            username in decision.connected or
+              username in decision.participants or
+              is_invited
 
           cond do
             username in decision.connected ->
+              Server.handle_message(id, {:connect, username})
+
+            username in decision.participants ->
               Server.handle_message(id, {:connect, username})
 
             is_invited ->
