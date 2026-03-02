@@ -1,6 +1,7 @@
 defmodule MaudeLibsWeb.DecisionLive.OptionsStage do
   use Phoenix.Component
   import MaudeLibsWeb.DecisionLive.DecisionComponents, only: [claude_thinking: 1, mini_dots: 1, priority_badge_class: 1, modal_overlay: 1]
+  import MaudeLibsWeb.DecisionLive.StageShell
 
   alias MaudeLibsWeb.StageLayout
 
@@ -30,6 +31,7 @@ defmodule MaudeLibsWeb.DecisionLive.OptionsStage do
     positions = StageLayout.compute(other_users, stage_context)
     {claude_x, claude_y} = StageLayout.claude_pos()
     {your_x, your_y} = StageLayout.your_pos()
+    {virtual_w, virtual_h} = StageLayout.virtual_size()
 
     assigns =
       assign(assigns,
@@ -46,35 +48,41 @@ defmodule MaudeLibsWeb.DecisionLive.OptionsStage do
         claude_x: claude_x,
         claude_y: claude_y,
         your_x: your_x,
-        your_y: your_y
+        your_y: your_y,
+        virtual_w: virtual_w,
+        virtual_h: virtual_h
       )
 
     ~H"""
-    <div class="w-screen h-screen overflow-hidden flex flex-col select-none">
-      <%!-- Header --%>
-      <div class="shrink-0 bg-base-100/80 backdrop-blur border-b border-base-300 px-8 py-4 flex flex-col items-center gap-2">
-        <span class="text-xs font-mono text-base-content/40 uppercase tracking-widest">
-          Propose options
-        </span> <span class="text-lg font-semibold text-base-content">{@decision.topic}</span>
-        <%= if length(@decision.priorities) > 0 do %>
-          <div class="flex flex-wrap justify-center gap-1.5">
-            <%= for p <- @decision.priorities do %>
-              <span class={"badge badge-sm badge-outline font-mono " <> priority_badge_class(p.direction)}>
-                {p.direction} {p.text}
-              </span>
-            <% end %>
-          </div>
-        <% end %>
-         <span class="text-xs text-base-content/40">Each person enters one concrete option</span>
-      </div>
-       <%!-- Canvas area --%>
-      <div class="flex-1 relative overflow-hidden">
+    <.stage_shell stage={@decision.stage}>
+      <:header>
+        <div class="bg-base-100/80 backdrop-blur border-b border-base-300 px-8 py-4 flex flex-col items-center gap-2">
+          <span class="text-xs font-mono text-base-content/40 uppercase tracking-widest">
+            Propose options
+          </span> <span class="text-lg font-semibold text-base-content">{@decision.topic}</span>
+          <%= if length(@decision.priorities) > 0 do %>
+            <div class="flex flex-wrap justify-center gap-1.5">
+              <%= for p <- @decision.priorities do %>
+                <span class={"badge badge-sm badge-outline font-mono " <> priority_badge_class(p.direction)}>
+                  {p.direction} {p.text}
+                </span>
+              <% end %>
+            </div>
+          <% end %>
+           <span class="text-xs text-base-content/40">Each person enters one concrete option</span>
+        </div>
+      </:header>
+
+      <div id="options-canvas" phx-hook="ScaleToFit"
+           class="w-full h-full flex items-center justify-center overflow-hidden">
+        <div data-testid="virtual-canvas" class="relative select-none"
+             style={"width: #{@virtual_w}px; height: #{@virtual_h}px; transform: scale(var(--canvas-scale, 1)); transform-origin: center center;"}>
         <%!-- Other participants' option cards --%>
         <%= for user <- @other_users do %>
-          <% {x, y} = Map.get(@positions, user, {50.0, 30.0}) %> <% opt = Map.get(@s.proposals, user) %>
+          <% {x, y} = Map.get(@positions, user, {500.0, 210.0}) %> <% opt = Map.get(@s.proposals, user) %>
           <div
             class="absolute transition-all duration-700 ease-in-out"
-            style={"left: #{x}%; top: #{y}%; transform: translate(-50%, -50%);"}
+            style={"left: #{x}px; top: #{y}px; transform: translate(-50%, -50%);"}
           >
             <div class={"card w-52 border-2 bg-base-100 shadow-md " <> if(user in @s.confirmed, do: "border-success", else: "border-base-300")}>
               <div class="card-body p-4 gap-2">
@@ -101,7 +109,7 @@ defmodule MaudeLibsWeb.DecisionLive.OptionsStage do
           (@all_confirmed and length(@s.suggestions) > 0) or @s.suggesting %>
         <div
           class={"absolute z-20 transition-all duration-700 ease-in-out " <> if(has_claude_content, do: "opacity-100", else: "opacity-0 pointer-events-none")}
-          style={"left: #{@claude_x}%; top: #{@claude_y}%; transform: translate(-50%, -50%);"}
+          style={"left: #{@claude_x}px; top: #{@claude_y}px; transform: translate(-50%, -50%);"}
         >
           <%= if @all_confirmed and length(@s.suggestions) > 0 do %>
             <div class="card w-72 border-2 border-dashed border-secondary bg-base-100 shadow-lg">
@@ -147,10 +155,11 @@ defmodule MaudeLibsWeb.DecisionLive.OptionsStage do
             <.claude_thinking label="Claude" />
           <% end %>
         </div>
-         <%!-- Your card (bottom center) --%>
+
+        <%!-- Your card (bottom center) --%>
         <div
           class="absolute z-20 transition-all duration-700 ease-in-out"
-          style={"left: #{@your_x}%; top: #{@your_y}%; transform: translate(-50%, -50%);"}
+          style={"left: #{@your_x}px; top: #{@your_y}px; transform: translate(-50%, -50%);"}
         >
           <%= if @spectator do %>
             <span class="badge badge-ghost">Spectating</span>
@@ -187,27 +196,13 @@ defmodule MaudeLibsWeb.DecisionLive.OptionsStage do
                   />
                 </form>
 
-                <div class="flex gap-2">
-                  <button
-                    phx-click="confirm_option"
-                    disabled={@my_name == "" or @is_ready}
-                    class={"btn btn-sm flex-1 " <> if(@is_confirmed, do: "btn-success", else: "btn-outline btn-success")}
-                  >
-                    {if @is_confirmed, do: "Confirmed ✓", else: "Confirm"}
-                  </button>
-                  <button
-                    phx-click="ready_options"
-                    disabled={not @is_confirmed or @is_ready}
-                    class={"btn btn-sm flex-1 " <>
-                    cond do
-                      @is_ready -> "btn-primary"
-                      @all_confirmed and @is_confirmed -> "btn-primary animate-pulse"
-                      true -> "btn-outline btn-primary"
-                    end}
-                  >
-                    {if @is_ready, do: "Ready ✓", else: "Ready up"}
-                  </button>
-                </div>
+                <button
+                  phx-click="confirm_option"
+                  disabled={@my_name == "" or @is_ready}
+                  class={"btn btn-sm flex-1 " <> if(@is_confirmed, do: "btn-success", else: "btn-outline btn-success")}
+                >
+                  {if @is_confirmed, do: "Confirmed ✓", else: "Confirm"}
+                </button>
 
                 <%= if not @all_confirmed and @is_confirmed and @waiting_count > 0 do %>
                   <p class="text-xs text-base-content/40 text-center">
@@ -218,12 +213,33 @@ defmodule MaudeLibsWeb.DecisionLive.OptionsStage do
             </div>
           <% end %>
         </div>
-         <%!-- Tally (bottom right) --%>
+
+        <%!-- Tally (bottom right) --%>
         <div class="absolute bottom-4 right-4 text-xs text-base-content/40 font-mono">
           {MapSet.size(@s.confirmed)} / {MapSet.size(@decision.connected)} confirmed
         </div>
+        </div>
       </div>
-    </div>
+
+      <:footer>
+        <%= if not @spectator do %>
+          <div class="bg-base-100/80 backdrop-blur border-t border-base-300 px-8 py-3 flex justify-center">
+            <button
+              phx-click="ready_options"
+              disabled={not @is_confirmed or @is_ready}
+              class={"btn btn-sm " <>
+              cond do
+                @is_ready -> "btn-primary"
+                @all_confirmed and @is_confirmed -> "btn-primary animate-pulse"
+                true -> "btn-outline btn-primary"
+              end}
+            >
+              {if @is_ready, do: "Ready ✓", else: "Ready up"}
+            </button>
+          </div>
+        <% end %>
+      </:footer>
+    </.stage_shell>
     """
   end
 

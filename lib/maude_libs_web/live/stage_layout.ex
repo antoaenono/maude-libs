@@ -2,7 +2,7 @@ defmodule MaudeLibsWeb.StageLayout do
   @moduledoc """
   Computes physics-based positions for stage cards.
   Claude at center, your card at bottom, others float deterministically.
-  All coordinates in 0-100 percentage space.
+  Internal physics in 0-100 space, output mapped to virtual pixel coordinates.
   """
 
   @iterations 50
@@ -10,11 +10,15 @@ defmodule MaudeLibsWeb.StageLayout do
   @damping 0.75
   @gap 4.0
 
+  @virtual_w 1000
+  @virtual_h 700
+
   @claude_pos {50.0, 45.0}
   @your_pos {50.0, 88.0}
 
-  def claude_pos, do: @claude_pos
-  def your_pos, do: @your_pos
+  def virtual_size, do: {@virtual_w, @virtual_h}
+  def claude_pos, do: to_virtual(@claude_pos)
+  def your_pos, do: to_virtual(@your_pos)
 
   @doc """
   Returns a map of positions for other participants.
@@ -28,7 +32,7 @@ defmodule MaudeLibsWeb.StageLayout do
 
     nodes = initial_positions(other_usernames)
     final = relax(nodes, claude_r, your_r, other_r)
-    Map.new(final, fn {username, node} -> {username, {node.x, node.y}} end)
+    Map.new(final, fn {username, node} -> {username, to_virtual({node.x, node.y})} end)
   end
 
   defp claude_radius(%{has_content: true, suggestion_count: n}) when n > 0, do: 12.0 + n * 3.0
@@ -105,6 +109,8 @@ defmodule MaudeLibsWeb.StageLayout do
       {0.0, 0.0}
     end
   end
+
+  defp to_virtual({x, y}), do: {x * @virtual_w / 100.0, y * @virtual_h / 100.0}
 
   defp clamp(val, min_v, max_v), do: val |> max(min_v) |> min(max_v)
 end

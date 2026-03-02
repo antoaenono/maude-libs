@@ -28,12 +28,12 @@ defmodule MaudeLibsWeb.StageLayoutTest do
       assert Map.has_key?(result, "dave")
     end
 
-    test "positions are within bounds (8-92 x, 5-72 y)" do
+    test "positions are within virtual pixel bounds" do
       result = StageLayout.compute(["b", "c", "d"], %{})
 
       for {_user, {x, y}} <- result do
-        assert x >= 8.0 and x <= 92.0, "x=#{x} out of bounds"
-        assert y >= 5.0 and y <= 72.0, "y=#{y} out of bounds"
+        assert x >= 80.0 and x <= 920.0, "x=#{x} out of bounds"
+        assert y >= 35.0 and y <= 504.0, "y=#{y} out of bounds"
       end
     end
 
@@ -80,13 +80,13 @@ defmodule MaudeLibsWeb.StageLayoutTest do
       assert any_different, "different claude radius should affect at least one position"
     end
 
-    test "positions remain in bounds regardless of claude size" do
+    test "positions remain in virtual pixel bounds regardless of claude size" do
       for ctx <- [%{}, %{is_thinking: true}, %{has_content: true, suggestion_count: 3}] do
         result = StageLayout.compute(["b", "c", "d"], ctx)
 
         for {_user, {x, y}} <- result do
-          assert x >= 8.0 and x <= 92.0
-          assert y >= 5.0 and y <= 72.0
+          assert x >= 80.0 and x <= 920.0
+          assert y >= 35.0 and y <= 504.0
         end
       end
     end
@@ -121,16 +121,20 @@ defmodule MaudeLibsWeb.StageLayoutTest do
   # ---------------------------------------------------------------------------
 
   describe "fixed positions" do
-    test "claude_pos returns center-ish coordinates" do
+    test "claude_pos returns center-ish virtual pixel coordinates" do
       {x, y} = StageLayout.claude_pos()
-      assert x == 50.0
-      assert y == 45.0
+      assert x == 500.0
+      assert y == 315.0
     end
 
-    test "your_pos returns bottom-center coordinates" do
+    test "your_pos returns bottom-center virtual pixel coordinates" do
       {x, y} = StageLayout.your_pos()
-      assert x == 50.0
-      assert y == 88.0
+      assert x == 500.0
+      assert y == 616.0
+    end
+
+    test "virtual_size returns the canonical canvas dimensions" do
+      assert StageLayout.virtual_size() == {1000, 700}
     end
   end
 

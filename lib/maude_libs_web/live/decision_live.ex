@@ -284,21 +284,19 @@ defmodule MaudeLibsWeb.DecisionLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen bg-base-200 relative">
-      <%!-- ? button always visible --%>
-      <button
-        phx-click="open_modal"
-        class="fixed top-4 right-4 btn btn-circle btn-sm btn-ghost z-10 text-base-content/50 hover:text-base-content"
-      >
-        ?
-      </button> <%!-- Stage modal --%>
-      <%= if @modal_open do %>
-        <.stage_modal stage={@decision.stage} is_creator={creator_of(@decision) == @username} />
-      <% end %>
-       <%!-- Breadcrumbs --%>
-      <.breadcrumbs stage={@decision.stage} />
-       <%!-- Route to correct stage component --%> {render_stage(assigns)}
-    </div>
+    <%!-- ? button always visible (fixed, above stage_shell) --%>
+    <button
+      phx-click="open_modal"
+      class="fixed top-4 right-4 btn btn-circle btn-sm btn-ghost z-30 text-base-content/50 hover:text-base-content"
+    >
+      ?
+    </button>
+    <%!-- Stage modal --%>
+    <%= if @modal_open do %>
+      <.stage_modal stage={@decision.stage} is_creator={creator_of(@decision) == @username} />
+    <% end %>
+    <%!-- Route to correct stage component (each renders its own stage_shell with breadcrumbs) --%>
+    {render_stage(assigns)}
     """
   end
 
@@ -328,7 +326,7 @@ defmodule MaudeLibsWeb.DecisionLive do
 
   defp render_stage(%{decision: %{stage: %Stage.Scaffolding{}}} = assigns) do
     ~H"""
-    <.scaffolding_stage />
+    <.scaffolding_stage decision={@decision} />
     """
   end
 

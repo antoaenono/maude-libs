@@ -1,6 +1,7 @@
 defmodule MaudeLibsWeb.DecisionLive.LobbyStage do
   use Phoenix.Component
   import MaudeLibsWeb.DecisionLive.DecisionComponents, only: [modal_overlay: 1]
+  import MaudeLibsWeb.DecisionLive.StageShell
 
   alias MaudeLibs.UserRegistry
 
@@ -23,88 +24,93 @@ defmodule MaudeLibsWeb.DecisionLive.LobbyStage do
       )
 
     ~H"""
-    <div class="min-h-screen flex flex-col lg:flex-row p-8 gap-8 max-w-4xl mx-auto">
-      <%!-- Left: topic + invite --%>
-      <div class="flex-1 flex flex-col gap-6">
-        <h2 class="text-2xl font-bold">New Decision</h2>
+    <.stage_shell stage={@decision.stage}>
+      <div class="h-full flex flex-col lg:flex-row p-8 gap-8 max-w-4xl mx-auto">
+        <%!-- Left: topic + invite --%>
+        <div class="flex-1 flex flex-col gap-6">
+          <h2 class="text-2xl font-bold">New Decision</h2>
 
-        <%= if @is_creator do %>
-          <form phx-submit="lobby_update" phx-change="lobby_update" class="flex flex-col gap-4">
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text font-semibold">What are you deciding?</span>
-              </label>
-              <input
-                type="text"
-                name="topic"
-                value={@decision.topic || ""}
-                placeholder="e.g. where should we go for dinner?"
-                class="input input-bordered"
-                autocomplete="off"
-              />
-            </div>
-
-            <div class="form-control">
-              <label class="label">
-                <span class="label-text font-semibold">Invite participants</span>
-                <span class="label-text-alt text-base-content/50">comma-separated usernames</span>
-              </label>
-              <input
-                type="text"
-                name="invite"
-                value={
-                  @decision.stage.invited
-                  |> MapSet.to_list()
-                  |> Enum.reject(&(&1 == @username))
-                  |> Enum.join(", ")
-                }
-                placeholder="bob, charlie"
-                class="input input-bordered"
-                list="known-usernames"
-                autocomplete="off"
-              />
-              <datalist id="known-usernames">
-                <%= for u <- @all_usernames, u != @username do %>
-                  <option value={u} />
-                <% end %>
-              </datalist>
-            </div>
-          </form>
-        <% else %>
-          <div class="flex flex-col gap-2">
-            <p class="text-base-content/70">Decision topic:</p>
-
-            <p class="text-xl font-semibold">{@decision.topic || "(waiting for creator...)"}</p>
-          </div>
-        <% end %>
-      </div>
-       <%!-- Right: participant list --%>
-      <div class="w-64 flex flex-col gap-4">
-        <h3 class="font-semibold text-base-content/70">Participants</h3>
-
-        <div class="flex flex-col gap-2">
-          <%= for user <- MapSet.to_list(@decision.stage.joined) do %>
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class={"w-2 h-2 rounded-full #{if user in @decision.stage.ready, do: "bg-success", else: "bg-base-content/20"}"} />
-                <span class={"font-mono #{if user == @username, do: "font-bold"}"}>{user}</span>
+          <%= if @is_creator do %>
+            <form phx-submit="lobby_update" phx-change="lobby_update" class="flex flex-col gap-4">
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text font-semibold">What are you deciding?</span>
+                </label>
+                <input
+                  type="text"
+                  name="topic"
+                  value={@decision.topic || ""}
+                  placeholder="e.g. where should we go for dinner?"
+                  class="input input-bordered"
+                  autocomplete="off"
+                />
               </div>
 
-              <%= if @is_creator and user != @username and user not in @decision.stage.ready do %>
-                <button
-                  phx-click="remove_participant"
-                  phx-value-user={user}
-                  class="btn btn-xs btn-ghost text-error"
-                >
-                  ×
-                </button>
-              <% end %>
+              <div class="form-control">
+                <label class="label">
+                  <span class="label-text font-semibold">Invite participants</span>
+                  <span class="label-text-alt text-base-content/50">comma-separated usernames</span>
+                </label>
+                <input
+                  type="text"
+                  name="invite"
+                  value={
+                    @decision.stage.invited
+                    |> MapSet.to_list()
+                    |> Enum.reject(&(&1 == @username))
+                    |> Enum.join(", ")
+                  }
+                  placeholder="bob, charlie"
+                  class="input input-bordered"
+                  list="known-usernames"
+                  autocomplete="off"
+                />
+                <datalist id="known-usernames">
+                  <%= for u <- @all_usernames, u != @username do %>
+                    <option value={u} />
+                  <% end %>
+                </datalist>
+              </div>
+            </form>
+          <% else %>
+            <div class="flex flex-col gap-2">
+              <p class="text-base-content/70">Decision topic:</p>
+
+              <p class="text-xl font-semibold">{@decision.topic || "(waiting for creator...)"}</p>
             </div>
           <% end %>
         </div>
-         <%!-- Actions --%>
+
+        <%!-- Right: participant list --%>
+        <div class="w-64 flex flex-col gap-4">
+          <h3 class="font-semibold text-base-content/70">Participants</h3>
+
+          <div class="flex flex-col gap-2">
+            <%= for user <- MapSet.to_list(@decision.stage.joined) do %>
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class={"w-2 h-2 rounded-full #{if user in @decision.stage.ready, do: "bg-success", else: "bg-base-content/20"}"} />
+                  <span class={"font-mono #{if user == @username, do: "font-bold"}"}>{user}</span>
+                </div>
+
+                <%= if @is_creator and user != @username and user not in @decision.stage.ready do %>
+                  <button
+                    phx-click="remove_participant"
+                    phx-value-user={user}
+                    class="btn btn-xs btn-ghost text-error"
+                  >
+                    ×
+                  </button>
+                <% end %>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+
+      <:footer>
         <%= if not @spectator do %>
-          <div class="flex flex-col gap-2 mt-auto">
+          <div class="bg-base-100/80 backdrop-blur border-t border-base-300 px-8 py-3 flex justify-center gap-2">
             <%= if @username not in @decision.stage.joined do %>
               <button phx-click="lobby_join" class="btn btn-outline btn-primary">Join</button>
             <% else %>
@@ -121,10 +127,12 @@ defmodule MaudeLibsWeb.DecisionLive.LobbyStage do
             <% end %>
           </div>
         <% else %>
-          <div class="mt-auto"><span class="badge badge-ghost">Spectating</span></div>
+          <div class="bg-base-100/80 backdrop-blur border-t border-base-300 px-8 py-3 flex justify-center">
+            <span class="badge badge-ghost">Spectating</span>
+          </div>
         <% end %>
-      </div>
-    </div>
+      </:footer>
+    </.stage_shell>
     """
   end
 
