@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Verification & Dev Workflow Feedback
+# SDF: Verification & Dev Workflow Feedback
 
 ## Scenario
 
@@ -30,13 +30,24 @@ How can we increase verification feedback and reduce the cost of testing multi-u
 2. [L2] Test brittleness - tests that break from minor UI changes rather than actual behavior changes
 3. [L3] Cognitive load - mental overhead of maintaining multiple browser tabs and remembering where you left off
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Use Phoenix.LiveViewTest to mount LiveViews in-process, simulate multi-user flows, and assert stage transitions without a real browser.
 
 ## Why(not)
 
-In the face of **needing to test multi-user, multi-stage decision workflows during development**, instead of doing nothing (**re-clicking through every stage after each restart**), we decided **to write LiveView integration tests using Phoenix.LiveViewTest**, to achieve **automated multi-user workflow coverage that runs in milliseconds with no browser**, accepting **no visual/JS hook coverage and upfront time investment writing test helpers**.
+
+In the face of **needing to test multi-user, multi-stage decision workflows during development**,
+instead of doing nothing
+(**re-clicking through every stage after each restart**),
+we decided **to write LiveView integration tests using Phoenix.LiveViewTest**,
+to achieve **automated multi-user workflow coverage that runs in milliseconds with no browser**,
+accepting **no visual/JS hook coverage and upfront time investment writing test helpers**.
 
 ## Points
 
@@ -68,7 +79,7 @@ In the face of **needing to test multi-user, multi-stage decision workflows duri
 
 <!-- optional epistemological layer -->
 
-## How
+## Implementation
 
 ```elixir
 # test/support/decision_case.ex - shared helpers

@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Line Coverage Enforcement Strategy
+# SDF: Line Coverage Enforcement Strategy
 
 ## Scenario
 
@@ -31,13 +31,24 @@ What level of line coverage enforcement should we adopt for our test suite, and 
 3. [L3] Cognitive overhead - developers shouldn't need to understand cover tool internals to pass the gate
 4. [L4] Threshold churn - lowering the threshold to accommodate tool quirks weakens the gate over time
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Set threshold to 99% and accept the `defmodule` gap without workarounds.
 
 ## Why(not)
 
-In the face of **choosing a line coverage enforcement level while dealing with cover tool blind spots**, instead of doing nothing (**no coverage gate; tests exist but nothing prevents shipping uncovered code; coverage drifts down over time as features are added without corresponding tests**), we decided **to enforce a 99% line coverage threshold, accepting that 8 `defmodule` lines (one per stage component) are uncoverable tool artifacts**, to achieve **strong regression gating with honest, accurate metrics**, accepting **a 0.76% gap between our reported number and theoretical maximum that we cannot close without workarounds**.
+
+In the face of **choosing a line coverage enforcement level while dealing with cover tool blind spots**,
+instead of doing nothing
+(**no coverage gate; tests exist but nothing prevents shipping uncovered code; coverage drifts down over time as features are added without corresponding tests**),
+we decided **to enforce a 99% line coverage threshold, accepting that 8 `defmodule` lines (one per stage component) are uncoverable tool artifacts**,
+to achieve **strong regression gating with honest, accurate metrics**,
+accepting **a 0.76% gap between our reported number and theoretical maximum that we cannot close without workarounds**.
 
 ## Points
 
@@ -73,7 +84,7 @@ In the face of **choosing a line coverage enforcement level while dealing with c
 
 <!-- optional epistemological layer -->
 
-## How
+## Implementation
 
 ```elixir
 # mix.exs

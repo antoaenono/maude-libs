@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Type Checking Strategy
+# SDF: Type Checking Strategy
 
 ## Scenario
 
@@ -30,13 +30,24 @@ How should we utilize Elixir's type system to improve code quality and catch bug
 2. [L2] Ecosystem fragmentation - Dialyzer specs, gradual types, and Hammox all read different things; unclear which source of truth to invest in
 3. [L3] Premature commitment - investing heavily in `@spec` annotations that may be replaced by new type syntax in v1.21+
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Lean into the compiler's gradual type system - let `mix compile` catch type errors, skip Dialyzer entirely
 
 ## Why(not)
 
-In the face of **utilizing Elixir's type system to improve code quality**, instead of doing nothing (**we continue with `@callback` on the LLM behaviour and no other type annotations or checking; bugs that types would catch are found at runtime or in tests; no compile-time type feedback beyond pattern match warnings**), we decided **to rely on Elixir's built-in gradual type system, which infers types from existing code and checks them during `mix compile`**, to achieve **zero-config, compiler-native type checking that improves with each Elixir release**, accepting **that the current coverage (v1.19) is incomplete - no guard inference, no cross-dependency inference, no user-facing type signatures yet**.
+
+In the face of **utilizing Elixir's type system to improve code quality**,
+instead of doing nothing
+(**we continue with `@callback` on the LLM behaviour and no other type annotations or checking; bugs that types would catch are found at runtime or in tests; no compile-time type feedback beyond pattern match warnings**),
+we decided **to rely on Elixir's built-in gradual type system, which infers types from existing code and checks them during `mix compile`**,
+to achieve **zero-config, compiler-native type checking that improves with each Elixir release**,
+accepting **that the current coverage (v1.19) is incomplete - no guard inference, no cross-dependency inference, no user-facing type signatures yet**.
 
 ## Points
 
@@ -69,7 +80,7 @@ As of Elixir 1.19, the gradual type system infers types from all constructs exce
 - [dx] Type errors surface during `mix compile` automatically; no separate tool to run
 - [migration] No annotation work; coverage improves automatically with Elixir upgrades
 
-## How
+## Implementation
 
 Already active. Elixir 1.17+ performs type inference during compilation. No configuration needed.
 

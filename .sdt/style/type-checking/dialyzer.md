@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Type Checking Strategy
+# SDF: Type Checking Strategy
 
 ## Scenario
 
@@ -30,13 +30,24 @@ How should we utilize Elixir's type system to improve code quality and catch bug
 2. [L2] Ecosystem fragmentation - Dialyzer specs, gradual types, and Hammox all read different things; unclear which source of truth to invest in
 3. [L3] Premature commitment - investing heavily in `@spec` annotations that may be replaced by new type syntax in v1.21+
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Add `@spec`/`@type` annotations and run Dialyxir (`mix dialyzer`) for static type analysis
 
 ## Why(not)
 
-In the face of **utilizing Elixir's type system to improve code quality**, instead of doing nothing (**we continue with `@callback` on the LLM behaviour and no other type annotations or checking; bugs that types would catch are found at runtime or in tests; no compile-time type feedback beyond pattern match warnings**), we decided **to add `@spec` annotations and run Dialyxir for static type checking**, to achieve **compile-time bug detection across module boundaries with zero false positives (success typing)**, accepting **that Dialyzer is conservative and misses some bugs, PLT builds are slow on first run, and `@spec` syntax may be superseded by the gradual type system**.
+
+In the face of **utilizing Elixir's type system to improve code quality**,
+instead of doing nothing
+(**we continue with `@callback` on the LLM behaviour and no other type annotations or checking; bugs that types would catch are found at runtime or in tests; no compile-time type feedback beyond pattern match warnings**),
+we decided **to add `@spec` annotations and run Dialyxir for static type checking**,
+to achieve **compile-time bug detection across module boundaries with zero false positives (success typing)**,
+accepting **that Dialyzer is conservative and misses some bugs, PLT builds are slow on first run, and `@spec` syntax may be superseded by the gradual type system**.
 
 ## Points
 
@@ -70,7 +81,7 @@ Dialyzer's success typing approach guarantees zero false positives - if it repor
 - [dx] `mix dialyzer` provides static analysis feedback; first run builds PLT cache
 - [migration] Moderate annotation effort now; specs may need syntax migration for gradual types later
 
-## How
+## Implementation
 
 ```elixir
 # mix.exs

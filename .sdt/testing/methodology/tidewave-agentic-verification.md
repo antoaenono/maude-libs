@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Verification & Dev Workflow Feedback
+# SDF: Verification & Dev Workflow Feedback
 
 ## Scenario
 
@@ -30,13 +30,24 @@ How can we increase verification feedback and reduce the cost of testing multi-u
 2. [L2] Test brittleness - tests that break from minor UI changes rather than actual behavior changes
 3. [L3] Cognitive load - mental overhead of maintaining multiple browser tabs and remembering where you left off
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Use Tidewave's MCP tools (project_eval, browser_eval, get_logs) as a live agentic verification layer during Claude Code sessions, complementing automated tests and seed routes.
 
 ## Why(not)
 
-In the face of **needing to test multi-user, multi-stage decision workflows during development**, instead of doing nothing (**re-clicking through every stage after each restart**), we decided **to leverage Tidewave's runtime introspection tools as an interactive verification layer during agentic coding sessions**, to achieve **instant state setup, live browser verification, and log inspection without leaving the conversation**, accepting **this only works during active Claude Code sessions and doesn't provide persistent automated regression coverage**.
+
+In the face of **needing to test multi-user, multi-stage decision workflows during development**,
+instead of doing nothing
+(**re-clicking through every stage after each restart**),
+we decided **to leverage Tidewave's runtime introspection tools as an interactive verification layer during agentic coding sessions**,
+to achieve **instant state setup, live browser verification, and log inspection without leaving the conversation**,
+accepting **this only works during active Claude Code sessions and doesn't provide persistent automated regression coverage**.
 
 ## Points
 
@@ -71,7 +82,7 @@ In the face of **needing to test multi-user, multi-stage decision workflows duri
 
 <!-- optional epistemological layer -->
 
-## How
+## Implementation
 
 Tidewave provides three MCP tools that form a verification triad:
 

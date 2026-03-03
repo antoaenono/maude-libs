@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Verification & Dev Workflow Feedback
+# SDF: Verification & Dev Workflow Feedback
 
 ## Scenario
 
@@ -30,13 +30,24 @@ How can we increase verification feedback and reduce the cost of testing multi-u
 2. [L2] Test brittleness - tests that break from minor UI changes rather than actual behavior changes
 3. [L3] Cognitive load - mental overhead of maintaining multiple browser tabs and remembering where you left off
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Dev seed routes for instant manual stage access + LiveView integration tests for automated multi-user regression coverage. Skip browser automation to avoid brittleness.
 
 ## Why(not)
 
-In the face of **needing to test multi-user, multi-stage decision workflows during development**, instead of doing nothing (**re-clicking through every stage after each restart**), we decided **to combine dev-only seed routes with Phoenix.LiveViewTest integration tests**, to achieve **both instant manual access to any stage and automated regression coverage across the full LiveView stack**, accepting **no visual/JS-hook coverage (add browser automation later if needed) and upfront time building shared stage builders**.
+
+In the face of **needing to test multi-user, multi-stage decision workflows during development**,
+instead of doing nothing
+(**re-clicking through every stage after each restart**),
+we decided **to combine dev-only seed routes with Phoenix.LiveViewTest integration tests**,
+to achieve **both instant manual access to any stage and automated regression coverage across the full LiveView stack**,
+accepting **no visual/JS-hook coverage (add browser automation later if needed) and upfront time building shared stage builders**.
 
 ## Points
 
@@ -71,7 +82,7 @@ In the face of **needing to test multi-user, multi-stage decision workflows duri
 
 <!-- optional epistemological layer -->
 
-## How
+## Implementation
 
 ### Shared stage builders
 

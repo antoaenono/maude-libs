@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Test Mock Implementation Strategy
+# SDF: Test Mock Implementation Strategy
 
 ## Scenario
 
@@ -31,13 +31,24 @@ Which mock implementation strategy should we use for isolating external dependen
 3. [L3] Setup boilerplate - per-test mock setup code (expect/verify calls) can be verbose compared to a simple module swap
 4. [L4] Learning curve - team members need to learn a new API vs simple module pattern
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Do nothing - no mocking; tests call the real Anthropic API
 
 ## Why(not)
 
-In the face of **choosing a mock implementation strategy for isolating LLM calls in tests**, instead of doing nothing (**tests call the real Anthropic API; every test run costs money, requires network access, and is non-deterministic**), we decided **to do nothing**, to achieve **zero abstraction layer between tests and production code**, accepting **that tests are slow, expensive, flaky, and cannot run offline or in CI without API credentials**.
+
+In the face of **choosing a mock implementation strategy for isolating LLM calls in tests**,
+instead of doing nothing
+(**tests call the real Anthropic API; every test run costs money, requires network access, and is non-deterministic**),
+we decided **to do nothing**,
+to achieve **zero abstraction layer between tests and production code**,
+accepting **that tests are slow, expensive, flaky, and cannot run offline or in CI without API credentials**.
 
 ## Points
 
@@ -71,7 +82,7 @@ Without mocking, every test invocation hits the Anthropic API. At current Claude
 - [concurrency] Tests must be serial; real API calls cannot safely overlap
 - [cost] Every test run incurs Anthropic API costs
 
-## How
+## Implementation
 
 Tests call `MaudeLibs.LLM` directly with no module swap. The real implementation hits the Anthropic API on every invocation. Requires `ANTHROPIC_API_KEY` set in test environment.
 

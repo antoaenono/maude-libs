@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Line Coverage Enforcement Strategy
+# SDF: Line Coverage Enforcement Strategy
 
 ## Scenario
 
@@ -31,13 +31,24 @@ What level of line coverage enforcement should we adopt for our test suite, and 
 3. [L3] Cognitive overhead - developers shouldn't need to understand cover tool internals to pass the gate
 4. [L4] Threshold churn - lowering the threshold to accommodate tool quirks weakens the gate over time
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Set threshold to 100% and add stage component modules to `ignore_modules`, unignoring them temporarily when modifying their code.
 
 ## Why(not)
 
-In the face of **choosing a line coverage enforcement level while dealing with cover tool blind spots**, instead of doing nothing (**no coverage gate; tests exist but nothing prevents shipping uncovered code; coverage drifts down over time as features are added without corresponding tests**), we decided **to enforce 100% line coverage by adding the 8 stage component modules (whose only uncovered line is the compile-time `defmodule` declaration) to `ignore_modules`**, to achieve **zero tolerance for uncovered code with zero headroom for regressions**, accepting **that modifying a stage component requires temporarily removing it from ignore_modules to verify its coverage, then re-adding it**.
+
+In the face of **choosing a line coverage enforcement level while dealing with cover tool blind spots**,
+instead of doing nothing
+(**no coverage gate; tests exist but nothing prevents shipping uncovered code; coverage drifts down over time as features are added without corresponding tests**),
+we decided **to enforce 100% line coverage by adding the 8 stage component modules (whose only uncovered line is the compile-time `defmodule` declaration) to `ignore_modules`**,
+to achieve **zero tolerance for uncovered code with zero headroom for regressions**,
+accepting **that modifying a stage component requires temporarily removing it from ignore_modules to verify its coverage, then re-adding it**.
 
 ## Points
 
@@ -72,7 +83,7 @@ In the face of **choosing a line coverage enforcement level while dealing with c
 
 <!-- optional epistemological layer -->
 
-## How
+## Implementation
 
 ```elixir
 # mix.exs

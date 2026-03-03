@@ -1,1095 +1,2801 @@
-[
-  {
-    "path": "backend/state-machine/core-architecture/core-architecture.md",
-    "status": "accepted",
-    "tags": [
-      "architecture",
-      "state-machine",
-      "genserver"
-    ],
-    "scenario": "How do we structure the decision state machine so it is testable, predictable, and easy to reason about under concurrent LiveView connections?",
-    "chosen_option": "Pure Core + GenServer Shell: Core.handle/2 returns {:ok, decision, [effects]}, Server GenServer executes effects",
-    "parent": null,
-    "children": [
-      "llm/debounced-calls/debounced-calls"
-    ],
-    "decided": "2026-02-28",
-    "reconsider": [
+{
+  "graph": {
+    "nodes": [
       {
-        "observe": "Effect list grows complex (debounce + async_llm + broadcast in one transition)",
-        "respond": "Add effect priority ordering or a dedicated effect pipeline module"
-      }
-    ]
-  },
-  {
-    "path": "backend/state-machine/disconnect-grace-period/disconnect-grace-period.md",
-    "status": "accepted",
-    "tags": [
-      "state-machine",
-      "presence",
-      "disconnect",
-      "reconnect",
-      "grace-period"
-    ],
-    "scenario": "When a participant's LiveView disconnects (page refresh, network hiccup, tab switch on mobile), should they be immediately removed from the connected set, or should there be a grace window for reconne",
-    "chosen_option": "5-second grace period: Server schedules a `{:disconnect_timeout, user}` message on disconnect; reconnect within 5s cancels the timer; configurable via `disconnect_grace_ms`",
-    "parent": "backend/state-machine/drop-handling/drop-handling",
-    "children": [],
-    "decided": "2026-03-02",
-    "reconsider": [
-      {
-        "observe": "5 seconds feels too long; ghost presence confuses other participants",
-        "respond": "Reduce to 2-3 seconds; or add a visual \"reconnecting...\" indicator during grace period"
+        "id": "architecture/llm/api-wrapper",
+        "scenario": "Which HTTP client should we use to call the Anthropic API from Elixir?",
+        "accepted": "architecture/llm/api-wrapper/api-wrapper.md",
+        "variants": [
+          {
+            "path": "architecture/llm/api-wrapper/api-wrapper.md",
+            "status": "accepted",
+            "decision": "Req: modern Elixir HTTP client, declarative API, built-in JSON handling"
+          }
+        ]
       },
       {
-        "observe": "5 seconds feels too short; mobile users on slow networks time out",
-        "respond": "Increase to 10 seconds; consider exponential backoff for repeated disconnects"
-      }
-    ]
-  },
-  {
-    "path": "backend/state-machine/drop-handling/drop-handling.md",
-    "status": "accepted",
-    "tags": [
-      "state-machine",
-      "presence",
-      "drop-handling"
-    ],
-    "scenario": "How do we handle a participant's LiveView disconnecting mid-decision without blocking the remaining participants?",
-    "chosen_option": "connected + participants MapSets on Decision struct; terminate/2 triggers a 5-second grace period before removal; all ready-up checks use connected; participants persists across reconnects",
-    "parent": null,
-    "children": [
-      "backend/state-machine/disconnect-grace-period/disconnect-grace-period"
-    ],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "A decision gets stuck because all participants disconnected",
-        "respond": "Add a timeout or allow the last connected user to auto-advance after N minutes"
-      }
-    ]
-  },
-  {
-    "path": "backend/state-machine/stage-representation/stage-representation.md",
-    "status": "accepted",
-    "tags": [
-      "state-machine",
-      "data-structures",
-      "stages"
-    ],
-    "scenario": "How do we represent the current stage of a decision and its stage-specific data in Elixir?",
-    "chosen_option": "Tagged struct per stage: %Stage.Lobby{}, %Stage.Scenario{}, etc., stored in Decision.stage",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Stage structs need versioning for live deploys",
-        "respond": "Add a vsn field or use a registry-based approach"
-      }
-    ]
-  },
-  {
-    "path": "deployment/fly-config/fly-config.md",
-    "status": "accepted",
-    "tags": [
-      "deployment",
-      "fly.io",
-      "clustering"
-    ],
-    "scenario": "How many machines should we run on fly.io, and do we need BEAM clustering for LiveView state?",
-    "chosen_option": "Single machine on fly.io (sjc region); auto-stop/auto-start; no clustering needed; all GenServer state on one node",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Demo requires high availability or multiple concurrent groups",
-        "respond": "Add libcluster + Horde for distributed GenServer registry; configure fly.io with 2+ machines and BEAM clustering"
-      }
-    ]
-  },
-  {
-    "path": "deployment/state-persistence/state-persistence.md",
-    "status": "accepted",
-    "tags": [
-      "deployment",
-      "state",
-      "genserver"
-    ],
-    "scenario": "Should decision state be persisted to a database, ETS, or live only in GenServer memory?",
-    "chosen_option": "Ephemeral GenServers: all decision state in memory; accept state loss on restart for prototype scope",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Demo requires state to survive deploys (multi-day event)",
-        "respond": "Add ETS persistence with :ets.tab2file on terminate and reload on start; or add Postgres/Ecto"
-      }
-    ]
-  },
-  {
-    "path": "frontend/force-layout-strategy/client-side-d3-force-with-scale-to-fit.md",
-    "status": "accepted",
-    "tags": [
-      "layout",
-      "d3",
-      "force-layout",
-      "scale-to-fit",
-      "js-hooks",
-      "virtual-canvas",
-      "viewport"
-    ],
-    "scenario": "How do we position decision circles on the lobby canvas and participant cards on stage views so that layouts are non-overlapping, visually balanced, responsive to viewport size, and work within LiveVi",
-    "chosen_option": "Three-layer architecture: (1) CSS fixed shell for persistent navigation, (2) D3 force simulation in JS hooks for position computation, (3) scale-to-fit transform on a virtual canvas for viewport adaptation. Two distinct D3 hooks serve the lobby canvas and stage views respectively.",
-    "parent": null,
-    "children": [],
-    "decided": "2026-03-02",
-    "reconsider": [
-      {
-        "observe": "LiveView morphdom patches cause visible position flicker despite StageForce.updated()",
-        "respond": "Add CSS transitions to card wrappers, or debounce re-apply"
+        "id": "architecture/llm/debounced-calls",
+        "scenario": "When multiple participants submit scenario reframings in rapid succession, should each submission trigger a separate LLM synthesis call, or should we debounce?",
+        "accepted": "architecture/llm/debounced-calls/debounced-calls.md",
+        "variants": [
+          {
+            "path": "architecture/llm/debounced-calls/debounced-calls.md",
+            "status": "accepted",
+            "decision": "800ms debounce: each new submission resets the timer; LLM call fires only after 800ms of quiet; managed via `{:debounce, key, delay_ms, call_spec}` effect"
+          }
+        ]
       },
       {
-        "observe": "Stage participant count exceeds 6-8 and arc placement gets crowded",
-        "respond": "Switch stage simulation to use forceCollide in addition to forceX/forceY"
+        "id": "architecture/llm/pluggable-behaviour",
+        "scenario": "How do we test decision flows that trigger LLM calls without making real API requests, while keeping the LLM integration swappable?",
+        "accepted": "architecture/llm/pluggable-behaviour/pluggable-behaviour.md",
+        "variants": [
+          {
+            "path": "architecture/llm/pluggable-behaviour/pluggable-behaviour.md",
+            "status": "accepted",
+            "decision": "Elixir `@behaviour` on the LLM module; `MaudeLibs.LLM.Mock` implements canned responses; Server reads the module from application config at startup"
+          }
+        ]
       },
       {
-        "observe": "Text becomes unreadable below 0.5x scale on small viewports",
-        "respond": "Add mobile-specific layout that stacks cards vertically instead of scaling"
+        "id": "architecture/llm/prompt-strategy",
+        "scenario": "Should the scaffolding LLM call (generating for/against points per option) be one call for all options or one call per option?",
+        "accepted": "architecture/llm/prompt-strategy/prompt-strategy.md",
+        "variants": [
+          {
+            "path": "architecture/llm/prompt-strategy/prompt-strategy.md",
+            "status": "accepted",
+            "decision": "Single call: all options + priorities in one request; output array of {name, for, against} per option"
+          }
+        ]
       },
       {
-        "observe": "Want server-authoritative positions (e.g., screenshots)",
-        "respond": "Add periodic position sync from client back to server"
+        "id": "architecture/llm/response-format",
+        "scenario": "How do we ensure LLM responses are machine-parseable JSON that maps predictably to our Elixir structs?",
+        "accepted": "architecture/llm/response-format/response-format.md",
+        "variants": [
+          {
+            "path": "architecture/llm/response-format/response-format.md",
+            "status": "accepted",
+            "decision": "Prompt coercion: system prompt instructs model to return only raw JSON matching the specified schema; no tool use"
+          }
+        ]
+      },
+      {
+        "id": "architecture/realtime/invite-mechanism",
+        "scenario": "How do invited participants discover and navigate to a decision they've been invited to join?",
+        "accepted": "architecture/realtime/invite-mechanism/pubsub-invite.md",
+        "variants": [
+          {
+            "path": "architecture/realtime/invite-mechanism/pubsub-invite.md",
+            "status": "accepted",
+            "decision": "Per-user PubSub topic (`\"user:#{username}\"`) delivers invite notifications; canvas shows a modal; creator uses add/remove list UI with UserRegistry autocomplete"
+          }
+        ]
+      },
+      {
+        "id": "architecture/realtime/invite-mechanism/user-registry",
+        "scenario": "How does the invite UI know which usernames exist in the system so the creator can autocomplete when inviting participants?",
+        "accepted": "architecture/realtime/invite-mechanism/user-registry/ets-registry.md",
+        "variants": [
+          {
+            "path": "architecture/realtime/invite-mechanism/user-registry/ets-registry.md",
+            "status": "accepted",
+            "decision": "ETS-backed GenServer that registers every username on /join; `list_usernames/0` feeds an HTML `<datalist>` for autocomplete"
+          }
+        ]
+      },
+      {
+        "id": "architecture/realtime/pubsub-model",
+        "scenario": "How does the Decision.Server broadcast state changes to all connected LiveViews for a given decision?",
+        "accepted": "architecture/realtime/pubsub-model/pubsub-model.md",
+        "variants": [
+          {
+            "path": "architecture/realtime/pubsub-model/pubsub-model.md",
+            "status": "accepted",
+            "decision": "Broadcast full Decision struct on every state change; LiveViews assign and re-render"
+          }
+        ]
+      },
+      {
+        "id": "architecture/realtime/session-identity",
+        "scenario": "How do we identify participants across LiveView connections without building an authentication system?",
+        "accepted": "architecture/realtime/session-identity/session-identity.md",
+        "variants": [
+          {
+            "path": "architecture/realtime/session-identity/session-identity.md",
+            "status": "accepted",
+            "decision": "Username stored in Plug session via POST /session; session cookie persists the identity; no database, no accounts, no passwords"
+          }
+        ]
+      },
+      {
+        "id": "architecture/realtime/spectator-view",
+        "scenario": "How do non-participants (observers, dropped users) view a decision in progress without disrupting it?",
+        "accepted": "architecture/realtime/spectator-view/spectator-view.md",
+        "variants": [
+          {
+            "path": "architecture/realtime/spectator-view/spectator-view.md",
+            "status": "accepted",
+            "decision": "Same decision_live.ex; check `username in decision.connected` to gate input controls; spectators see all but can't interact"
+          }
+        ]
+      },
+      {
+        "id": "architecture/state-machine/core-architecture",
+        "scenario": "How do we structure the decision state machine so it is testable, predictable, and easy to reason about under concurrent LiveView connections?",
+        "accepted": "architecture/state-machine/core-architecture/core-architecture.md",
+        "variants": [
+          {
+            "path": "architecture/state-machine/core-architecture/core-architecture.md",
+            "status": "accepted",
+            "decision": "Pure Core + GenServer Shell: Core.handle/2 returns {:ok, decision, [effects]}, Server GenServer executes effects"
+          }
+        ]
+      },
+      {
+        "id": "architecture/state-machine/disconnect-grace-period",
+        "scenario": "When a participant's LiveView disconnects (page refresh, network hiccup, tab switch on mobile), should they be immediately removed from the connected set, or should there be a grace window for reconne",
+        "accepted": "architecture/state-machine/disconnect-grace-period/disconnect-grace-period.md",
+        "variants": [
+          {
+            "path": "architecture/state-machine/disconnect-grace-period/disconnect-grace-period.md",
+            "status": "accepted",
+            "decision": "5-second grace period: Server schedules a `{:disconnect_timeout, user}` message on disconnect; reconnect within 5s cancels the timer; configurable via `disconnect_grace_ms`"
+          }
+        ]
+      },
+      {
+        "id": "architecture/state-machine/drop-handling",
+        "scenario": "How do we handle a participant's LiveView disconnecting mid-decision without blocking the remaining participants?",
+        "accepted": "architecture/state-machine/drop-handling/drop-handling.md",
+        "variants": [
+          {
+            "path": "architecture/state-machine/drop-handling/drop-handling.md",
+            "status": "accepted",
+            "decision": "connected + participants MapSets on Decision struct; terminate/2 triggers a 5-second grace period before removal; all ready-up checks use connected; participants persists across reconnects"
+          }
+        ]
+      },
+      {
+        "id": "architecture/state-machine/stage-representation",
+        "scenario": "How do we represent the current stage of a decision and its stage-specific data in Elixir?",
+        "accepted": "architecture/state-machine/stage-representation/stage-representation.md",
+        "variants": [
+          {
+            "path": "architecture/state-machine/stage-representation/stage-representation.md",
+            "status": "accepted",
+            "decision": "Tagged struct per stage: %Stage.Lobby{}, %Stage.Scenario{}, etc., stored in Decision.stage"
+          }
+        ]
+      },
+      {
+        "id": "deployment/fly-config",
+        "scenario": "How many machines should we run on fly.io, and do we need BEAM clustering for LiveView state?",
+        "accepted": "deployment/fly-config/fly-config.md",
+        "variants": [
+          {
+            "path": "deployment/fly-config/fly-config.md",
+            "status": "accepted",
+            "decision": "Single machine on fly.io (sjc region); auto-stop/auto-start; no clustering needed; all GenServer state on one node"
+          }
+        ]
+      },
+      {
+        "id": "deployment/state-persistence",
+        "scenario": "Should decision state be persisted to a database, ETS, or live only in GenServer memory?",
+        "accepted": "deployment/state-persistence/state-persistence.md",
+        "variants": [
+          {
+            "path": "deployment/state-persistence/state-persistence.md",
+            "status": "accepted",
+            "decision": "Ephemeral GenServers: all decision state in memory; accept state loss on restart for prototype scope"
+          }
+        ]
+      },
+      {
+        "id": "interface/force-layout-strategy",
+        "scenario": "How do we position decision circles on the lobby canvas and participant cards on stage views so that layouts are non-overlapping, visually balanced, responsive to viewport size, and work within LiveVi",
+        "accepted": "interface/force-layout-strategy/client-side-d3-force-with-scale-to-fit.md",
+        "variants": [
+          {
+            "path": "interface/force-layout-strategy/client-side-d3-force-with-scale-to-fit.md",
+            "status": "accepted",
+            "decision": "Three-layer architecture: (1) CSS fixed shell for persistent navigation, (2) D3 force simulation in JS hooks for position computation, (3) scale-to-fit transform on a virtual canvas for viewport adaptation. Two distinct D3 hooks serve the lobby canvas and stage views respectively."
+          },
+          {
+            "path": "interface/force-layout-strategy/d3-force-client-side.md",
+            "status": "superseded",
+            "decision": "Use d3-force in a LiveView JS hook for layout computation, with libgraph as the server-side graph data structure. Server sends node metadata (size, visibility, fixed position) via push_event; D3 handles physics and rendering."
+          },
+          {
+            "path": "interface/force-layout-strategy/hybrid-server-compute-client-animate.md",
+            "status": "rejected",
+            "decision": "Use d3-force via a Node.js port/NIF called from the server, broadcasting final positions via PubSub; client only animates"
+          },
+          {
+            "path": "interface/force-layout-strategy/nothing.md",
+            "status": "rejected",
+            "decision": "Do nothing - keep the current hand-rolled server-side force simulation"
+          },
+          {
+            "path": "interface/force-layout-strategy/pure-elixir-tested.md",
+            "status": "rejected",
+            "decision": "Rewrite the pure Elixir force layout as a tested, idempotent pure function using the spring-electrical model with adaptive step size and early termination"
+          }
+        ]
+      },
+      {
+        "id": "interface/input-stages/blind-mechanic",
+        "scenario": "When multiple participants submit priorities or options, when should each participant's input become visible to the others?",
+        "accepted": "interface/input-stages/blind-mechanic/blind-mechanic.md",
+        "variants": [
+          {
+            "path": "interface/input-stages/blind-mechanic/blind-mechanic.md",
+            "status": "accepted",
+            "decision": "All inputs visible live as you type; confirm button separates \"I'm done\" from \"I'm ready to advance\""
+          }
+        ]
+      },
+      {
+        "id": "interface/input-stages/claude-suggestions",
+        "scenario": "How should Claude's suggested priorities and options be presented and adopted by participants?",
+        "accepted": "interface/input-stages/claude-suggestions/claude-suggestions.md",
+        "variants": [
+          {
+            "path": "interface/input-stages/claude-suggestions/claude-suggestions.md",
+            "status": "accepted",
+            "decision": "Toggle model: anyone can include/exclude a suggestion; last write wins; broadcast immediately"
+          }
+        ]
+      },
+      {
+        "id": "interface/input-stages/scenario-consensus",
+        "scenario": "How do participants agree on the final scenario framing before advancing to priorities?",
+        "accepted": "interface/input-stages/scenario-consensus/scenario-consensus.md",
+        "variants": [
+          {
+            "path": "interface/input-stages/scenario-consensus/scenario-consensus.md",
+            "status": "accepted",
+            "decision": "Unanimous vote: all connected participants must select the same candidate to advance"
+          }
+        ]
+      },
+      {
+        "id": "interface/ui/component-strategy",
+        "scenario": "How should we structure UI components across the decision stages - reusable LiveComponents, inline function components, or duplication?",
+        "accepted": "interface/ui/component-strategy/component-strategy.md",
+        "variants": [
+          {
+            "path": "interface/ui/component-strategy/component-strategy.md",
+            "status": "accepted",
+            "decision": "Inline function components (attr + slot, no stateful LiveComponent) for shared layout; per-stage inline heex for unique mechanics"
+          }
+        ]
+      },
+      {
+        "id": "interface/ui/css-framework",
+        "scenario": "Which CSS approach should we use for styling the Phoenix LiveView app?",
+        "accepted": "interface/ui/css-framework/css-framework.md",
+        "variants": [
+          {
+            "path": "interface/ui/css-framework/css-framework.md",
+            "status": "accepted",
+            "decision": "Tailwind CSS + DaisyUI: Phoenix ships Tailwind by default; DaisyUI adds component classes (card, btn, badge, input) with custom dark/light themes in oklch"
+          }
+        ]
+      },
+      {
+        "id": "style/type-checking",
+        "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
+        "accepted": "style/type-checking/dialyzer-plus-gradual.md",
+        "variants": [
+          {
+            "path": "style/type-checking/dialyzer-plus-gradual.md",
+            "status": "accepted",
+            "decision": "Use both Dialyzer and the gradual type system during the transition period - maximum coverage now, converge to compiler-only when gradual types mature"
+          },
+          {
+            "path": "style/type-checking/dialyzer.md",
+            "status": "rejected",
+            "decision": "Add `@spec`/`@type` annotations and run Dialyxir (`mix dialyzer`) for static type analysis"
+          },
+          {
+            "path": "style/type-checking/gradual.md",
+            "status": "rejected",
+            "decision": "Lean into the compiler's gradual type system - let `mix compile` catch type errors, skip Dialyzer entirely"
+          },
+          {
+            "path": "style/type-checking/nothing.md",
+            "status": "rejected",
+            "decision": "Do nothing - continue with `@callback` on the LLM behaviour and no other type annotations or checking"
+          },
+          {
+            "path": "style/type-checking/specs-only.md",
+            "status": "rejected",
+            "decision": "Add `@type` and `@spec` annotations to public functions for documentation, without running any enforcement tool"
+          }
+        ]
+      },
+      {
+        "id": "testing/coverage",
+        "scenario": "What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?",
+        "accepted": "testing/coverage/99-percent.md",
+        "variants": [
+          {
+            "path": "testing/coverage/100-percent-with-ignores.md",
+            "status": "rejected",
+            "decision": "Set threshold to 100% and add stage component modules to `ignore_modules`, unignoring them temporarily when modifying their code."
+          },
+          {
+            "path": "testing/coverage/99-percent.md",
+            "status": "accepted",
+            "decision": "Set threshold to 99% and accept the `defmodule` gap without workarounds."
+          },
+          {
+            "path": "testing/coverage/nothing.md",
+            "status": "rejected",
+            "decision": "Do nothing - no coverage threshold enforcement."
+          }
+        ]
+      },
+      {
+        "id": "testing/methodology",
+        "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+        "accepted": "testing/methodology/combined-seeds-and-liveview-tests.md",
+        "variants": [
+          {
+            "path": "testing/methodology/browser-automation.md",
+            "status": "rejected",
+            "decision": "Use Wallaby (or Playwright via ports) to drive real browser sessions through the full multi-user UI workflow."
+          },
+          {
+            "path": "testing/methodology/combined-seeds-and-liveview-tests.md",
+            "status": "accepted",
+            "decision": "Dev seed routes for instant manual stage access + LiveView integration tests for automated multi-user regression coverage. Skip browser automation to avoid brittleness."
+          },
+          {
+            "path": "testing/methodology/dev-seed-routes.md",
+            "status": "rejected",
+            "decision": "Dev-only seed routes that programmatically create decisions pre-advanced to any stage with fake users already joined."
+          },
+          {
+            "path": "testing/methodology/liveview-integration-tests.md",
+            "status": "rejected",
+            "decision": "Use Phoenix.LiveViewTest to mount LiveViews in-process, simulate multi-user flows, and assert stage transitions without a real browser."
+          },
+          {
+            "path": "testing/methodology/nothing.md",
+            "status": "rejected",
+            "decision": "Do nothing; continue with manual browser testing and existing Core unit tests."
+          },
+          {
+            "path": "testing/methodology/tidewave-agentic-verification.md",
+            "status": "rejected",
+            "decision": "Use Tidewave's MCP tools (project_eval, browser_eval, get_logs) as a live agentic verification layer during Claude Code sessions, complementing automated tests and seed routes."
+          }
+        ]
+      },
+      {
+        "id": "testing/mock-strategy",
+        "scenario": "Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?",
+        "accepted": "testing/mock-strategy/hammox.md",
+        "variants": [
+          {
+            "path": "testing/mock-strategy/hammox.md",
+            "status": "accepted",
+            "decision": "Migrate to Hammox - Mox with automatic typespec validation on mock return values via `@callback` specs"
+          },
+          {
+            "path": "testing/mock-strategy/manual.md",
+            "status": "rejected",
+            "decision": "Hand-rolled mock modules - `LLM.Mock` and `LLM.ErrorMock` implement the LLM behaviour, swapped via `Application.get_env` config"
+          },
+          {
+            "path": "testing/mock-strategy/mox.md",
+            "status": "rejected",
+            "decision": "Migrate to Mox - define a Mox mock from the LLM behaviour, use per-test expectations, remove hand-rolled mock modules"
+          },
+          {
+            "path": "testing/mock-strategy/nothing.md",
+            "status": "rejected",
+            "decision": "Do nothing - no mocking; tests call the real Anthropic API"
+          }
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "from": "architecture/llm/api-wrapper",
+        "to": "architecture/llm/pluggable-behaviour",
+        "type": "parent-child"
+      },
+      {
+        "from": "architecture/state-machine/core-architecture",
+        "to": "architecture/llm/debounced-calls",
+        "type": "parent-child"
+      },
+      {
+        "from": "architecture/realtime/invite-mechanism",
+        "to": "architecture/realtime/invite-mechanism",
+        "type": "parent-child"
+      },
+      {
+        "from": "architecture/realtime/invite-mechanism",
+        "to": "architecture/realtime/invite-mechanism/user-registry",
+        "type": "parent-child"
+      },
+      {
+        "from": "architecture/state-machine/drop-handling",
+        "to": "architecture/state-machine/disconnect-grace-period",
+        "type": "parent-child"
       }
     ]
   },
-  {
-    "path": "frontend/force-layout-strategy/d3-force-client-side.md",
-    "status": "superseded",
-    "tags": [
-      "canvas",
-      "physics",
-      "force-layout",
-      "d3",
-      "javascript",
-      "libgraph"
-    ],
-    "scenario": "Which approach should we use to compute non-overlapping, center-clustered positions for decision circles on the canvas homepage, given that the current hand-rolled server-side simulation oscillates an",
-    "chosen_option": "Use d3-force in a LiveView JS hook for layout computation, with libgraph as the server-side graph data structure. Server sends node metadata (size, visibility, fixed position) via push_event; D3 handles physics and rendering.",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "LiveView hook lifecycle issues cause layout glitches on reconnect",
-        "respond": "Push full node list on mounted; hook re-runs simulation from scratch (fast - sub-second)"
+  "tree": {
+    "architecture": {
+      "llm": {
+        "api-wrapper": {
+          "scenario": "Which HTTP client should we use to call the Anthropic API from Elixir?",
+          "accepted": "architecture/llm/api-wrapper/api-wrapper.md",
+          "variants": [
+            {
+              "path": "architecture/llm/api-wrapper/api-wrapper.md",
+              "status": "accepted",
+              "tags": [
+                "llm",
+                "http",
+                "req"
+              ],
+              "scenario": "Which HTTP client should we use to call the Anthropic API from Elixir?",
+              "chosen_option": "Req: modern Elixir HTTP client, declarative API, built-in JSON handling",
+              "parent": null,
+              "children": [
+                "architecture/llm/pluggable-behaviour/pluggable-behaviour"
+              ],
+              "decided": "2026-02-28",
+              "reconsider": [
+                {
+                  "observe": "Anthropic API changes (new models, new message format)",
+                  "respond": "Thin wrapper means changes are localized to llm.ex; update in one place"
+                }
+              ]
+            }
+          ]
+        },
+        "debounced-calls": {
+          "scenario": "When multiple participants submit scenario reframings in rapid succession, should each submission trigger a separate LLM synthesis call, or should we debounce?",
+          "accepted": "architecture/llm/debounced-calls/debounced-calls.md",
+          "variants": [
+            {
+              "path": "architecture/llm/debounced-calls/debounced-calls.md",
+              "status": "accepted",
+              "tags": [
+                "llm",
+                "debounce",
+                "state-machine",
+                "ux"
+              ],
+              "scenario": "When multiple participants submit scenario reframings in rapid succession, should each submission trigger a separate LLM synthesis call, or should we debounce?",
+              "chosen_option": "800ms debounce: each new submission resets the timer; LLM call fires only after 800ms of quiet; managed via `{:debounce, key, delay_ms, call_spec}` effect",
+              "parent": "architecture/state-machine/core-architecture/core-architecture",
+              "children": [],
+              "decided": "2026-03-02",
+              "reconsider": [
+                {
+                  "observe": "800ms feels sluggish when only one participant is submitting",
+                  "respond": "Reduce to 300-500ms; or fire immediately if only one connected user has submitted"
+                },
+                {
+                  "observe": "Debounce timer accumulates across stages (key collision)",
+                  "respond": "Namespace keys by stage or clear all debounce timers on stage transition"
+                }
+              ]
+            }
+          ]
+        },
+        "pluggable-behaviour": {
+          "scenario": "How do we test decision flows that trigger LLM calls without making real API requests, while keeping the LLM integration swappable?",
+          "accepted": "architecture/llm/pluggable-behaviour/pluggable-behaviour.md",
+          "variants": [
+            {
+              "path": "architecture/llm/pluggable-behaviour/pluggable-behaviour.md",
+              "status": "accepted",
+              "tags": [
+                "llm",
+                "testing",
+                "behaviour",
+                "mock",
+                "dependency-injection"
+              ],
+              "scenario": "How do we test decision flows that trigger LLM calls without making real API requests, while keeping the LLM integration swappable?",
+              "chosen_option": "Elixir `@behaviour` on the LLM module; `MaudeLibs.LLM.Mock` implements canned responses; Server reads the module from application config at startup",
+              "parent": "architecture/llm/api-wrapper/api-wrapper",
+              "children": [],
+              "decided": "2026-03-02",
+              "reconsider": [
+                {
+                  "observe": "Need to test error paths (LLM returns {:error, ...})",
+                  "respond": "Add Mock variants or make Mock configurable per-test via process dictionary or Agent"
+                },
+                {
+                  "observe": "Mock responses are too simplistic; don't exercise JSON parsing edge cases",
+                  "respond": "Make Mock responses match exact API response shape, including nested structures"
+                }
+              ]
+            }
+          ]
+        },
+        "prompt-strategy": {
+          "scenario": "Should the scaffolding LLM call (generating for/against points per option) be one call for all options or one call per option?",
+          "accepted": "architecture/llm/prompt-strategy/prompt-strategy.md",
+          "variants": [
+            {
+              "path": "architecture/llm/prompt-strategy/prompt-strategy.md",
+              "status": "accepted",
+              "tags": [
+                "llm",
+                "scaffolding",
+                "prompts"
+              ],
+              "scenario": "Should the scaffolding LLM call (generating for/against points per option) be one call for all options or one call per option?",
+              "chosen_option": "Single call: all options + priorities in one request; output array of {name, for, against} per option",
+              "parent": null,
+              "children": [],
+              "decided": "2026-02-28",
+              "reconsider": [
+                {
+                  "observe": "One call times out due to large option count",
+                  "respond": "Split into N parallel calls (one per option) and merge results"
+                }
+              ]
+            }
+          ]
+        },
+        "response-format": {
+          "scenario": "How do we ensure LLM responses are machine-parseable JSON that maps predictably to our Elixir structs?",
+          "accepted": "architecture/llm/response-format/response-format.md",
+          "variants": [
+            {
+              "path": "architecture/llm/response-format/response-format.md",
+              "status": "accepted",
+              "tags": [
+                "llm",
+                "json",
+                "structured-output"
+              ],
+              "scenario": "How do we ensure LLM responses are machine-parseable JSON that maps predictably to our Elixir structs?",
+              "chosen_option": "Prompt coercion: system prompt instructs model to return only raw JSON matching the specified schema; no tool use",
+              "parent": null,
+              "children": [],
+              "decided": "2026-02-28",
+              "reconsider": [
+                {
+                  "observe": "Parse failures become frequent (>5% of calls)",
+                  "respond": "Switch to Anthropic tool use / function calling for guaranteed JSON schema enforcement"
+                }
+              ]
+            }
+          ]
+        }
       },
-      {
-        "observe": "Need server-authoritative positions for a feature (e.g., server-side screenshot)",
-        "respond": "Add a periodic position sync from client back to server, or accept that screenshots show initial positions"
+      "realtime": {
+        "invite-mechanism": {
+          "scenario": "How do invited participants discover and navigate to a decision they've been invited to join?",
+          "accepted": "architecture/realtime/invite-mechanism/pubsub-invite.md",
+          "variants": [
+            {
+              "path": "architecture/realtime/invite-mechanism/pubsub-invite.md",
+              "status": "accepted",
+              "tags": [
+                "realtime",
+                "ux",
+                "invite",
+                "lobby"
+              ],
+              "scenario": "How do invited participants discover and navigate to a decision they've been invited to join?",
+              "chosen_option": "Per-user PubSub topic (`\"user:#{username}\"`) delivers invite notifications; canvas shows a modal; creator uses add/remove list UI with UserRegistry autocomplete",
+              "parent": null,
+              "children": [
+                "architecture/realtime/invite-mechanism/user-registry"
+              ],
+              "decided": "2026-02-28",
+              "reconsider": [
+                {
+                  "observe": "Users miss invites because they're not on /canvas",
+                  "respond": "Add a persistent \"pending invites\" badge visible from /d/:id"
+                }
+              ]
+            }
+          ],
+          "user-registry": {
+            "scenario": "How does the invite UI know which usernames exist in the system so the creator can autocomplete when inviting participants?",
+            "accepted": "architecture/realtime/invite-mechanism/user-registry/ets-registry.md",
+            "variants": [
+              {
+                "path": "architecture/realtime/invite-mechanism/user-registry/ets-registry.md",
+                "status": "accepted",
+                "tags": [
+                  "realtime",
+                  "identity",
+                  "ets",
+                  "autocomplete",
+                  "invite"
+                ],
+                "scenario": "How does the invite UI know which usernames exist in the system so the creator can autocomplete when inviting participants?",
+                "chosen_option": "ETS-backed GenServer that registers every username on /join; `list_usernames/0` feeds an HTML `<datalist>` for autocomplete",
+                "parent": "architecture/realtime/invite-mechanism/pubsub-invite",
+                "children": [],
+                "decided": "2026-03-02",
+                "reconsider": [
+                  {
+                    "observe": "Stale usernames clutter autocomplete after many sessions",
+                    "respond": "Add TTL-based cleanup (e.g., discard entries older than 24 hours)"
+                  },
+                  {
+                    "observe": "Need to associate persistent data with users (history, preferences)",
+                    "respond": "Graduate to a real user table with Ecto"
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "pubsub-model": {
+          "scenario": "How does the Decision.Server broadcast state changes to all connected LiveViews for a given decision?",
+          "accepted": "architecture/realtime/pubsub-model/pubsub-model.md",
+          "variants": [
+            {
+              "path": "architecture/realtime/pubsub-model/pubsub-model.md",
+              "status": "accepted",
+              "tags": [
+                "realtime",
+                "pubsub",
+                "architecture"
+              ],
+              "scenario": "How does the Decision.Server broadcast state changes to all connected LiveViews for a given decision?",
+              "chosen_option": "Broadcast full Decision struct on every state change; LiveViews assign and re-render",
+              "parent": null,
+              "children": [],
+              "decided": "2026-02-28",
+              "reconsider": [
+                {
+                  "observe": "Broadcast payload becomes large (many options with long for/against text)",
+                  "respond": "Switch to broadcasting only the changed stage field or a diff"
+                }
+              ]
+            }
+          ]
+        },
+        "session-identity": {
+          "scenario": "How do we identify participants across LiveView connections without building an authentication system?",
+          "accepted": "architecture/realtime/session-identity/session-identity.md",
+          "variants": [
+            {
+              "path": "architecture/realtime/session-identity/session-identity.md",
+              "status": "accepted",
+              "tags": [
+                "realtime",
+                "identity",
+                "session",
+                "authentication"
+              ],
+              "scenario": "How do we identify participants across LiveView connections without building an authentication system?",
+              "chosen_option": "Username stored in Plug session via POST /session; session cookie persists the identity; no database, no accounts, no passwords",
+              "parent": null,
+              "children": [],
+              "decided": "2026-03-02",
+              "reconsider": [
+                {
+                  "observe": "Username collisions cause confusion in decisions",
+                  "respond": "Add uniqueness check against UserRegistry; show error on /join if taken"
+                },
+                {
+                  "observe": "Need to persist decisions across sessions (e.g., \"my decisions\" page)",
+                  "respond": "Add lightweight auth (magic link email, or OAuth) and associate decisions with accounts"
+                }
+              ]
+            }
+          ]
+        },
+        "spectator-view": {
+          "scenario": "How do non-participants (observers, dropped users) view a decision in progress without disrupting it?",
+          "accepted": "architecture/realtime/spectator-view/spectator-view.md",
+          "variants": [
+            {
+              "path": "architecture/realtime/spectator-view/spectator-view.md",
+              "status": "accepted",
+              "tags": [
+                "realtime",
+                "ux",
+                "spectator"
+              ],
+              "scenario": "How do non-participants (observers, dropped users) view a decision in progress without disrupting it?",
+              "chosen_option": "Same decision_live.ex; check `username in decision.connected` to gate input controls; spectators see all but can't interact",
+              "parent": null,
+              "children": [],
+              "decided": "2026-02-28",
+              "reconsider": [
+                {
+                  "observe": "Spectators want to interact (e.g., ask to join)",
+                  "respond": "Add a \"request to join\" mechanic that creator can approve"
+                }
+              ]
+            }
+          ]
+        }
       },
-      {
-        "observe": "Want to add edges between decisions later (e.g., dependencies)",
-        "respond": "libgraph on server models edges; pass links array to D3; add `forceLink()` to simulation"
+      "state-machine": {
+        "core-architecture": {
+          "scenario": "How do we structure the decision state machine so it is testable, predictable, and easy to reason about under concurrent LiveView connections?",
+          "accepted": "architecture/state-machine/core-architecture/core-architecture.md",
+          "variants": [
+            {
+              "path": "architecture/state-machine/core-architecture/core-architecture.md",
+              "status": "accepted",
+              "tags": [
+                "architecture",
+                "state-machine",
+                "genserver"
+              ],
+              "scenario": "How do we structure the decision state machine so it is testable, predictable, and easy to reason about under concurrent LiveView connections?",
+              "chosen_option": "Pure Core + GenServer Shell: Core.handle/2 returns {:ok, decision, [effects]}, Server GenServer executes effects",
+              "parent": null,
+              "children": [
+                "architecture/llm/debounced-calls/debounced-calls"
+              ],
+              "decided": "2026-02-28",
+              "reconsider": [
+                {
+                  "observe": "Effect list grows complex (debounce + async_llm + broadcast in one transition)",
+                  "respond": "Add effect priority ordering or a dedicated effect pipeline module"
+                }
+              ]
+            }
+          ]
+        },
+        "disconnect-grace-period": {
+          "scenario": "When a participant's LiveView disconnects (page refresh, network hiccup, tab switch on mobile), should they be immediately removed from the connected set, or should there be a grace window for reconne",
+          "accepted": "architecture/state-machine/disconnect-grace-period/disconnect-grace-period.md",
+          "variants": [
+            {
+              "path": "architecture/state-machine/disconnect-grace-period/disconnect-grace-period.md",
+              "status": "accepted",
+              "tags": [
+                "state-machine",
+                "presence",
+                "disconnect",
+                "reconnect",
+                "grace-period"
+              ],
+              "scenario": "When a participant's LiveView disconnects (page refresh, network hiccup, tab switch on mobile), should they be immediately removed from the connected set, or should there be a grace window for reconne",
+              "chosen_option": "5-second grace period: Server schedules a `{:disconnect_timeout, user}` message on disconnect; reconnect within 5s cancels the timer; configurable via `disconnect_grace_ms`",
+              "parent": "architecture/state-machine/drop-handling/drop-handling",
+              "children": [],
+              "decided": "2026-03-02",
+              "reconsider": [
+                {
+                  "observe": "5 seconds feels too long; ghost presence confuses other participants",
+                  "respond": "Reduce to 2-3 seconds; or add a visual \"reconnecting...\" indicator during grace period"
+                },
+                {
+                  "observe": "5 seconds feels too short; mobile users on slow networks time out",
+                  "respond": "Increase to 10 seconds; consider exponential backoff for repeated disconnects"
+                }
+              ]
+            }
+          ]
+        },
+        "drop-handling": {
+          "scenario": "How do we handle a participant's LiveView disconnecting mid-decision without blocking the remaining participants?",
+          "accepted": "architecture/state-machine/drop-handling/drop-handling.md",
+          "variants": [
+            {
+              "path": "architecture/state-machine/drop-handling/drop-handling.md",
+              "status": "accepted",
+              "tags": [
+                "state-machine",
+                "presence",
+                "drop-handling"
+              ],
+              "scenario": "How do we handle a participant's LiveView disconnecting mid-decision without blocking the remaining participants?",
+              "chosen_option": "connected + participants MapSets on Decision struct; terminate/2 triggers a 5-second grace period before removal; all ready-up checks use connected; participants persists across reconnects",
+              "parent": null,
+              "children": [
+                "architecture/state-machine/disconnect-grace-period/disconnect-grace-period"
+              ],
+              "decided": "2026-02-28",
+              "reconsider": [
+                {
+                  "observe": "A decision gets stuck because all participants disconnected",
+                  "respond": "Add a timeout or allow the last connected user to auto-advance after N minutes"
+                }
+              ]
+            }
+          ]
+        },
+        "stage-representation": {
+          "scenario": "How do we represent the current stage of a decision and its stage-specific data in Elixir?",
+          "accepted": "architecture/state-machine/stage-representation/stage-representation.md",
+          "variants": [
+            {
+              "path": "architecture/state-machine/stage-representation/stage-representation.md",
+              "status": "accepted",
+              "tags": [
+                "state-machine",
+                "data-structures",
+                "stages"
+              ],
+              "scenario": "How do we represent the current stage of a decision and its stage-specific data in Elixir?",
+              "chosen_option": "Tagged struct per stage: %Stage.Lobby{}, %Stage.Scenario{}, etc., stored in Decision.stage",
+              "parent": null,
+              "children": [],
+              "decided": "2026-02-28",
+              "reconsider": [
+                {
+                  "observe": "Stage structs need versioning for live deploys",
+                  "respond": "Add a vsn field or use a registry-based approach"
+                }
+              ]
+            }
+          ]
+        }
       }
-    ]
+    },
+    "deployment": {
+      "fly-config": {
+        "scenario": "How many machines should we run on fly.io, and do we need BEAM clustering for LiveView state?",
+        "accepted": "deployment/fly-config/fly-config.md",
+        "variants": [
+          {
+            "path": "deployment/fly-config/fly-config.md",
+            "status": "accepted",
+            "tags": [
+              "deployment",
+              "fly.io",
+              "clustering"
+            ],
+            "scenario": "How many machines should we run on fly.io, and do we need BEAM clustering for LiveView state?",
+            "chosen_option": "Single machine on fly.io (sjc region); auto-stop/auto-start; no clustering needed; all GenServer state on one node",
+            "parent": null,
+            "children": [],
+            "decided": "2026-02-28",
+            "reconsider": [
+              {
+                "observe": "Demo requires high availability or multiple concurrent groups",
+                "respond": "Add libcluster + Horde for distributed GenServer registry; configure fly.io with 2+ machines and BEAM clustering"
+              }
+            ]
+          }
+        ]
+      },
+      "state-persistence": {
+        "scenario": "Should decision state be persisted to a database, ETS, or live only in GenServer memory?",
+        "accepted": "deployment/state-persistence/state-persistence.md",
+        "variants": [
+          {
+            "path": "deployment/state-persistence/state-persistence.md",
+            "status": "accepted",
+            "tags": [
+              "deployment",
+              "state",
+              "genserver"
+            ],
+            "scenario": "Should decision state be persisted to a database, ETS, or live only in GenServer memory?",
+            "chosen_option": "Ephemeral GenServers: all decision state in memory; accept state loss on restart for prototype scope",
+            "parent": null,
+            "children": [],
+            "decided": "2026-02-28",
+            "reconsider": [
+              {
+                "observe": "Demo requires state to survive deploys (multi-day event)",
+                "respond": "Add ETS persistence with :ets.tab2file on terminate and reload on start; or add Postgres/Ecto"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "interface": {
+      "force-layout-strategy": {
+        "scenario": "How do we position decision circles on the lobby canvas and participant cards on stage views so that layouts are non-overlapping, visually balanced, responsive to viewport size, and work within LiveVi",
+        "accepted": "interface/force-layout-strategy/client-side-d3-force-with-scale-to-fit.md",
+        "variants": [
+          {
+            "path": "interface/force-layout-strategy/client-side-d3-force-with-scale-to-fit.md",
+            "status": "accepted",
+            "tags": [
+              "layout",
+              "d3",
+              "force-layout",
+              "scale-to-fit",
+              "js-hooks",
+              "virtual-canvas",
+              "viewport"
+            ],
+            "scenario": "How do we position decision circles on the lobby canvas and participant cards on stage views so that layouts are non-overlapping, visually balanced, responsive to viewport size, and work within LiveVi",
+            "chosen_option": "Three-layer architecture: (1) CSS fixed shell for persistent navigation, (2) D3 force simulation in JS hooks for position computation, (3) scale-to-fit transform on a virtual canvas for viewport adaptation. Two distinct D3 hooks serve the lobby canvas and stage views respectively.",
+            "parent": null,
+            "children": [],
+            "decided": "2026-03-02",
+            "reconsider": [
+              {
+                "observe": "LiveView morphdom patches cause visible position flicker despite StageForce.updated()",
+                "respond": "Add CSS transitions to card wrappers, or debounce re-apply"
+              },
+              {
+                "observe": "Stage participant count exceeds 6-8 and arc placement gets crowded",
+                "respond": "Switch stage simulation to use forceCollide in addition to forceX/forceY"
+              },
+              {
+                "observe": "Text becomes unreadable below 0.5x scale on small viewports",
+                "respond": "Add mobile-specific layout that stacks cards vertically instead of scaling"
+              },
+              {
+                "observe": "Want server-authoritative positions (e.g., screenshots)",
+                "respond": "Add periodic position sync from client back to server"
+              }
+            ]
+          },
+          {
+            "path": "interface/force-layout-strategy/d3-force-client-side.md",
+            "status": "superseded",
+            "tags": [
+              "canvas",
+              "physics",
+              "force-layout",
+              "d3",
+              "javascript",
+              "libgraph"
+            ],
+            "scenario": "Which approach should we use to compute non-overlapping, center-clustered positions for decision circles on the canvas homepage, given that the current hand-rolled server-side simulation oscillates an",
+            "chosen_option": "Use d3-force in a LiveView JS hook for layout computation, with libgraph as the server-side graph data structure. Server sends node metadata (size, visibility, fixed position) via push_event; D3 handles physics and rendering.",
+            "parent": null,
+            "children": [],
+            "decided": "2026-02-28",
+            "reconsider": [
+              {
+                "observe": "LiveView hook lifecycle issues cause layout glitches on reconnect",
+                "respond": "Push full node list on mounted; hook re-runs simulation from scratch (fast - sub-second)"
+              },
+              {
+                "observe": "Need server-authoritative positions for a feature (e.g., server-side screenshot)",
+                "respond": "Add a periodic position sync from client back to server, or accept that screenshots show initial positions"
+              },
+              {
+                "observe": "Want to add edges between decisions later (e.g., dependencies)",
+                "respond": "libgraph on server models edges; pass links array to D3; add `forceLink()` to simulation"
+              }
+            ]
+          },
+          {
+            "path": "interface/force-layout-strategy/hybrid-server-compute-client-animate.md",
+            "status": "rejected",
+            "tags": [
+              "canvas",
+              "physics",
+              "force-layout",
+              "hybrid"
+            ],
+            "scenario": "Which approach should we use to compute non-overlapping, center-clustered positions for decision circles on the canvas homepage, given that the current hand-rolled server-side simulation oscillates an",
+            "chosen_option": "Use d3-force via a Node.js port/NIF called from the server, broadcasting final positions via PubSub; client only animates",
+            "parent": null,
+            "children": [],
+            "decided": "2026-02-28",
+            "reconsider": [
+              {
+                "observe": "Port communication latency exceeds the 1500ms tick budget",
+                "respond": "Move to client-side d3-force; server only tracks circle metadata"
+              },
+              {
+                "observe": "Node.js process crashes or hangs",
+                "respond": "Add supervision and restart logic; consider fallback to simple grid layout"
+              }
+            ]
+          },
+          {
+            "path": "interface/force-layout-strategy/nothing.md",
+            "status": "rejected",
+            "tags": [
+              "canvas",
+              "physics",
+              "force-layout",
+              "convergence"
+            ],
+            "scenario": "Which approach should we use to compute non-overlapping, center-clustered positions for decision circles on the canvas homepage, given that the current hand-rolled server-side simulation oscillates an",
+            "chosen_option": "Do nothing - keep the current hand-rolled server-side force simulation",
+            "parent": null,
+            "children": [],
+            "decided": "2026-02-28",
+            "reconsider": [
+              {
+                "observe": "A simple constant tweak finally produces stable behavior at 12+ nodes",
+                "respond": "Keep current approach; document the working constants"
+              }
+            ]
+          },
+          {
+            "path": "interface/force-layout-strategy/pure-elixir-tested.md",
+            "status": "rejected",
+            "tags": [
+              "canvas",
+              "physics",
+              "force-layout",
+              "elixir",
+              "tdd"
+            ],
+            "scenario": "Which approach should we use to compute non-overlapping, center-clustered positions for decision circles on the canvas homepage, given that the current hand-rolled server-side simulation oscillates an",
+            "chosen_option": "Rewrite the pure Elixir force layout as a tested, idempotent pure function using the spring-electrical model with adaptive step size and early termination",
+            "parent": null,
+            "children": [],
+            "decided": "2026-02-28",
+            "reconsider": [
+              {
+                "observe": "Tests pass but visual result looks wrong (clumped, uneven)",
+                "respond": "The force balance is wrong for this aesthetic goal; switch to d3-force client-side"
+              },
+              {
+                "observe": "O(n^2) computation exceeds tick budget at 20+ nodes",
+                "respond": "Reduce iterations or switch to client-side computation"
+              },
+              {
+                "observe": "Convergence tests are flaky due to floating point edge cases",
+                "respond": "Increase convergence threshold or use approximate equality"
+              }
+            ]
+          }
+        ]
+      },
+      "input-stages": {
+        "blind-mechanic": {
+          "scenario": "When multiple participants submit priorities or options, when should each participant's input become visible to the others?",
+          "accepted": "interface/input-stages/blind-mechanic/blind-mechanic.md",
+          "variants": [
+            {
+              "path": "interface/input-stages/blind-mechanic/blind-mechanic.md",
+              "status": "accepted",
+              "tags": [
+                "input-stages",
+                "ux",
+                "reveal"
+              ],
+              "scenario": "When multiple participants submit priorities or options, when should each participant's input become visible to the others?",
+              "chosen_option": "All inputs visible live as you type; confirm button separates \"I'm done\" from \"I'm ready to advance\"",
+              "parent": null,
+              "children": [],
+              "decided": "2026-02-28",
+              "reconsider": [
+                {
+                  "observe": "Users complain of anchoring - their inputs are shaped by seeing others first",
+                  "respond": "Switch to rolling reveal: hide inputs until user has confirmed their own entry"
+                }
+              ]
+            }
+          ]
+        },
+        "claude-suggestions": {
+          "scenario": "How should Claude's suggested priorities and options be presented and adopted by participants?",
+          "accepted": "interface/input-stages/claude-suggestions/claude-suggestions.md",
+          "variants": [
+            {
+              "path": "interface/input-stages/claude-suggestions/claude-suggestions.md",
+              "status": "accepted",
+              "tags": [
+                "input-stages",
+                "llm",
+                "suggestions"
+              ],
+              "scenario": "How should Claude's suggested priorities and options be presented and adopted by participants?",
+              "chosen_option": "Toggle model: anyone can include/exclude a suggestion; last write wins; broadcast immediately",
+              "parent": null,
+              "children": [],
+              "decided": "2026-02-28",
+              "reconsider": [
+                {
+                  "observe": "Last-write-wins causes confusion when two users rapidly toggle the same suggestion",
+                  "respond": "Add optimistic locking or switch to majority vote (2/4 participants = include)"
+                }
+              ]
+            }
+          ]
+        },
+        "scenario-consensus": {
+          "scenario": "How do participants agree on the final scenario framing before advancing to priorities?",
+          "accepted": "interface/input-stages/scenario-consensus/scenario-consensus.md",
+          "variants": [
+            {
+              "path": "interface/input-stages/scenario-consensus/scenario-consensus.md",
+              "status": "accepted",
+              "tags": [
+                "input-stages",
+                "scenario",
+                "consensus"
+              ],
+              "scenario": "How do participants agree on the final scenario framing before advancing to priorities?",
+              "chosen_option": "Unanimous vote: all connected participants must select the same candidate to advance",
+              "parent": null,
+              "children": [],
+              "decided": "2026-02-28",
+              "reconsider": [
+                {
+                  "observe": "Participants are stuck and can't reach unanimity",
+                  "respond": "Add a \"creator override\" escape hatch or a majority vote fallback after N minutes"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      "ui": {
+        "component-strategy": {
+          "scenario": "How should we structure UI components across the decision stages - reusable LiveComponents, inline function components, or duplication?",
+          "accepted": "interface/ui/component-strategy/component-strategy.md",
+          "variants": [
+            {
+              "path": "interface/ui/component-strategy/component-strategy.md",
+              "status": "accepted",
+              "tags": [
+                "ui",
+                "components",
+                "liveview"
+              ],
+              "scenario": "How should we structure UI components across the decision stages - reusable LiveComponents, inline function components, or duplication?",
+              "chosen_option": "Inline function components (attr + slot, no stateful LiveComponent) for shared layout; per-stage inline heex for unique mechanics",
+              "parent": null,
+              "children": [],
+              "decided": "2026-02-28",
+              "reconsider": [
+                {
+                  "observe": "A component needs its own event handling (e.g., inline modal with close button)",
+                  "respond": "Promote to stateful LiveComponent at that point only"
+                }
+              ]
+            }
+          ]
+        },
+        "css-framework": {
+          "scenario": "Which CSS approach should we use for styling the Phoenix LiveView app?",
+          "accepted": "interface/ui/css-framework/css-framework.md",
+          "variants": [
+            {
+              "path": "interface/ui/css-framework/css-framework.md",
+              "status": "accepted",
+              "tags": [
+                "ui",
+                "css",
+                "tailwind",
+                "daisyui"
+              ],
+              "scenario": "Which CSS approach should we use for styling the Phoenix LiveView app?",
+              "chosen_option": "Tailwind CSS + DaisyUI: Phoenix ships Tailwind by default; DaisyUI adds component classes (card, btn, badge, input) with custom dark/light themes in oklch",
+              "parent": null,
+              "children": [],
+              "decided": "2026-02-28",
+              "reconsider": [
+                {
+                  "observe": "Tailwind class names become unwieldy on complex components",
+                  "respond": "Extract to Phoenix LiveComponents with @apply in component CSS files"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    "style": {
+      "type-checking": {
+        "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
+        "accepted": "style/type-checking/dialyzer-plus-gradual.md",
+        "variants": [
+          {
+            "path": "style/type-checking/dialyzer-plus-gradual.md",
+            "status": "accepted",
+            "tags": [
+              "style",
+              "types",
+              "elixir",
+              "tooling"
+            ],
+            "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
+            "chosen_option": "Use both Dialyzer and the gradual type system during the transition period - maximum coverage now, converge to compiler-only when gradual types mature",
+            "parent": null,
+            "children": [],
+            "decided": "2026-03-03",
+            "reconsider": [
+              {
+                "observe": "Gradual type system (v1.21+) covers cross-dependency inference and typed structs",
+                "respond": "Dialyzer is now redundant; drop Dialyxir, migrate `@spec` to new type signatures"
+              },
+              {
+                "observe": "The two tools produce conflicting or confusing feedback on the same code",
+                "respond": "Prioritize compiler warnings; Dialyzer becomes supplementary"
+              },
+              {
+                "observe": "Maintaining `@spec` annotations for Dialyzer while the gradual system infers types feels like double work",
+                "respond": "Stop adding new `@spec` annotations; let existing ones serve Dialyzer until it's dropped"
+              }
+            ]
+          },
+          {
+            "path": "style/type-checking/dialyzer.md",
+            "status": "rejected",
+            "tags": [
+              "style",
+              "types",
+              "elixir",
+              "tooling"
+            ],
+            "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
+            "chosen_option": "Add `@spec`/`@type` annotations and run Dialyxir (`mix dialyzer`) for static type analysis",
+            "parent": null,
+            "children": [],
+            "decided": "2026-03-03",
+            "reconsider": [
+              {
+                "observe": "Gradual type system (v1.21+) covers everything Dialyzer does at compile time",
+                "respond": "Drop Dialyxir dependency, migrate `@spec` to new type signature syntax, rely on compiler"
+              },
+              {
+                "observe": "Dialyzer misses a bug that the gradual type system would have caught",
+                "respond": "Accept the limitation or supplement with the gradual type system in parallel"
+              },
+              {
+                "observe": "PLT builds slow down the development workflow",
+                "respond": "Only run Dialyzer in precommit/CI, not on every save"
+              }
+            ]
+          },
+          {
+            "path": "style/type-checking/gradual.md",
+            "status": "rejected",
+            "tags": [
+              "style",
+              "types",
+              "elixir",
+              "tooling"
+            ],
+            "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
+            "chosen_option": "Lean into the compiler's gradual type system - let `mix compile` catch type errors, skip Dialyzer entirely",
+            "parent": null,
+            "children": [],
+            "decided": "2026-03-03",
+            "reconsider": [
+              {
+                "observe": "v1.20 adds cross-dependency inference and guard types",
+                "respond": "Review warnings on upgrade; may surface new type issues in existing code"
+              },
+              {
+                "observe": "v1.21+ adds user-facing type signatures",
+                "respond": "Begin annotating public APIs with the new syntax for documentation and enforcement"
+              },
+              {
+                "observe": "The gradual type system misses bugs that Dialyzer would catch",
+                "respond": "Consider adding Dialyzer as a supplement until the gradual system reaches parity"
+              }
+            ]
+          },
+          {
+            "path": "style/type-checking/nothing.md",
+            "status": "rejected",
+            "tags": [
+              "style",
+              "types",
+              "elixir",
+              "tooling"
+            ],
+            "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
+            "chosen_option": "Do nothing - continue with `@callback` on the LLM behaviour and no other type annotations or checking",
+            "parent": null,
+            "children": [],
+            "decided": "2026-03-03",
+            "reconsider": [
+              {
+                "observe": "A type-related bug reaches production that specs or the compiler would have caught",
+                "respond": "Adopt at least `@spec` annotations on public APIs"
+              },
+              {
+                "observe": "Elixir's gradual type system reaches maturity (v1.21+)",
+                "respond": "Adopt it with minimal migration cost since there's nothing to convert"
+              }
+            ]
+          },
+          {
+            "path": "style/type-checking/specs-only.md",
+            "status": "rejected",
+            "tags": [
+              "style",
+              "types",
+              "elixir",
+              "tooling"
+            ],
+            "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
+            "chosen_option": "Add `@type` and `@spec` annotations to public functions for documentation, without running any enforcement tool",
+            "parent": null,
+            "children": [],
+            "decided": "2026-03-03",
+            "reconsider": [
+              {
+                "observe": "Specs drift from actual code because nothing enforces them",
+                "respond": "Add Dialyzer to catch spec violations"
+              },
+              {
+                "observe": "Gradual type system (v1.21+) introduces new type signature syntax",
+                "respond": "Migrate `@spec` annotations to the new syntax; specs-only approach makes this straightforward"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "testing": {
+      "coverage": {
+        "scenario": "What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?",
+        "accepted": "testing/coverage/99-percent.md",
+        "variants": [
+          {
+            "path": "testing/coverage/100-percent-with-ignores.md",
+            "status": "rejected",
+            "tags": [
+              "testing",
+              "coverage",
+              "elixir",
+              "precommit"
+            ],
+            "scenario": "What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?",
+            "chosen_option": "Set threshold to 100% and add stage component modules to `ignore_modules`, unignoring them temporarily when modifying their code.",
+            "parent": null,
+            "children": [],
+            "decided": "2026-03-03",
+            "reconsider": [
+              {
+                "observe": "Elixir's cover tool fixes the `defmodule` counting",
+                "respond": "Remove stage components from ignore_modules; 100% is achievable natively"
+              },
+              {
+                "observe": "Developers keep forgetting the unignore/re-ignore step and real gaps slip through",
+                "respond": "Drop to 99% threshold and remove stage components from ignore_modules"
+              },
+              {
+                "observe": "New stage components are added and the ignore_modules list keeps growing",
+                "respond": "Evaluate whether the bookkeeping cost outweighs the benefit of the 100% headline number"
+              },
+              {
+                "observe": "A CI script could automate the unignore check (run coverage once without ignore for each changed module)",
+                "respond": "Build the automation; this eliminates L2 workflow friction and L1 blind spot risk"
+              }
+            ]
+          },
+          {
+            "path": "testing/coverage/99-percent.md",
+            "status": "accepted",
+            "tags": [
+              "testing",
+              "coverage",
+              "elixir",
+              "precommit"
+            ],
+            "scenario": "What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?",
+            "chosen_option": "Set threshold to 99% and accept the `defmodule` gap without workarounds.",
+            "parent": null,
+            "children": [],
+            "decided": "2026-03-03",
+            "reconsider": [
+              {
+                "observe": "Elixir's cover tool fixes the `defmodule` counting (e.g., stops marking it as a relevant line)",
+                "respond": "Bump threshold to 100%; the gap closes naturally"
+              },
+              {
+                "observe": "More modules with `defmodule`-only gaps accumulate, eroding the 99% buffer",
+                "respond": "Either add them to ignore_modules or lower threshold further - but this signals a code organization issue, not a coverage issue"
+              },
+              {
+                "observe": "A real bug hides in the 0.76% headroom",
+                "respond": "Tighten the threshold or switch to the 100% + ignore_modules approach"
+              }
+            ]
+          },
+          {
+            "path": "testing/coverage/nothing.md",
+            "status": "rejected",
+            "tags": [
+              "testing",
+              "coverage",
+              "elixir",
+              "precommit"
+            ],
+            "scenario": "What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?",
+            "chosen_option": "Do nothing - no coverage threshold enforcement.",
+            "parent": null,
+            "children": [],
+            "decided": "2026-03-03",
+            "reconsider": [
+              {
+                "observe": "A bug ships to production that would have been caught by even basic coverage enforcement",
+                "respond": "Revisit adding a threshold, even a low one like 80%"
+              },
+              {
+                "observe": "Test suite grows organically and maintains high coverage through culture alone",
+                "respond": "Status quo is working; formalize with a threshold only if drift appears"
+              }
+            ]
+          }
+        ]
+      },
+      "methodology": {
+        "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+        "accepted": "testing/methodology/combined-seeds-and-liveview-tests.md",
+        "variants": [
+          {
+            "path": "testing/methodology/browser-automation.md",
+            "status": "rejected",
+            "tags": [
+              "verification",
+              "testing",
+              "browser",
+              "e2e"
+            ],
+            "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+            "chosen_option": "Use Wallaby (or Playwright via ports) to drive real browser sessions through the full multi-user UI workflow.",
+            "parent": null,
+            "children": [],
+            "decided": "2026-02-28",
+            "reconsider": [
+              {
+                "observe": "Browser tests take >30s and block CI",
+                "respond": "Move to a separate \"e2e\" CI job that runs on merge only, not on every push"
+              },
+              {
+                "observe": "Tests break on every UI change despite behavior being correct",
+                "respond": "Switch to data-testid selectors and consider replacing with LiveViewTest for non-visual assertions"
+              }
+            ]
+          },
+          {
+            "path": "testing/methodology/combined-seeds-and-liveview-tests.md",
+            "status": "accepted",
+            "tags": [
+              "verification",
+              "testing",
+              "dev-workflow",
+              "seeds",
+              "liveview",
+              "integration"
+            ],
+            "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+            "chosen_option": "Dev seed routes for instant manual stage access + LiveView integration tests for automated multi-user regression coverage. Skip browser automation to avoid brittleness.",
+            "parent": null,
+            "children": [],
+            "decided": "2026-02-28",
+            "reconsider": [
+              {
+                "observe": "JS hook or canvas bugs keep slipping through",
+                "respond": "Add targeted Wallaby tests for JS-heavy features only (not full flow coverage)"
+              },
+              {
+                "observe": "Seed route state shapes drift from reality after Core refactors",
+                "respond": "Add a test that validates each builder produces a state that Core.handle/2 accepts"
+              },
+              {
+                "observe": "Builder module grows complex with many stage permutations",
+                "respond": "Consider a pipeline API: `Builders.new(users) |> Builders.advance_to(:priorities)`"
+              }
+            ]
+          },
+          {
+            "path": "testing/methodology/dev-seed-routes.md",
+            "status": "rejected",
+            "tags": [
+              "verification",
+              "testing",
+              "dev-workflow",
+              "seeds"
+            ],
+            "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+            "chosen_option": "Dev-only seed routes that programmatically create decisions pre-advanced to any stage with fake users already joined.",
+            "parent": null,
+            "children": [],
+            "decided": "2026-02-28",
+            "reconsider": [
+              {
+                "observe": "You find yourself manually testing the same flow repeatedly even with seeds",
+                "respond": "Add LiveView integration tests for that flow"
+              },
+              {
+                "observe": "Seed routes drift from real stage shapes after a Core refactor",
+                "respond": "Share builders between seeds and tests"
+              }
+            ]
+          },
+          {
+            "path": "testing/methodology/liveview-integration-tests.md",
+            "status": "rejected",
+            "tags": [
+              "verification",
+              "testing",
+              "liveview",
+              "integration"
+            ],
+            "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+            "chosen_option": "Use Phoenix.LiveViewTest to mount LiveViews in-process, simulate multi-user flows, and assert stage transitions without a real browser.",
+            "parent": null,
+            "children": [],
+            "decided": "2026-02-28",
+            "reconsider": [
+              {
+                "observe": "JS hooks or canvas interactions cause bugs that LiveViewTest can't catch",
+                "respond": "Add targeted Wallaby/Playwright tests for JS-heavy features only"
+              },
+              {
+                "observe": "Test setup for multi-user flows is too verbose",
+                "respond": "Extract shared builder/helper modules (similar to existing `decision()` helpers in core_test)"
+              }
+            ]
+          },
+          {
+            "path": "testing/methodology/nothing.md",
+            "status": "rejected",
+            "tags": [
+              "verification",
+              "testing",
+              "dev-workflow"
+            ],
+            "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+            "chosen_option": "Do nothing; continue with manual browser testing and existing Core unit tests.",
+            "parent": null,
+            "children": [],
+            "decided": "2026-02-28",
+            "reconsider": [
+              {
+                "observe": "Time spent manually testing exceeds time you'd spend writing test infrastructure",
+                "respond": "Adopt one of the other variants"
+              },
+              {
+                "observe": "A regression ships that automated tests would have caught",
+                "respond": "Prioritize automated coverage"
+              }
+            ]
+          },
+          {
+            "path": "testing/methodology/tidewave-agentic-verification.md",
+            "status": "rejected",
+            "tags": [
+              "verification",
+              "testing",
+              "dev-workflow",
+              "tidewave",
+              "agentic"
+            ],
+            "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+            "chosen_option": "Use Tidewave's MCP tools (project_eval, browser_eval, get_logs) as a live agentic verification layer during Claude Code sessions, complementing automated tests and seed routes.",
+            "parent": null,
+            "children": [],
+            "decided": "2026-02-28",
+            "reconsider": [
+              {
+                "observe": "You find yourself re-doing the same Tidewave verification steps across sessions",
+                "respond": "Encode those steps as LiveView integration tests so they persist"
+              },
+              {
+                "observe": "Tidewave snapshots become the only verification and tests are neglected",
+                "respond": "Tidewave is complementary, not a replacement. Run mix test before committing."
+              },
+              {
+                "observe": "A new team member can't reproduce verification steps from a previous session",
+                "respond": "Document common verification patterns in a dev guide, or encode as tests"
+              }
+            ]
+          }
+        ]
+      },
+      "mock-strategy": {
+        "scenario": "Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?",
+        "accepted": "testing/mock-strategy/hammox.md",
+        "variants": [
+          {
+            "path": "testing/mock-strategy/hammox.md",
+            "status": "accepted",
+            "tags": [
+              "testing",
+              "mocking",
+              "llm",
+              "elixir"
+            ],
+            "scenario": "Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?",
+            "chosen_option": "Migrate to Hammox - Mox with automatic typespec validation on mock return values via `@callback` specs",
+            "parent": null,
+            "children": [],
+            "decided": "2026-03-02",
+            "reconsider": [
+              {
+                "observe": "Server test suite grows large and `async: false` with `set_mox_global` becomes a bottleneck",
+                "respond": "Refactor test GenServer startup to use `Mox.allow/3` or start GenServer directly under test process, enabling per-process isolation and `async: true`"
+              },
+              {
+                "observe": "Elixir's gradual type system (v1.21+) covers `@callback` type signatures at compile time",
+                "respond": "Drop Hammox, swap `Hammox.expect` back to `Mox.expect`; the compiler now catches return type mismatches before tests even run. Hammox was a bridge for the gap year before compiler-native type checking."
+              },
+              {
+                "observe": "Hammox maintenance lags behind Mox releases",
+                "respond": "Fall back to plain Mox; lose typespec validation but keep all other benefits"
+              },
+              {
+                "observe": "`@callback` specs are being phased out in favor of new type signatures",
+                "respond": "Check if Hammox adapts to new type syntax; if not, plain Mox + compiler types is the path"
+              }
+            ]
+          },
+          {
+            "path": "testing/mock-strategy/manual.md",
+            "status": "rejected",
+            "tags": [
+              "testing",
+              "mocking",
+              "llm",
+              "elixir"
+            ],
+            "scenario": "Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?",
+            "chosen_option": "Hand-rolled mock modules - `LLM.Mock` and `LLM.ErrorMock` implement the LLM behaviour, swapped via `Application.get_env` config",
+            "parent": null,
+            "children": [],
+            "decided": "2026-03-02",
+            "reconsider": [
+              {
+                "observe": "Test suite grows large enough that `async: false` becomes a bottleneck",
+                "respond": "Revisit Mox migration to enable async test execution"
+              },
+              {
+                "observe": "A bug slips through because a mock returned data for the wrong input",
+                "respond": "Mox expectations would have caught the argument mismatch"
+              },
+              {
+                "observe": "Need a third mock behavior (e.g., partial success)",
+                "respond": "Creating yet another module is a sign the hand-rolled approach doesn't scale"
+              }
+            ]
+          },
+          {
+            "path": "testing/mock-strategy/mox.md",
+            "status": "rejected",
+            "tags": [
+              "testing",
+              "mocking",
+              "llm",
+              "elixir"
+            ],
+            "scenario": "Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?",
+            "chosen_option": "Migrate to Mox - define a Mox mock from the LLM behaviour, use per-test expectations, remove hand-rolled mock modules",
+            "parent": null,
+            "children": [],
+            "decided": "2026-03-02",
+            "reconsider": [
+              {
+                "observe": "Only one external dependency (LLM) needs mocking; Mox overhead not justified",
+                "respond": "If a second external dependency appears (e.g., email, storage), Mox pays for itself immediately"
+              },
+              {
+                "observe": "Mox expectations make tests brittle by coupling to internal call structure",
+                "respond": "Use `Mox.stub/3` for tests that only care about output, `expect` for tests that verify integration"
+              }
+            ]
+          },
+          {
+            "path": "testing/mock-strategy/nothing.md",
+            "status": "rejected",
+            "tags": [
+              "testing",
+              "mocking",
+              "llm",
+              "elixir"
+            ],
+            "scenario": "Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?",
+            "chosen_option": "Do nothing - no mocking; tests call the real Anthropic API",
+            "parent": null,
+            "children": [],
+            "decided": "2026-03-02",
+            "reconsider": [
+              {
+                "observe": "This is the starting point before any mocking exists",
+                "respond": "Any project with external API calls should introduce mocking early"
+              }
+            ]
+          }
+        ]
+      }
+    }
   },
-  {
-    "path": "frontend/force-layout-strategy/hybrid-server-compute-client-animate.md",
-    "status": "rejected",
-    "tags": [
-      "canvas",
-      "physics",
-      "force-layout",
-      "hybrid"
-    ],
-    "scenario": "Which approach should we use to compute non-overlapping, center-clustered positions for decision circles on the canvas homepage, given that the current hand-rolled server-side simulation oscillates an",
-    "chosen_option": "Use d3-force via a Node.js port/NIF called from the server, broadcasting final positions via PubSub; client only animates",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Port communication latency exceeds the 1500ms tick budget",
-        "respond": "Move to client-side d3-force; server only tracks circle metadata"
-      },
-      {
-        "observe": "Node.js process crashes or hangs",
-        "respond": "Add supervision and restart logic; consider fallback to simple grid layout"
-      }
-    ]
-  },
-  {
-    "path": "frontend/force-layout-strategy/nothing.md",
-    "status": "rejected",
-    "tags": [
-      "canvas",
-      "physics",
-      "force-layout",
-      "convergence"
-    ],
-    "scenario": "Which approach should we use to compute non-overlapping, center-clustered positions for decision circles on the canvas homepage, given that the current hand-rolled server-side simulation oscillates an",
-    "chosen_option": "Do nothing - keep the current hand-rolled server-side force simulation",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "A simple constant tweak finally produces stable behavior at 12+ nodes",
-        "respond": "Keep current approach; document the working constants"
-      }
-    ]
-  },
-  {
-    "path": "frontend/force-layout-strategy/pure-elixir-tested.md",
-    "status": "rejected",
-    "tags": [
-      "canvas",
-      "physics",
-      "force-layout",
-      "elixir",
-      "tdd"
-    ],
-    "scenario": "Which approach should we use to compute non-overlapping, center-clustered positions for decision circles on the canvas homepage, given that the current hand-rolled server-side simulation oscillates an",
-    "chosen_option": "Rewrite the pure Elixir force layout as a tested, idempotent pure function using the spring-electrical model with adaptive step size and early termination",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Tests pass but visual result looks wrong (clumped, uneven)",
-        "respond": "The force balance is wrong for this aesthetic goal; switch to d3-force client-side"
-      },
-      {
-        "observe": "O(n^2) computation exceeds tick budget at 20+ nodes",
-        "respond": "Reduce iterations or switch to client-side computation"
-      },
-      {
-        "observe": "Convergence tests are flaky due to floating point edge cases",
-        "respond": "Increase convergence threshold or use approximate equality"
-      }
-    ]
-  },
-  {
-    "path": "frontend/input-stages/blind-mechanic/blind-mechanic.md",
-    "status": "accepted",
-    "tags": [
-      "input-stages",
-      "ux",
-      "reveal"
-    ],
-    "scenario": "When multiple participants submit priorities or options, when should each participant's input become visible to the others?",
-    "chosen_option": "All inputs visible live as you type; confirm button separates \"I'm done\" from \"I'm ready to advance\"",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Users complain of anchoring - their inputs are shaped by seeing others first",
-        "respond": "Switch to rolling reveal: hide inputs until user has confirmed their own entry"
-      }
-    ]
-  },
-  {
-    "path": "frontend/input-stages/claude-suggestions/claude-suggestions.md",
-    "status": "accepted",
-    "tags": [
-      "input-stages",
-      "llm",
-      "suggestions"
-    ],
-    "scenario": "How should Claude's suggested priorities and options be presented and adopted by participants?",
-    "chosen_option": "Toggle model: anyone can include/exclude a suggestion; last write wins; broadcast immediately",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Last-write-wins causes confusion when two users rapidly toggle the same suggestion",
-        "respond": "Add optimistic locking or switch to majority vote (2/4 participants = include)"
-      }
-    ]
-  },
-  {
-    "path": "frontend/input-stages/scenario-consensus/scenario-consensus.md",
-    "status": "accepted",
-    "tags": [
-      "input-stages",
-      "scenario",
-      "consensus"
-    ],
-    "scenario": "How do participants agree on the final scenario framing before advancing to priorities?",
-    "chosen_option": "Unanimous vote: all connected participants must select the same candidate to advance",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Participants are stuck and can't reach unanimity",
-        "respond": "Add a \"creator override\" escape hatch or a majority vote fallback after N minutes"
-      }
-    ]
-  },
-  {
-    "path": "frontend/ui/component-strategy/component-strategy.md",
-    "status": "accepted",
-    "tags": [
-      "ui",
-      "components",
-      "liveview"
-    ],
-    "scenario": "How should we structure UI components across the decision stages - reusable LiveComponents, inline function components, or duplication?",
-    "chosen_option": "Inline function components (attr + slot, no stateful LiveComponent) for shared layout; per-stage inline heex for unique mechanics",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "A component needs its own event handling (e.g., inline modal with close button)",
-        "respond": "Promote to stateful LiveComponent at that point only"
-      }
-    ]
-  },
-  {
-    "path": "frontend/ui/css-framework/css-framework.md",
-    "status": "accepted",
-    "tags": [
-      "ui",
-      "css",
-      "tailwind",
-      "daisyui"
-    ],
-    "scenario": "Which CSS approach should we use for styling the Phoenix LiveView app?",
-    "chosen_option": "Tailwind CSS + DaisyUI: Phoenix ships Tailwind by default; DaisyUI adds component classes (card, btn, badge, input) with custom dark/light themes in oklch",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Tailwind class names become unwieldy on complex components",
-        "respond": "Extract to Phoenix LiveComponents with @apply in component CSS files"
-      }
-    ]
-  },
-  {
-    "path": "llm/api-wrapper/api-wrapper.md",
-    "status": "accepted",
-    "tags": [
-      "llm",
-      "http",
-      "req"
-    ],
-    "scenario": "Which HTTP client should we use to call the Anthropic API from Elixir?",
-    "chosen_option": "Req: modern Elixir HTTP client, declarative API, built-in JSON handling",
-    "parent": null,
-    "children": [
-      "llm/pluggable-behaviour/pluggable-behaviour"
-    ],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Anthropic API changes (new models, new message format)",
-        "respond": "Thin wrapper means changes are localized to llm.ex; update in one place"
-      }
-    ]
-  },
-  {
-    "path": "llm/debounced-calls/debounced-calls.md",
-    "status": "accepted",
-    "tags": [
-      "llm",
-      "debounce",
-      "state-machine",
-      "ux"
-    ],
-    "scenario": "When multiple participants submit scenario reframings in rapid succession, should each submission trigger a separate LLM synthesis call, or should we debounce?",
-    "chosen_option": "800ms debounce: each new submission resets the timer; LLM call fires only after 800ms of quiet; managed via `{:debounce, key, delay_ms, call_spec}` effect",
-    "parent": "backend/state-machine/core-architecture/core-architecture",
-    "children": [],
-    "decided": "2026-03-02",
-    "reconsider": [
-      {
-        "observe": "800ms feels sluggish when only one participant is submitting",
-        "respond": "Reduce to 300-500ms; or fire immediately if only one connected user has submitted"
-      },
-      {
-        "observe": "Debounce timer accumulates across stages (key collision)",
-        "respond": "Namespace keys by stage or clear all debounce timers on stage transition"
-      }
-    ]
-  },
-  {
-    "path": "llm/pluggable-behaviour/pluggable-behaviour.md",
-    "status": "accepted",
-    "tags": [
-      "llm",
-      "testing",
-      "behaviour",
-      "mock",
-      "dependency-injection"
-    ],
-    "scenario": "How do we test decision flows that trigger LLM calls without making real API requests, while keeping the LLM integration swappable?",
-    "chosen_option": "Elixir `@behaviour` on the LLM module; `MaudeLibs.LLM.Mock` implements canned responses; Server reads the module from application config at startup",
-    "parent": "llm/api-wrapper/api-wrapper",
-    "children": [],
-    "decided": "2026-03-02",
-    "reconsider": [
-      {
-        "observe": "Need to test error paths (LLM returns {:error, ...})",
-        "respond": "Add Mock variants or make Mock configurable per-test via process dictionary or Agent"
-      },
-      {
-        "observe": "Mock responses are too simplistic; don't exercise JSON parsing edge cases",
-        "respond": "Make Mock responses match exact API response shape, including nested structures"
-      }
-    ]
-  },
-  {
-    "path": "llm/prompt-strategy/prompt-strategy.md",
-    "status": "accepted",
-    "tags": [
-      "llm",
-      "scaffolding",
-      "prompts"
-    ],
-    "scenario": "Should the scaffolding LLM call (generating for/against points per option) be one call for all options or one call per option?",
-    "chosen_option": "Single call: all options + priorities in one request; output array of {name, for, against} per option",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "One call times out due to large option count",
-        "respond": "Split into N parallel calls (one per option) and merge results"
-      }
-    ]
-  },
-  {
-    "path": "llm/response-format/response-format.md",
-    "status": "accepted",
-    "tags": [
-      "llm",
-      "json",
-      "structured-output"
-    ],
-    "scenario": "How do we ensure LLM responses are machine-parseable JSON that maps predictably to our Elixir structs?",
-    "chosen_option": "Prompt coercion: system prompt instructs model to return only raw JSON matching the specified schema; no tool use",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Parse failures become frequent (>5% of calls)",
-        "respond": "Switch to Anthropic tool use / function calling for guaranteed JSON schema enforcement"
-      }
-    ]
-  },
-  {
-    "path": "realtime/invite-mechanism/pubsub-invite.md",
-    "status": "accepted",
-    "tags": [
-      "realtime",
-      "ux",
-      "invite",
-      "lobby"
-    ],
-    "scenario": "How do invited participants discover and navigate to a decision they've been invited to join?",
-    "chosen_option": "Per-user PubSub topic (`\"user:#{username}\"`) delivers invite notifications; canvas shows a modal; creator uses add/remove list UI with UserRegistry autocomplete",
-    "parent": null,
-    "children": [
-      "realtime/invite-mechanism/user-registry"
-    ],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Users miss invites because they're not on /canvas",
-        "respond": "Add a persistent \"pending invites\" badge visible from /d/:id"
-      }
-    ]
-  },
-  {
-    "path": "realtime/invite-mechanism/user-registry/ets-registry.md",
-    "status": "accepted",
-    "tags": [
-      "realtime",
-      "identity",
-      "ets",
-      "autocomplete",
-      "invite"
-    ],
-    "scenario": "How does the invite UI know which usernames exist in the system so the creator can autocomplete when inviting participants?",
-    "chosen_option": "ETS-backed GenServer that registers every username on /join; `list_usernames/0` feeds an HTML `<datalist>` for autocomplete",
-    "parent": "realtime/invite-mechanism/pubsub-invite",
-    "children": [],
-    "decided": "2026-03-02",
-    "reconsider": [
-      {
-        "observe": "Stale usernames clutter autocomplete after many sessions",
-        "respond": "Add TTL-based cleanup (e.g., discard entries older than 24 hours)"
-      },
-      {
-        "observe": "Need to associate persistent data with users (history, preferences)",
-        "respond": "Graduate to a real user table with Ecto"
-      }
-    ]
-  },
-  {
-    "path": "realtime/pubsub-model/pubsub-model.md",
-    "status": "accepted",
-    "tags": [
-      "realtime",
-      "pubsub",
-      "architecture"
-    ],
-    "scenario": "How does the Decision.Server broadcast state changes to all connected LiveViews for a given decision?",
-    "chosen_option": "Broadcast full Decision struct on every state change; LiveViews assign and re-render",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Broadcast payload becomes large (many options with long for/against text)",
-        "respond": "Switch to broadcasting only the changed stage field or a diff"
-      }
-    ]
-  },
-  {
-    "path": "realtime/session-identity/session-identity.md",
-    "status": "accepted",
-    "tags": [
-      "realtime",
-      "identity",
-      "session",
-      "authentication"
-    ],
-    "scenario": "How do we identify participants across LiveView connections without building an authentication system?",
-    "chosen_option": "Username stored in Plug session via POST /session; session cookie persists the identity; no database, no accounts, no passwords",
-    "parent": null,
-    "children": [],
-    "decided": "2026-03-02",
-    "reconsider": [
-      {
-        "observe": "Username collisions cause confusion in decisions",
-        "respond": "Add uniqueness check against UserRegistry; show error on /join if taken"
-      },
-      {
-        "observe": "Need to persist decisions across sessions (e.g., \"my decisions\" page)",
-        "respond": "Add lightweight auth (magic link email, or OAuth) and associate decisions with accounts"
-      }
-    ]
-  },
-  {
-    "path": "realtime/spectator-view/spectator-view.md",
-    "status": "accepted",
-    "tags": [
-      "realtime",
-      "ux",
-      "spectator"
-    ],
-    "scenario": "How do non-participants (observers, dropped users) view a decision in progress without disrupting it?",
-    "chosen_option": "Same decision_live.ex; check `username in decision.connected` to gate input controls; spectators see all but can't interact",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Spectators want to interact (e.g., ask to join)",
-        "respond": "Add a \"request to join\" mechanic that creator can approve"
-      }
-    ]
-  },
-  {
-    "path": "style/type-checking/dialyzer-plus-gradual.md",
-    "status": "accepted",
-    "tags": [
-      "style",
-      "types",
-      "elixir",
-      "tooling"
-    ],
-    "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
-    "chosen_option": "Use both Dialyzer and the gradual type system during the transition period - maximum coverage now, converge to compiler-only when gradual types mature",
-    "parent": null,
-    "children": [],
-    "decided": "2026-03-03",
-    "reconsider": [
-      {
-        "observe": "Gradual type system (v1.21+) covers cross-dependency inference and typed structs",
-        "respond": "Dialyzer is now redundant; drop Dialyxir, migrate `@spec` to new type signatures"
-      },
-      {
-        "observe": "The two tools produce conflicting or confusing feedback on the same code",
-        "respond": "Prioritize compiler warnings; Dialyzer becomes supplementary"
-      },
-      {
-        "observe": "Maintaining `@spec` annotations for Dialyzer while the gradual system infers types feels like double work",
-        "respond": "Stop adding new `@spec` annotations; let existing ones serve Dialyzer until it's dropped"
-      }
-    ]
-  },
-  {
-    "path": "style/type-checking/dialyzer.md",
-    "status": "rejected",
-    "tags": [
-      "style",
-      "types",
-      "elixir",
-      "tooling"
-    ],
-    "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
-    "chosen_option": "Add `@spec`/`@type` annotations and run Dialyxir (`mix dialyzer`) for static type analysis",
-    "parent": null,
-    "children": [],
-    "decided": "2026-03-03",
-    "reconsider": [
-      {
-        "observe": "Gradual type system (v1.21+) covers everything Dialyzer does at compile time",
-        "respond": "Drop Dialyxir dependency, migrate `@spec` to new type signature syntax, rely on compiler"
-      },
-      {
-        "observe": "Dialyzer misses a bug that the gradual type system would have caught",
-        "respond": "Accept the limitation or supplement with the gradual type system in parallel"
-      },
-      {
-        "observe": "PLT builds slow down the development workflow",
-        "respond": "Only run Dialyzer in precommit/CI, not on every save"
-      }
-    ]
-  },
-  {
-    "path": "style/type-checking/gradual.md",
-    "status": "rejected",
-    "tags": [
-      "style",
-      "types",
-      "elixir",
-      "tooling"
-    ],
-    "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
-    "chosen_option": "Lean into the compiler's gradual type system - let `mix compile` catch type errors, skip Dialyzer entirely",
-    "parent": null,
-    "children": [],
-    "decided": "2026-03-03",
-    "reconsider": [
-      {
-        "observe": "v1.20 adds cross-dependency inference and guard types",
-        "respond": "Review warnings on upgrade; may surface new type issues in existing code"
-      },
-      {
-        "observe": "v1.21+ adds user-facing type signatures",
-        "respond": "Begin annotating public APIs with the new syntax for documentation and enforcement"
-      },
-      {
-        "observe": "The gradual type system misses bugs that Dialyzer would catch",
-        "respond": "Consider adding Dialyzer as a supplement until the gradual system reaches parity"
-      }
-    ]
-  },
-  {
-    "path": "style/type-checking/nothing.md",
-    "status": "rejected",
-    "tags": [
-      "style",
-      "types",
-      "elixir",
-      "tooling"
-    ],
-    "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
-    "chosen_option": "Do nothing - continue with `@callback` on the LLM behaviour and no other type annotations or checking",
-    "parent": null,
-    "children": [],
-    "decided": "2026-03-03",
-    "reconsider": [
-      {
-        "observe": "A type-related bug reaches production that specs or the compiler would have caught",
-        "respond": "Adopt at least `@spec` annotations on public APIs"
-      },
-      {
-        "observe": "Elixir's gradual type system reaches maturity (v1.21+)",
-        "respond": "Adopt it with minimal migration cost since there's nothing to convert"
-      }
-    ]
-  },
-  {
-    "path": "style/type-checking/specs-only.md",
-    "status": "rejected",
-    "tags": [
-      "style",
-      "types",
-      "elixir",
-      "tooling"
-    ],
-    "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
-    "chosen_option": "Add `@type` and `@spec` annotations to public functions for documentation, without running any enforcement tool",
-    "parent": null,
-    "children": [],
-    "decided": "2026-03-03",
-    "reconsider": [
-      {
-        "observe": "Specs drift from actual code because nothing enforces them",
-        "respond": "Add Dialyzer to catch spec violations"
-      },
-      {
-        "observe": "Gradual type system (v1.21+) introduces new type signature syntax",
-        "respond": "Migrate `@spec` annotations to the new syntax; specs-only approach makes this straightforward"
-      }
-    ]
-  },
-  {
-    "path": "testing/coverage/100-percent-with-ignores.md",
-    "status": "rejected",
-    "tags": [
-      "testing",
-      "coverage",
-      "elixir",
-      "precommit"
-    ],
-    "scenario": "What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?",
-    "chosen_option": "Set threshold to 100% and add stage component modules to `ignore_modules`, unignoring them temporarily when modifying their code.",
-    "parent": null,
-    "children": [],
-    "decided": "2026-03-03",
-    "reconsider": [
-      {
-        "observe": "Elixir's cover tool fixes the `defmodule` counting",
-        "respond": "Remove stage components from ignore_modules; 100% is achievable natively"
-      },
-      {
-        "observe": "Developers keep forgetting the unignore/re-ignore step and real gaps slip through",
-        "respond": "Drop to 99% threshold and remove stage components from ignore_modules"
-      },
-      {
-        "observe": "New stage components are added and the ignore_modules list keeps growing",
-        "respond": "Evaluate whether the bookkeeping cost outweighs the benefit of the 100% headline number"
-      },
-      {
-        "observe": "A CI script could automate the unignore check (run coverage once without ignore for each changed module)",
-        "respond": "Build the automation; this eliminates L2 workflow friction and L1 blind spot risk"
-      }
-    ]
-  },
-  {
-    "path": "testing/coverage/99-percent.md",
-    "status": "accepted",
-    "tags": [
-      "testing",
-      "coverage",
-      "elixir",
-      "precommit"
-    ],
-    "scenario": "What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?",
-    "chosen_option": "Set threshold to 99% and accept the `defmodule` gap without workarounds.",
-    "parent": null,
-    "children": [],
-    "decided": "2026-03-03",
-    "reconsider": [
-      {
-        "observe": "Elixir's cover tool fixes the `defmodule` counting (e.g., stops marking it as a relevant line)",
-        "respond": "Bump threshold to 100%; the gap closes naturally"
-      },
-      {
-        "observe": "More modules with `defmodule`-only gaps accumulate, eroding the 99% buffer",
-        "respond": "Either add them to ignore_modules or lower threshold further - but this signals a code organization issue, not a coverage issue"
-      },
-      {
-        "observe": "A real bug hides in the 0.76% headroom",
-        "respond": "Tighten the threshold or switch to the 100% + ignore_modules approach"
-      }
-    ]
-  },
-  {
-    "path": "testing/coverage/nothing.md",
-    "status": "rejected",
-    "tags": [
-      "testing",
-      "coverage",
-      "elixir",
-      "precommit"
-    ],
-    "scenario": "What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?",
-    "chosen_option": "Do nothing - no coverage threshold enforcement.",
-    "parent": null,
-    "children": [],
-    "decided": "2026-03-03",
-    "reconsider": [
-      {
-        "observe": "A bug ships to production that would have been caught by even basic coverage enforcement",
-        "respond": "Revisit adding a threshold, even a low one like 80%"
-      },
-      {
-        "observe": "Test suite grows organically and maintains high coverage through culture alone",
-        "respond": "Status quo is working; formalize with a threshold only if drift appears"
-      }
-    ]
-  },
-  {
-    "path": "testing/methodology/browser-automation.md",
-    "status": "rejected",
-    "tags": [
-      "verification",
-      "testing",
-      "browser",
-      "e2e"
-    ],
-    "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
-    "chosen_option": "Use Wallaby (or Playwright via ports) to drive real browser sessions through the full multi-user UI workflow.",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Browser tests take >30s and block CI",
-        "respond": "Move to a separate \"e2e\" CI job that runs on merge only, not on every push"
-      },
-      {
-        "observe": "Tests break on every UI change despite behavior being correct",
-        "respond": "Switch to data-testid selectors and consider replacing with LiveViewTest for non-visual assertions"
-      }
-    ]
-  },
-  {
-    "path": "testing/methodology/combined-seeds-and-liveview-tests.md",
-    "status": "accepted",
-    "tags": [
-      "verification",
-      "testing",
-      "dev-workflow",
-      "seeds",
-      "liveview",
-      "integration"
-    ],
-    "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
-    "chosen_option": "Dev seed routes for instant manual stage access + LiveView integration tests for automated multi-user regression coverage. Skip browser automation to avoid brittleness.",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "JS hook or canvas bugs keep slipping through",
-        "respond": "Add targeted Wallaby tests for JS-heavy features only (not full flow coverage)"
-      },
-      {
-        "observe": "Seed route state shapes drift from reality after Core refactors",
-        "respond": "Add a test that validates each builder produces a state that Core.handle/2 accepts"
-      },
-      {
-        "observe": "Builder module grows complex with many stage permutations",
-        "respond": "Consider a pipeline API: `Builders.new(users) |> Builders.advance_to(:priorities)`"
-      }
-    ]
-  },
-  {
-    "path": "testing/methodology/dev-seed-routes.md",
-    "status": "rejected",
-    "tags": [
-      "verification",
-      "testing",
-      "dev-workflow",
-      "seeds"
-    ],
-    "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
-    "chosen_option": "Dev-only seed routes that programmatically create decisions pre-advanced to any stage with fake users already joined.",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "You find yourself manually testing the same flow repeatedly even with seeds",
-        "respond": "Add LiveView integration tests for that flow"
-      },
-      {
-        "observe": "Seed routes drift from real stage shapes after a Core refactor",
-        "respond": "Share builders between seeds and tests"
-      }
-    ]
-  },
-  {
-    "path": "testing/methodology/liveview-integration-tests.md",
-    "status": "rejected",
-    "tags": [
-      "verification",
-      "testing",
-      "liveview",
-      "integration"
-    ],
-    "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
-    "chosen_option": "Use Phoenix.LiveViewTest to mount LiveViews in-process, simulate multi-user flows, and assert stage transitions without a real browser.",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "JS hooks or canvas interactions cause bugs that LiveViewTest can't catch",
-        "respond": "Add targeted Wallaby/Playwright tests for JS-heavy features only"
-      },
-      {
-        "observe": "Test setup for multi-user flows is too verbose",
-        "respond": "Extract shared builder/helper modules (similar to existing `decision()` helpers in core_test)"
-      }
-    ]
-  },
-  {
-    "path": "testing/methodology/nothing.md",
-    "status": "rejected",
-    "tags": [
-      "verification",
-      "testing",
-      "dev-workflow"
-    ],
-    "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
-    "chosen_option": "Do nothing; continue with manual browser testing and existing Core unit tests.",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Time spent manually testing exceeds time you'd spend writing test infrastructure",
-        "respond": "Adopt one of the other variants"
-      },
-      {
-        "observe": "A regression ships that automated tests would have caught",
-        "respond": "Prioritize automated coverage"
-      }
-    ]
-  },
-  {
-    "path": "testing/methodology/tidewave-agentic-verification.md",
-    "status": "rejected",
-    "tags": [
-      "verification",
-      "testing",
-      "dev-workflow",
-      "tidewave",
-      "agentic"
-    ],
-    "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
-    "chosen_option": "Use Tidewave's MCP tools (project_eval, browser_eval, get_logs) as a live agentic verification layer during Claude Code sessions, complementing automated tests and seed routes.",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "You find yourself re-doing the same Tidewave verification steps across sessions",
-        "respond": "Encode those steps as LiveView integration tests so they persist"
-      },
-      {
-        "observe": "Tidewave snapshots become the only verification and tests are neglected",
-        "respond": "Tidewave is complementary, not a replacement. Run mix test before committing."
-      },
-      {
-        "observe": "A new team member can't reproduce verification steps from a previous session",
-        "respond": "Document common verification patterns in a dev guide, or encode as tests"
-      }
-    ]
-  },
-  {
-    "path": "testing/mock-strategy/hammox.md",
-    "status": "accepted",
-    "tags": [
-      "testing",
-      "mocking",
-      "llm",
-      "elixir"
-    ],
-    "scenario": "Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?",
-    "chosen_option": "Migrate to Hammox - Mox with automatic typespec validation on mock return values via `@callback` specs",
-    "parent": null,
-    "children": [],
-    "decided": "2026-03-02",
-    "reconsider": [
-      {
-        "observe": "Server test suite grows large and `async: false` with `set_mox_global` becomes a bottleneck",
-        "respond": "Refactor test GenServer startup to use `Mox.allow/3` or start GenServer directly under test process, enabling per-process isolation and `async: true`"
-      },
-      {
-        "observe": "Elixir's gradual type system (v1.21+) covers `@callback` type signatures at compile time",
-        "respond": "Drop Hammox, swap `Hammox.expect` back to `Mox.expect`; the compiler now catches return type mismatches before tests even run. Hammox was a bridge for the gap year before compiler-native type checking."
-      },
-      {
-        "observe": "Hammox maintenance lags behind Mox releases",
-        "respond": "Fall back to plain Mox; lose typespec validation but keep all other benefits"
-      },
-      {
-        "observe": "`@callback` specs are being phased out in favor of new type signatures",
-        "respond": "Check if Hammox adapts to new type syntax; if not, plain Mox + compiler types is the path"
-      }
-    ]
-  },
-  {
-    "path": "testing/mock-strategy/manual.md",
-    "status": "rejected",
-    "tags": [
-      "testing",
-      "mocking",
-      "llm",
-      "elixir"
-    ],
-    "scenario": "Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?",
-    "chosen_option": "Hand-rolled mock modules - `LLM.Mock` and `LLM.ErrorMock` implement the LLM behaviour, swapped via `Application.get_env` config",
-    "parent": null,
-    "children": [],
-    "decided": "2026-03-02",
-    "reconsider": [
-      {
-        "observe": "Test suite grows large enough that `async: false` becomes a bottleneck",
-        "respond": "Revisit Mox migration to enable async test execution"
-      },
-      {
-        "observe": "A bug slips through because a mock returned data for the wrong input",
-        "respond": "Mox expectations would have caught the argument mismatch"
-      },
-      {
-        "observe": "Need a third mock behavior (e.g., partial success)",
-        "respond": "Creating yet another module is a sign the hand-rolled approach doesn't scale"
-      }
-    ]
-  },
-  {
-    "path": "testing/mock-strategy/mox.md",
-    "status": "rejected",
-    "tags": [
-      "testing",
-      "mocking",
-      "llm",
-      "elixir"
-    ],
-    "scenario": "Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?",
-    "chosen_option": "Migrate to Mox - define a Mox mock from the LLM behaviour, use per-test expectations, remove hand-rolled mock modules",
-    "parent": null,
-    "children": [],
-    "decided": "2026-03-02",
-    "reconsider": [
-      {
-        "observe": "Only one external dependency (LLM) needs mocking; Mox overhead not justified",
-        "respond": "If a second external dependency appears (e.g., email, storage), Mox pays for itself immediately"
-      },
-      {
-        "observe": "Mox expectations make tests brittle by coupling to internal call structure",
-        "respond": "Use `Mox.stub/3` for tests that only care about output, `expect` for tests that verify integration"
-      }
-    ]
-  },
-  {
-    "path": "testing/mock-strategy/nothing.md",
-    "status": "rejected",
-    "tags": [
-      "testing",
-      "mocking",
-      "llm",
-      "elixir"
-    ],
-    "scenario": "Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?",
-    "chosen_option": "Do nothing - no mocking; tests call the real Anthropic API",
-    "parent": null,
-    "children": [],
-    "decided": "2026-03-02",
-    "reconsider": [
-      {
-        "observe": "This is the starting point before any mocking exists",
-        "respond": "Any project with external API calls should introduce mocking early"
-      }
-    ]
-  }
-]
+  "flat": [
+    {
+      "path": "architecture/llm/api-wrapper/api-wrapper.md",
+      "status": "accepted",
+      "tags": [
+        "llm",
+        "http",
+        "req"
+      ],
+      "scenario": "Which HTTP client should we use to call the Anthropic API from Elixir?",
+      "chosen_option": "Req: modern Elixir HTTP client, declarative API, built-in JSON handling",
+      "parent": null,
+      "children": [
+        "architecture/llm/pluggable-behaviour/pluggable-behaviour"
+      ],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Anthropic API changes (new models, new message format)",
+          "respond": "Thin wrapper means changes are localized to llm.ex; update in one place"
+        }
+      ]
+    },
+    {
+      "path": "architecture/llm/debounced-calls/debounced-calls.md",
+      "status": "accepted",
+      "tags": [
+        "llm",
+        "debounce",
+        "state-machine",
+        "ux"
+      ],
+      "scenario": "When multiple participants submit scenario reframings in rapid succession, should each submission trigger a separate LLM synthesis call, or should we debounce?",
+      "chosen_option": "800ms debounce: each new submission resets the timer; LLM call fires only after 800ms of quiet; managed via `{:debounce, key, delay_ms, call_spec}` effect",
+      "parent": "architecture/state-machine/core-architecture/core-architecture",
+      "children": [],
+      "decided": "2026-03-02",
+      "reconsider": [
+        {
+          "observe": "800ms feels sluggish when only one participant is submitting",
+          "respond": "Reduce to 300-500ms; or fire immediately if only one connected user has submitted"
+        },
+        {
+          "observe": "Debounce timer accumulates across stages (key collision)",
+          "respond": "Namespace keys by stage or clear all debounce timers on stage transition"
+        }
+      ]
+    },
+    {
+      "path": "architecture/llm/pluggable-behaviour/pluggable-behaviour.md",
+      "status": "accepted",
+      "tags": [
+        "llm",
+        "testing",
+        "behaviour",
+        "mock",
+        "dependency-injection"
+      ],
+      "scenario": "How do we test decision flows that trigger LLM calls without making real API requests, while keeping the LLM integration swappable?",
+      "chosen_option": "Elixir `@behaviour` on the LLM module; `MaudeLibs.LLM.Mock` implements canned responses; Server reads the module from application config at startup",
+      "parent": "architecture/llm/api-wrapper/api-wrapper",
+      "children": [],
+      "decided": "2026-03-02",
+      "reconsider": [
+        {
+          "observe": "Need to test error paths (LLM returns {:error, ...})",
+          "respond": "Add Mock variants or make Mock configurable per-test via process dictionary or Agent"
+        },
+        {
+          "observe": "Mock responses are too simplistic; don't exercise JSON parsing edge cases",
+          "respond": "Make Mock responses match exact API response shape, including nested structures"
+        }
+      ]
+    },
+    {
+      "path": "architecture/llm/prompt-strategy/prompt-strategy.md",
+      "status": "accepted",
+      "tags": [
+        "llm",
+        "scaffolding",
+        "prompts"
+      ],
+      "scenario": "Should the scaffolding LLM call (generating for/against points per option) be one call for all options or one call per option?",
+      "chosen_option": "Single call: all options + priorities in one request; output array of {name, for, against} per option",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "One call times out due to large option count",
+          "respond": "Split into N parallel calls (one per option) and merge results"
+        }
+      ]
+    },
+    {
+      "path": "architecture/llm/response-format/response-format.md",
+      "status": "accepted",
+      "tags": [
+        "llm",
+        "json",
+        "structured-output"
+      ],
+      "scenario": "How do we ensure LLM responses are machine-parseable JSON that maps predictably to our Elixir structs?",
+      "chosen_option": "Prompt coercion: system prompt instructs model to return only raw JSON matching the specified schema; no tool use",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Parse failures become frequent (>5% of calls)",
+          "respond": "Switch to Anthropic tool use / function calling for guaranteed JSON schema enforcement"
+        }
+      ]
+    },
+    {
+      "path": "architecture/realtime/invite-mechanism/pubsub-invite.md",
+      "status": "accepted",
+      "tags": [
+        "realtime",
+        "ux",
+        "invite",
+        "lobby"
+      ],
+      "scenario": "How do invited participants discover and navigate to a decision they've been invited to join?",
+      "chosen_option": "Per-user PubSub topic (`\"user:#{username}\"`) delivers invite notifications; canvas shows a modal; creator uses add/remove list UI with UserRegistry autocomplete",
+      "parent": null,
+      "children": [
+        "architecture/realtime/invite-mechanism/user-registry"
+      ],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Users miss invites because they're not on /canvas",
+          "respond": "Add a persistent \"pending invites\" badge visible from /d/:id"
+        }
+      ]
+    },
+    {
+      "path": "architecture/realtime/invite-mechanism/user-registry/ets-registry.md",
+      "status": "accepted",
+      "tags": [
+        "realtime",
+        "identity",
+        "ets",
+        "autocomplete",
+        "invite"
+      ],
+      "scenario": "How does the invite UI know which usernames exist in the system so the creator can autocomplete when inviting participants?",
+      "chosen_option": "ETS-backed GenServer that registers every username on /join; `list_usernames/0` feeds an HTML `<datalist>` for autocomplete",
+      "parent": "architecture/realtime/invite-mechanism/pubsub-invite",
+      "children": [],
+      "decided": "2026-03-02",
+      "reconsider": [
+        {
+          "observe": "Stale usernames clutter autocomplete after many sessions",
+          "respond": "Add TTL-based cleanup (e.g., discard entries older than 24 hours)"
+        },
+        {
+          "observe": "Need to associate persistent data with users (history, preferences)",
+          "respond": "Graduate to a real user table with Ecto"
+        }
+      ]
+    },
+    {
+      "path": "architecture/realtime/pubsub-model/pubsub-model.md",
+      "status": "accepted",
+      "tags": [
+        "realtime",
+        "pubsub",
+        "architecture"
+      ],
+      "scenario": "How does the Decision.Server broadcast state changes to all connected LiveViews for a given decision?",
+      "chosen_option": "Broadcast full Decision struct on every state change; LiveViews assign and re-render",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Broadcast payload becomes large (many options with long for/against text)",
+          "respond": "Switch to broadcasting only the changed stage field or a diff"
+        }
+      ]
+    },
+    {
+      "path": "architecture/realtime/session-identity/session-identity.md",
+      "status": "accepted",
+      "tags": [
+        "realtime",
+        "identity",
+        "session",
+        "authentication"
+      ],
+      "scenario": "How do we identify participants across LiveView connections without building an authentication system?",
+      "chosen_option": "Username stored in Plug session via POST /session; session cookie persists the identity; no database, no accounts, no passwords",
+      "parent": null,
+      "children": [],
+      "decided": "2026-03-02",
+      "reconsider": [
+        {
+          "observe": "Username collisions cause confusion in decisions",
+          "respond": "Add uniqueness check against UserRegistry; show error on /join if taken"
+        },
+        {
+          "observe": "Need to persist decisions across sessions (e.g., \"my decisions\" page)",
+          "respond": "Add lightweight auth (magic link email, or OAuth) and associate decisions with accounts"
+        }
+      ]
+    },
+    {
+      "path": "architecture/realtime/spectator-view/spectator-view.md",
+      "status": "accepted",
+      "tags": [
+        "realtime",
+        "ux",
+        "spectator"
+      ],
+      "scenario": "How do non-participants (observers, dropped users) view a decision in progress without disrupting it?",
+      "chosen_option": "Same decision_live.ex; check `username in decision.connected` to gate input controls; spectators see all but can't interact",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Spectators want to interact (e.g., ask to join)",
+          "respond": "Add a \"request to join\" mechanic that creator can approve"
+        }
+      ]
+    },
+    {
+      "path": "architecture/state-machine/core-architecture/core-architecture.md",
+      "status": "accepted",
+      "tags": [
+        "architecture",
+        "state-machine",
+        "genserver"
+      ],
+      "scenario": "How do we structure the decision state machine so it is testable, predictable, and easy to reason about under concurrent LiveView connections?",
+      "chosen_option": "Pure Core + GenServer Shell: Core.handle/2 returns {:ok, decision, [effects]}, Server GenServer executes effects",
+      "parent": null,
+      "children": [
+        "architecture/llm/debounced-calls/debounced-calls"
+      ],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Effect list grows complex (debounce + async_llm + broadcast in one transition)",
+          "respond": "Add effect priority ordering or a dedicated effect pipeline module"
+        }
+      ]
+    },
+    {
+      "path": "architecture/state-machine/disconnect-grace-period/disconnect-grace-period.md",
+      "status": "accepted",
+      "tags": [
+        "state-machine",
+        "presence",
+        "disconnect",
+        "reconnect",
+        "grace-period"
+      ],
+      "scenario": "When a participant's LiveView disconnects (page refresh, network hiccup, tab switch on mobile), should they be immediately removed from the connected set, or should there be a grace window for reconne",
+      "chosen_option": "5-second grace period: Server schedules a `{:disconnect_timeout, user}` message on disconnect; reconnect within 5s cancels the timer; configurable via `disconnect_grace_ms`",
+      "parent": "architecture/state-machine/drop-handling/drop-handling",
+      "children": [],
+      "decided": "2026-03-02",
+      "reconsider": [
+        {
+          "observe": "5 seconds feels too long; ghost presence confuses other participants",
+          "respond": "Reduce to 2-3 seconds; or add a visual \"reconnecting...\" indicator during grace period"
+        },
+        {
+          "observe": "5 seconds feels too short; mobile users on slow networks time out",
+          "respond": "Increase to 10 seconds; consider exponential backoff for repeated disconnects"
+        }
+      ]
+    },
+    {
+      "path": "architecture/state-machine/drop-handling/drop-handling.md",
+      "status": "accepted",
+      "tags": [
+        "state-machine",
+        "presence",
+        "drop-handling"
+      ],
+      "scenario": "How do we handle a participant's LiveView disconnecting mid-decision without blocking the remaining participants?",
+      "chosen_option": "connected + participants MapSets on Decision struct; terminate/2 triggers a 5-second grace period before removal; all ready-up checks use connected; participants persists across reconnects",
+      "parent": null,
+      "children": [
+        "architecture/state-machine/disconnect-grace-period/disconnect-grace-period"
+      ],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "A decision gets stuck because all participants disconnected",
+          "respond": "Add a timeout or allow the last connected user to auto-advance after N minutes"
+        }
+      ]
+    },
+    {
+      "path": "architecture/state-machine/stage-representation/stage-representation.md",
+      "status": "accepted",
+      "tags": [
+        "state-machine",
+        "data-structures",
+        "stages"
+      ],
+      "scenario": "How do we represent the current stage of a decision and its stage-specific data in Elixir?",
+      "chosen_option": "Tagged struct per stage: %Stage.Lobby{}, %Stage.Scenario{}, etc., stored in Decision.stage",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Stage structs need versioning for live deploys",
+          "respond": "Add a vsn field or use a registry-based approach"
+        }
+      ]
+    },
+    {
+      "path": "deployment/fly-config/fly-config.md",
+      "status": "accepted",
+      "tags": [
+        "deployment",
+        "fly.io",
+        "clustering"
+      ],
+      "scenario": "How many machines should we run on fly.io, and do we need BEAM clustering for LiveView state?",
+      "chosen_option": "Single machine on fly.io (sjc region); auto-stop/auto-start; no clustering needed; all GenServer state on one node",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Demo requires high availability or multiple concurrent groups",
+          "respond": "Add libcluster + Horde for distributed GenServer registry; configure fly.io with 2+ machines and BEAM clustering"
+        }
+      ]
+    },
+    {
+      "path": "deployment/state-persistence/state-persistence.md",
+      "status": "accepted",
+      "tags": [
+        "deployment",
+        "state",
+        "genserver"
+      ],
+      "scenario": "Should decision state be persisted to a database, ETS, or live only in GenServer memory?",
+      "chosen_option": "Ephemeral GenServers: all decision state in memory; accept state loss on restart for prototype scope",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Demo requires state to survive deploys (multi-day event)",
+          "respond": "Add ETS persistence with :ets.tab2file on terminate and reload on start; or add Postgres/Ecto"
+        }
+      ]
+    },
+    {
+      "path": "interface/force-layout-strategy/client-side-d3-force-with-scale-to-fit.md",
+      "status": "accepted",
+      "tags": [
+        "layout",
+        "d3",
+        "force-layout",
+        "scale-to-fit",
+        "js-hooks",
+        "virtual-canvas",
+        "viewport"
+      ],
+      "scenario": "How do we position decision circles on the lobby canvas and participant cards on stage views so that layouts are non-overlapping, visually balanced, responsive to viewport size, and work within LiveVi",
+      "chosen_option": "Three-layer architecture: (1) CSS fixed shell for persistent navigation, (2) D3 force simulation in JS hooks for position computation, (3) scale-to-fit transform on a virtual canvas for viewport adaptation. Two distinct D3 hooks serve the lobby canvas and stage views respectively.",
+      "parent": null,
+      "children": [],
+      "decided": "2026-03-02",
+      "reconsider": [
+        {
+          "observe": "LiveView morphdom patches cause visible position flicker despite StageForce.updated()",
+          "respond": "Add CSS transitions to card wrappers, or debounce re-apply"
+        },
+        {
+          "observe": "Stage participant count exceeds 6-8 and arc placement gets crowded",
+          "respond": "Switch stage simulation to use forceCollide in addition to forceX/forceY"
+        },
+        {
+          "observe": "Text becomes unreadable below 0.5x scale on small viewports",
+          "respond": "Add mobile-specific layout that stacks cards vertically instead of scaling"
+        },
+        {
+          "observe": "Want server-authoritative positions (e.g., screenshots)",
+          "respond": "Add periodic position sync from client back to server"
+        }
+      ]
+    },
+    {
+      "path": "interface/force-layout-strategy/d3-force-client-side.md",
+      "status": "superseded",
+      "tags": [
+        "canvas",
+        "physics",
+        "force-layout",
+        "d3",
+        "javascript",
+        "libgraph"
+      ],
+      "scenario": "Which approach should we use to compute non-overlapping, center-clustered positions for decision circles on the canvas homepage, given that the current hand-rolled server-side simulation oscillates an",
+      "chosen_option": "Use d3-force in a LiveView JS hook for layout computation, with libgraph as the server-side graph data structure. Server sends node metadata (size, visibility, fixed position) via push_event; D3 handles physics and rendering.",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "LiveView hook lifecycle issues cause layout glitches on reconnect",
+          "respond": "Push full node list on mounted; hook re-runs simulation from scratch (fast - sub-second)"
+        },
+        {
+          "observe": "Need server-authoritative positions for a feature (e.g., server-side screenshot)",
+          "respond": "Add a periodic position sync from client back to server, or accept that screenshots show initial positions"
+        },
+        {
+          "observe": "Want to add edges between decisions later (e.g., dependencies)",
+          "respond": "libgraph on server models edges; pass links array to D3; add `forceLink()` to simulation"
+        }
+      ]
+    },
+    {
+      "path": "interface/force-layout-strategy/hybrid-server-compute-client-animate.md",
+      "status": "rejected",
+      "tags": [
+        "canvas",
+        "physics",
+        "force-layout",
+        "hybrid"
+      ],
+      "scenario": "Which approach should we use to compute non-overlapping, center-clustered positions for decision circles on the canvas homepage, given that the current hand-rolled server-side simulation oscillates an",
+      "chosen_option": "Use d3-force via a Node.js port/NIF called from the server, broadcasting final positions via PubSub; client only animates",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Port communication latency exceeds the 1500ms tick budget",
+          "respond": "Move to client-side d3-force; server only tracks circle metadata"
+        },
+        {
+          "observe": "Node.js process crashes or hangs",
+          "respond": "Add supervision and restart logic; consider fallback to simple grid layout"
+        }
+      ]
+    },
+    {
+      "path": "interface/force-layout-strategy/nothing.md",
+      "status": "rejected",
+      "tags": [
+        "canvas",
+        "physics",
+        "force-layout",
+        "convergence"
+      ],
+      "scenario": "Which approach should we use to compute non-overlapping, center-clustered positions for decision circles on the canvas homepage, given that the current hand-rolled server-side simulation oscillates an",
+      "chosen_option": "Do nothing - keep the current hand-rolled server-side force simulation",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "A simple constant tweak finally produces stable behavior at 12+ nodes",
+          "respond": "Keep current approach; document the working constants"
+        }
+      ]
+    },
+    {
+      "path": "interface/force-layout-strategy/pure-elixir-tested.md",
+      "status": "rejected",
+      "tags": [
+        "canvas",
+        "physics",
+        "force-layout",
+        "elixir",
+        "tdd"
+      ],
+      "scenario": "Which approach should we use to compute non-overlapping, center-clustered positions for decision circles on the canvas homepage, given that the current hand-rolled server-side simulation oscillates an",
+      "chosen_option": "Rewrite the pure Elixir force layout as a tested, idempotent pure function using the spring-electrical model with adaptive step size and early termination",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Tests pass but visual result looks wrong (clumped, uneven)",
+          "respond": "The force balance is wrong for this aesthetic goal; switch to d3-force client-side"
+        },
+        {
+          "observe": "O(n^2) computation exceeds tick budget at 20+ nodes",
+          "respond": "Reduce iterations or switch to client-side computation"
+        },
+        {
+          "observe": "Convergence tests are flaky due to floating point edge cases",
+          "respond": "Increase convergence threshold or use approximate equality"
+        }
+      ]
+    },
+    {
+      "path": "interface/input-stages/blind-mechanic/blind-mechanic.md",
+      "status": "accepted",
+      "tags": [
+        "input-stages",
+        "ux",
+        "reveal"
+      ],
+      "scenario": "When multiple participants submit priorities or options, when should each participant's input become visible to the others?",
+      "chosen_option": "All inputs visible live as you type; confirm button separates \"I'm done\" from \"I'm ready to advance\"",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Users complain of anchoring - their inputs are shaped by seeing others first",
+          "respond": "Switch to rolling reveal: hide inputs until user has confirmed their own entry"
+        }
+      ]
+    },
+    {
+      "path": "interface/input-stages/claude-suggestions/claude-suggestions.md",
+      "status": "accepted",
+      "tags": [
+        "input-stages",
+        "llm",
+        "suggestions"
+      ],
+      "scenario": "How should Claude's suggested priorities and options be presented and adopted by participants?",
+      "chosen_option": "Toggle model: anyone can include/exclude a suggestion; last write wins; broadcast immediately",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Last-write-wins causes confusion when two users rapidly toggle the same suggestion",
+          "respond": "Add optimistic locking or switch to majority vote (2/4 participants = include)"
+        }
+      ]
+    },
+    {
+      "path": "interface/input-stages/scenario-consensus/scenario-consensus.md",
+      "status": "accepted",
+      "tags": [
+        "input-stages",
+        "scenario",
+        "consensus"
+      ],
+      "scenario": "How do participants agree on the final scenario framing before advancing to priorities?",
+      "chosen_option": "Unanimous vote: all connected participants must select the same candidate to advance",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Participants are stuck and can't reach unanimity",
+          "respond": "Add a \"creator override\" escape hatch or a majority vote fallback after N minutes"
+        }
+      ]
+    },
+    {
+      "path": "interface/ui/component-strategy/component-strategy.md",
+      "status": "accepted",
+      "tags": [
+        "ui",
+        "components",
+        "liveview"
+      ],
+      "scenario": "How should we structure UI components across the decision stages - reusable LiveComponents, inline function components, or duplication?",
+      "chosen_option": "Inline function components (attr + slot, no stateful LiveComponent) for shared layout; per-stage inline heex for unique mechanics",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "A component needs its own event handling (e.g., inline modal with close button)",
+          "respond": "Promote to stateful LiveComponent at that point only"
+        }
+      ]
+    },
+    {
+      "path": "interface/ui/css-framework/css-framework.md",
+      "status": "accepted",
+      "tags": [
+        "ui",
+        "css",
+        "tailwind",
+        "daisyui"
+      ],
+      "scenario": "Which CSS approach should we use for styling the Phoenix LiveView app?",
+      "chosen_option": "Tailwind CSS + DaisyUI: Phoenix ships Tailwind by default; DaisyUI adds component classes (card, btn, badge, input) with custom dark/light themes in oklch",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Tailwind class names become unwieldy on complex components",
+          "respond": "Extract to Phoenix LiveComponents with @apply in component CSS files"
+        }
+      ]
+    },
+    {
+      "path": "style/type-checking/dialyzer-plus-gradual.md",
+      "status": "accepted",
+      "tags": [
+        "style",
+        "types",
+        "elixir",
+        "tooling"
+      ],
+      "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
+      "chosen_option": "Use both Dialyzer and the gradual type system during the transition period - maximum coverage now, converge to compiler-only when gradual types mature",
+      "parent": null,
+      "children": [],
+      "decided": "2026-03-03",
+      "reconsider": [
+        {
+          "observe": "Gradual type system (v1.21+) covers cross-dependency inference and typed structs",
+          "respond": "Dialyzer is now redundant; drop Dialyxir, migrate `@spec` to new type signatures"
+        },
+        {
+          "observe": "The two tools produce conflicting or confusing feedback on the same code",
+          "respond": "Prioritize compiler warnings; Dialyzer becomes supplementary"
+        },
+        {
+          "observe": "Maintaining `@spec` annotations for Dialyzer while the gradual system infers types feels like double work",
+          "respond": "Stop adding new `@spec` annotations; let existing ones serve Dialyzer until it's dropped"
+        }
+      ]
+    },
+    {
+      "path": "style/type-checking/dialyzer.md",
+      "status": "rejected",
+      "tags": [
+        "style",
+        "types",
+        "elixir",
+        "tooling"
+      ],
+      "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
+      "chosen_option": "Add `@spec`/`@type` annotations and run Dialyxir (`mix dialyzer`) for static type analysis",
+      "parent": null,
+      "children": [],
+      "decided": "2026-03-03",
+      "reconsider": [
+        {
+          "observe": "Gradual type system (v1.21+) covers everything Dialyzer does at compile time",
+          "respond": "Drop Dialyxir dependency, migrate `@spec` to new type signature syntax, rely on compiler"
+        },
+        {
+          "observe": "Dialyzer misses a bug that the gradual type system would have caught",
+          "respond": "Accept the limitation or supplement with the gradual type system in parallel"
+        },
+        {
+          "observe": "PLT builds slow down the development workflow",
+          "respond": "Only run Dialyzer in precommit/CI, not on every save"
+        }
+      ]
+    },
+    {
+      "path": "style/type-checking/gradual.md",
+      "status": "rejected",
+      "tags": [
+        "style",
+        "types",
+        "elixir",
+        "tooling"
+      ],
+      "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
+      "chosen_option": "Lean into the compiler's gradual type system - let `mix compile` catch type errors, skip Dialyzer entirely",
+      "parent": null,
+      "children": [],
+      "decided": "2026-03-03",
+      "reconsider": [
+        {
+          "observe": "v1.20 adds cross-dependency inference and guard types",
+          "respond": "Review warnings on upgrade; may surface new type issues in existing code"
+        },
+        {
+          "observe": "v1.21+ adds user-facing type signatures",
+          "respond": "Begin annotating public APIs with the new syntax for documentation and enforcement"
+        },
+        {
+          "observe": "The gradual type system misses bugs that Dialyzer would catch",
+          "respond": "Consider adding Dialyzer as a supplement until the gradual system reaches parity"
+        }
+      ]
+    },
+    {
+      "path": "style/type-checking/nothing.md",
+      "status": "rejected",
+      "tags": [
+        "style",
+        "types",
+        "elixir",
+        "tooling"
+      ],
+      "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
+      "chosen_option": "Do nothing - continue with `@callback` on the LLM behaviour and no other type annotations or checking",
+      "parent": null,
+      "children": [],
+      "decided": "2026-03-03",
+      "reconsider": [
+        {
+          "observe": "A type-related bug reaches production that specs or the compiler would have caught",
+          "respond": "Adopt at least `@spec` annotations on public APIs"
+        },
+        {
+          "observe": "Elixir's gradual type system reaches maturity (v1.21+)",
+          "respond": "Adopt it with minimal migration cost since there's nothing to convert"
+        }
+      ]
+    },
+    {
+      "path": "style/type-checking/specs-only.md",
+      "status": "rejected",
+      "tags": [
+        "style",
+        "types",
+        "elixir",
+        "tooling"
+      ],
+      "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
+      "chosen_option": "Add `@type` and `@spec` annotations to public functions for documentation, without running any enforcement tool",
+      "parent": null,
+      "children": [],
+      "decided": "2026-03-03",
+      "reconsider": [
+        {
+          "observe": "Specs drift from actual code because nothing enforces them",
+          "respond": "Add Dialyzer to catch spec violations"
+        },
+        {
+          "observe": "Gradual type system (v1.21+) introduces new type signature syntax",
+          "respond": "Migrate `@spec` annotations to the new syntax; specs-only approach makes this straightforward"
+        }
+      ]
+    },
+    {
+      "path": "testing/coverage/100-percent-with-ignores.md",
+      "status": "rejected",
+      "tags": [
+        "testing",
+        "coverage",
+        "elixir",
+        "precommit"
+      ],
+      "scenario": "What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?",
+      "chosen_option": "Set threshold to 100% and add stage component modules to `ignore_modules`, unignoring them temporarily when modifying their code.",
+      "parent": null,
+      "children": [],
+      "decided": "2026-03-03",
+      "reconsider": [
+        {
+          "observe": "Elixir's cover tool fixes the `defmodule` counting",
+          "respond": "Remove stage components from ignore_modules; 100% is achievable natively"
+        },
+        {
+          "observe": "Developers keep forgetting the unignore/re-ignore step and real gaps slip through",
+          "respond": "Drop to 99% threshold and remove stage components from ignore_modules"
+        },
+        {
+          "observe": "New stage components are added and the ignore_modules list keeps growing",
+          "respond": "Evaluate whether the bookkeeping cost outweighs the benefit of the 100% headline number"
+        },
+        {
+          "observe": "A CI script could automate the unignore check (run coverage once without ignore for each changed module)",
+          "respond": "Build the automation; this eliminates L2 workflow friction and L1 blind spot risk"
+        }
+      ]
+    },
+    {
+      "path": "testing/coverage/99-percent.md",
+      "status": "accepted",
+      "tags": [
+        "testing",
+        "coverage",
+        "elixir",
+        "precommit"
+      ],
+      "scenario": "What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?",
+      "chosen_option": "Set threshold to 99% and accept the `defmodule` gap without workarounds.",
+      "parent": null,
+      "children": [],
+      "decided": "2026-03-03",
+      "reconsider": [
+        {
+          "observe": "Elixir's cover tool fixes the `defmodule` counting (e.g., stops marking it as a relevant line)",
+          "respond": "Bump threshold to 100%; the gap closes naturally"
+        },
+        {
+          "observe": "More modules with `defmodule`-only gaps accumulate, eroding the 99% buffer",
+          "respond": "Either add them to ignore_modules or lower threshold further - but this signals a code organization issue, not a coverage issue"
+        },
+        {
+          "observe": "A real bug hides in the 0.76% headroom",
+          "respond": "Tighten the threshold or switch to the 100% + ignore_modules approach"
+        }
+      ]
+    },
+    {
+      "path": "testing/coverage/nothing.md",
+      "status": "rejected",
+      "tags": [
+        "testing",
+        "coverage",
+        "elixir",
+        "precommit"
+      ],
+      "scenario": "What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?",
+      "chosen_option": "Do nothing - no coverage threshold enforcement.",
+      "parent": null,
+      "children": [],
+      "decided": "2026-03-03",
+      "reconsider": [
+        {
+          "observe": "A bug ships to production that would have been caught by even basic coverage enforcement",
+          "respond": "Revisit adding a threshold, even a low one like 80%"
+        },
+        {
+          "observe": "Test suite grows organically and maintains high coverage through culture alone",
+          "respond": "Status quo is working; formalize with a threshold only if drift appears"
+        }
+      ]
+    },
+    {
+      "path": "testing/methodology/browser-automation.md",
+      "status": "rejected",
+      "tags": [
+        "verification",
+        "testing",
+        "browser",
+        "e2e"
+      ],
+      "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+      "chosen_option": "Use Wallaby (or Playwright via ports) to drive real browser sessions through the full multi-user UI workflow.",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Browser tests take >30s and block CI",
+          "respond": "Move to a separate \"e2e\" CI job that runs on merge only, not on every push"
+        },
+        {
+          "observe": "Tests break on every UI change despite behavior being correct",
+          "respond": "Switch to data-testid selectors and consider replacing with LiveViewTest for non-visual assertions"
+        }
+      ]
+    },
+    {
+      "path": "testing/methodology/combined-seeds-and-liveview-tests.md",
+      "status": "accepted",
+      "tags": [
+        "verification",
+        "testing",
+        "dev-workflow",
+        "seeds",
+        "liveview",
+        "integration"
+      ],
+      "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+      "chosen_option": "Dev seed routes for instant manual stage access + LiveView integration tests for automated multi-user regression coverage. Skip browser automation to avoid brittleness.",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "JS hook or canvas bugs keep slipping through",
+          "respond": "Add targeted Wallaby tests for JS-heavy features only (not full flow coverage)"
+        },
+        {
+          "observe": "Seed route state shapes drift from reality after Core refactors",
+          "respond": "Add a test that validates each builder produces a state that Core.handle/2 accepts"
+        },
+        {
+          "observe": "Builder module grows complex with many stage permutations",
+          "respond": "Consider a pipeline API: `Builders.new(users) |> Builders.advance_to(:priorities)`"
+        }
+      ]
+    },
+    {
+      "path": "testing/methodology/dev-seed-routes.md",
+      "status": "rejected",
+      "tags": [
+        "verification",
+        "testing",
+        "dev-workflow",
+        "seeds"
+      ],
+      "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+      "chosen_option": "Dev-only seed routes that programmatically create decisions pre-advanced to any stage with fake users already joined.",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "You find yourself manually testing the same flow repeatedly even with seeds",
+          "respond": "Add LiveView integration tests for that flow"
+        },
+        {
+          "observe": "Seed routes drift from real stage shapes after a Core refactor",
+          "respond": "Share builders between seeds and tests"
+        }
+      ]
+    },
+    {
+      "path": "testing/methodology/liveview-integration-tests.md",
+      "status": "rejected",
+      "tags": [
+        "verification",
+        "testing",
+        "liveview",
+        "integration"
+      ],
+      "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+      "chosen_option": "Use Phoenix.LiveViewTest to mount LiveViews in-process, simulate multi-user flows, and assert stage transitions without a real browser.",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "JS hooks or canvas interactions cause bugs that LiveViewTest can't catch",
+          "respond": "Add targeted Wallaby/Playwright tests for JS-heavy features only"
+        },
+        {
+          "observe": "Test setup for multi-user flows is too verbose",
+          "respond": "Extract shared builder/helper modules (similar to existing `decision()` helpers in core_test)"
+        }
+      ]
+    },
+    {
+      "path": "testing/methodology/nothing.md",
+      "status": "rejected",
+      "tags": [
+        "verification",
+        "testing",
+        "dev-workflow"
+      ],
+      "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+      "chosen_option": "Do nothing; continue with manual browser testing and existing Core unit tests.",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Time spent manually testing exceeds time you'd spend writing test infrastructure",
+          "respond": "Adopt one of the other variants"
+        },
+        {
+          "observe": "A regression ships that automated tests would have caught",
+          "respond": "Prioritize automated coverage"
+        }
+      ]
+    },
+    {
+      "path": "testing/methodology/tidewave-agentic-verification.md",
+      "status": "rejected",
+      "tags": [
+        "verification",
+        "testing",
+        "dev-workflow",
+        "tidewave",
+        "agentic"
+      ],
+      "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+      "chosen_option": "Use Tidewave's MCP tools (project_eval, browser_eval, get_logs) as a live agentic verification layer during Claude Code sessions, complementing automated tests and seed routes.",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "You find yourself re-doing the same Tidewave verification steps across sessions",
+          "respond": "Encode those steps as LiveView integration tests so they persist"
+        },
+        {
+          "observe": "Tidewave snapshots become the only verification and tests are neglected",
+          "respond": "Tidewave is complementary, not a replacement. Run mix test before committing."
+        },
+        {
+          "observe": "A new team member can't reproduce verification steps from a previous session",
+          "respond": "Document common verification patterns in a dev guide, or encode as tests"
+        }
+      ]
+    },
+    {
+      "path": "testing/mock-strategy/hammox.md",
+      "status": "accepted",
+      "tags": [
+        "testing",
+        "mocking",
+        "llm",
+        "elixir"
+      ],
+      "scenario": "Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?",
+      "chosen_option": "Migrate to Hammox - Mox with automatic typespec validation on mock return values via `@callback` specs",
+      "parent": null,
+      "children": [],
+      "decided": "2026-03-02",
+      "reconsider": [
+        {
+          "observe": "Server test suite grows large and `async: false` with `set_mox_global` becomes a bottleneck",
+          "respond": "Refactor test GenServer startup to use `Mox.allow/3` or start GenServer directly under test process, enabling per-process isolation and `async: true`"
+        },
+        {
+          "observe": "Elixir's gradual type system (v1.21+) covers `@callback` type signatures at compile time",
+          "respond": "Drop Hammox, swap `Hammox.expect` back to `Mox.expect`; the compiler now catches return type mismatches before tests even run. Hammox was a bridge for the gap year before compiler-native type checking."
+        },
+        {
+          "observe": "Hammox maintenance lags behind Mox releases",
+          "respond": "Fall back to plain Mox; lose typespec validation but keep all other benefits"
+        },
+        {
+          "observe": "`@callback` specs are being phased out in favor of new type signatures",
+          "respond": "Check if Hammox adapts to new type syntax; if not, plain Mox + compiler types is the path"
+        }
+      ]
+    },
+    {
+      "path": "testing/mock-strategy/manual.md",
+      "status": "rejected",
+      "tags": [
+        "testing",
+        "mocking",
+        "llm",
+        "elixir"
+      ],
+      "scenario": "Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?",
+      "chosen_option": "Hand-rolled mock modules - `LLM.Mock` and `LLM.ErrorMock` implement the LLM behaviour, swapped via `Application.get_env` config",
+      "parent": null,
+      "children": [],
+      "decided": "2026-03-02",
+      "reconsider": [
+        {
+          "observe": "Test suite grows large enough that `async: false` becomes a bottleneck",
+          "respond": "Revisit Mox migration to enable async test execution"
+        },
+        {
+          "observe": "A bug slips through because a mock returned data for the wrong input",
+          "respond": "Mox expectations would have caught the argument mismatch"
+        },
+        {
+          "observe": "Need a third mock behavior (e.g., partial success)",
+          "respond": "Creating yet another module is a sign the hand-rolled approach doesn't scale"
+        }
+      ]
+    },
+    {
+      "path": "testing/mock-strategy/mox.md",
+      "status": "rejected",
+      "tags": [
+        "testing",
+        "mocking",
+        "llm",
+        "elixir"
+      ],
+      "scenario": "Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?",
+      "chosen_option": "Migrate to Mox - define a Mox mock from the LLM behaviour, use per-test expectations, remove hand-rolled mock modules",
+      "parent": null,
+      "children": [],
+      "decided": "2026-03-02",
+      "reconsider": [
+        {
+          "observe": "Only one external dependency (LLM) needs mocking; Mox overhead not justified",
+          "respond": "If a second external dependency appears (e.g., email, storage), Mox pays for itself immediately"
+        },
+        {
+          "observe": "Mox expectations make tests brittle by coupling to internal call structure",
+          "respond": "Use `Mox.stub/3` for tests that only care about output, `expect` for tests that verify integration"
+        }
+      ]
+    },
+    {
+      "path": "testing/mock-strategy/nothing.md",
+      "status": "rejected",
+      "tags": [
+        "testing",
+        "mocking",
+        "llm",
+        "elixir"
+      ],
+      "scenario": "Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?",
+      "chosen_option": "Do nothing - no mocking; tests call the real Anthropic API",
+      "parent": null,
+      "children": [],
+      "decided": "2026-03-02",
+      "reconsider": [
+        {
+          "observe": "This is the starting point before any mocking exists",
+          "respond": "Any project with external API calls should introduce mocking early"
+        }
+      ]
+    }
+  ]
+}

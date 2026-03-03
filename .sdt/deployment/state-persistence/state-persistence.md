@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Decision State Persistence
+# SDF: Decision State Persistence
 
 ## Scenario
 
@@ -27,13 +27,24 @@ Should decision state be persisted to a database, ETS, or live only in GenServer
 1. [L1] Setup time - Postgres on fly.io requires a volume and Ecto config
 2. [L2] State loss risk - ephemeral GenServers lose all decisions on restart
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Ephemeral GenServers: all decision state in memory; accept state loss on restart for prototype scope
 
 ## Why(not)
 
-In the face of **deciding where decision state lives**, instead of doing nothing (**no persistence strategy - deploy blindly and hope for the best**), we decided **to keep all state in GenServer memory with no persistence layer**, to achieve **zero database setup, zero migration overhead, and the fastest possible deployment**, accepting **that a server restart (deploy, crash) loses all in-flight decisions - mitigated by deploying before the demo and not deploying during it**.
+
+In the face of **deciding where decision state lives**,
+instead of doing nothing
+(**no persistence strategy - deploy blindly and hope for the best**),
+we decided **to keep all state in GenServer memory with no persistence layer**,
+to achieve **zero database setup, zero migration overhead, and the fastest possible deployment**,
+accepting **that a server restart (deploy, crash) loses all in-flight decisions - mitigated by deploying before the demo and not deploying during it**.
 
 ## Points
 
@@ -57,7 +68,7 @@ In the face of **deciding where decision state lives**, instead of doing nothing
 - [risk] Decision state lost on restart; acceptable for hackathon demo
 - [ops] Deploy once before demo; do not redeploy during the event
 
-## How
+## Implementation
 
 ```bash
 mix phx.new maude_libs --live --no-dashboard --no-mailer --no-ecto

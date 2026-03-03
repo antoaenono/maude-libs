@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: fly.io Deployment Configuration
+# SDF: fly.io Deployment Configuration
 
 ## Scenario
 
@@ -27,13 +27,24 @@ How many machines should we run on fly.io, and do we need BEAM clustering for Li
 1. [L1] Cost - single machine is cheapest
 2. [L2] Distributed complexity - BEAM clustering for a hackathon demo is overkill
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Single machine on fly.io (sjc region); auto-stop/auto-start; no clustering needed; all GenServer state on one node
 
 ## Why(not)
 
-In the face of **configuring fly.io for a Phoenix LiveView app with server-side GenServer state**, instead of doing nothing (**deploy with defaults - might spin up 2 machines and break LiveView state distribution**), we decided **to configure fly.io with a single auto-start/auto-stop machine (min_machines_running = 0) in the sjc region**, to achieve **zero distributed state complexity - all Decision.Server GenProcesses on one BEAM node, all LiveView WebSockets to the same node**, accepting **that if the single machine goes down, all in-progress decisions are lost (acceptable for demo scale)**.
+
+In the face of **configuring fly.io for a Phoenix LiveView app with server-side GenServer state**,
+instead of doing nothing
+(**deploy with defaults - might spin up 2 machines and break LiveView state distribution**),
+we decided **to configure fly.io with a single auto-start/auto-stop machine (min_machines_running = 0) in the sjc region**,
+to achieve **zero distributed state complexity - all Decision.Server GenProcesses on one BEAM node, all LiveView WebSockets to the same node**,
+accepting **that if the single machine goes down, all in-progress decisions are lost (acceptable for demo scale)**.
 
 ## Points
 
@@ -57,7 +68,7 @@ In the face of **configuring fly.io for a Phoenix LiveView app with server-side 
 - [state] All GenServers on one node; no clustering configuration
 - [cost] Minimum fly.io tier; scales to zero when not in use
 
-## How
+## Implementation
 
 ```toml
 # fly.toml

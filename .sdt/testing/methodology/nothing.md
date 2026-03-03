@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Verification & Dev Workflow Feedback
+# SDF: Verification & Dev Workflow Feedback
 
 ## Scenario
 
@@ -30,13 +30,21 @@ How can we increase verification feedback and reduce the cost of testing multi-u
 2. [L2] Test brittleness - tests that break from minor UI changes rather than actual behavior changes
 3. [L3] Cognitive load - mental overhead of maintaining multiple browser tabs and remembering where you left off
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Do nothing; continue with manual browser testing and existing Core unit tests.
 
 ## Why(not)
 
-In the face of **needing to test multi-user, multi-stage decision workflows during development**, we decided **to do nothing**, to achieve **no additional maintenance burden or infrastructure**, accepting **continued slow manual testing, low confidence in LiveView integration, and state loss on every server restart**.
+
+In the face of **needing to test multi-user, multi-stage decision workflows during development**, we decided **to do nothing**,
+to achieve **no additional maintenance burden or infrastructure**,
+accepting **continued slow manual testing, low confidence in LiveView integration, and state loss on every server restart**.
 
 ## Points
 
@@ -69,7 +77,7 @@ In the face of **needing to test multi-user, multi-stage decision workflows duri
 
 <!-- optional epistemological layer -->
 
-## How
+## Implementation
 
 No implementation needed. Continue the current workflow:
 1. Open browser tab, register user A

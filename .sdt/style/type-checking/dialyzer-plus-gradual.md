@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Type Checking Strategy
+# SDF: Type Checking Strategy
 
 ## Scenario
 
@@ -30,13 +30,24 @@ How should we utilize Elixir's type system to improve code quality and catch bug
 2. [L2] Ecosystem fragmentation - Dialyzer specs, gradual types, and Hammox all read different things; unclear which source of truth to invest in
 3. [L3] Premature commitment - investing heavily in `@spec` annotations that may be replaced by new type syntax in v1.21+
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Use both Dialyzer and the gradual type system during the transition period - maximum coverage now, converge to compiler-only when gradual types mature
 
 ## Why(not)
 
-In the face of **utilizing Elixir's type system to improve code quality**, instead of doing nothing (**we continue with `@callback` on the LLM behaviour and no other type annotations or checking; bugs that types would catch are found at runtime or in tests; no compile-time type feedback beyond pattern match warnings**), we decided **to use both Dialyzer (with `@spec` annotations) and the compiler's gradual type system simultaneously**, to achieve **maximum type coverage during the transition period where neither tool alone catches everything**, accepting **the ecosystem fragmentation of maintaining two type checking approaches and the eventual need to migrate `@spec` syntax to gradual type signatures**.
+
+In the face of **utilizing Elixir's type system to improve code quality**,
+instead of doing nothing
+(**we continue with `@callback` on the LLM behaviour and no other type annotations or checking; bugs that types would catch are found at runtime or in tests; no compile-time type feedback beyond pattern match warnings**),
+we decided **to use both Dialyzer (with `@spec` annotations) and the compiler's gradual type system simultaneously**,
+to achieve **maximum type coverage during the transition period where neither tool alone catches everything**,
+accepting **the ecosystem fragmentation of maintaining two type checking approaches and the eventual need to migrate `@spec` syntax to gradual type signatures**.
 
 ## Points
 
@@ -69,7 +80,7 @@ In agentic code generation workflows, automated verification is critical - the m
 - [dx] Both `mix compile` and `mix dialyzer` provide type feedback; two tools to run
 - [migration] Write `@spec` annotations now; migrate to gradual type syntax when available (v1.21+); eventually drop Dialyxir
 
-## How
+## Implementation
 
 ```elixir
 # mix.exs

@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Type Checking Strategy
+# SDF: Type Checking Strategy
 
 ## Scenario
 
@@ -30,13 +30,24 @@ How should we utilize Elixir's type system to improve code quality and catch bug
 2. [L2] Ecosystem fragmentation - Dialyzer specs, gradual types, and Hammox all read different things; unclear which source of truth to invest in
 3. [L3] Premature commitment - investing heavily in `@spec` annotations that may be replaced by new type syntax in v1.21+
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Add `@type` and `@spec` annotations to public functions for documentation, without running any enforcement tool
 
 ## Why(not)
 
-In the face of **utilizing Elixir's type system to improve code quality**, instead of doing nothing (**we continue with `@callback` on the LLM behaviour and no other type annotations or checking; bugs that types would catch are found at runtime or in tests; no compile-time type feedback beyond pattern match warnings**), we decided **to add `@type` and `@spec` annotations to public module APIs as living documentation**, to achieve **self-documenting function contracts readable by developers and tooling (ExDoc, IDE hover)**, accepting **that no tool enforces these specs, so they may drift from reality over time**.
+
+In the face of **utilizing Elixir's type system to improve code quality**,
+instead of doing nothing
+(**we continue with `@callback` on the LLM behaviour and no other type annotations or checking; bugs that types would catch are found at runtime or in tests; no compile-time type feedback beyond pattern match warnings**),
+we decided **to add `@type` and `@spec` annotations to public module APIs as living documentation**,
+to achieve **self-documenting function contracts readable by developers and tooling (ExDoc, IDE hover)**,
+accepting **that no tool enforces these specs, so they may drift from reality over time**.
 
 ## Points
 
@@ -68,7 +79,7 @@ Unenforced `@spec` annotations are a known problem in the Elixir community. With
 - [dx] Better IDE hover and ExDoc output; no compile-time enforcement
 - [migration] Moderate annotation effort; specs may need rewriting for gradual type syntax later
 
-## How
+## Implementation
 
 Add `@spec` to public functions in core modules:
 

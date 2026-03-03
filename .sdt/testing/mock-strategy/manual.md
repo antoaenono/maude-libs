@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Test Mock Implementation Strategy
+# SDF: Test Mock Implementation Strategy
 
 ## Scenario
 
@@ -31,13 +31,24 @@ Which mock implementation strategy should we use for isolating external dependen
 3. [L3] Setup boilerplate - per-test mock setup code (expect/verify calls) can be verbose compared to a simple module swap
 4. [L4] Learning curve - team members need to learn a new API vs simple module pattern
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Hand-rolled mock modules - `LLM.Mock` and `LLM.ErrorMock` implement the LLM behaviour, swapped via `Application.get_env` config
 
 ## Why(not)
 
-In the face of **choosing a mock implementation strategy for isolating LLM calls in tests**, instead of doing nothing (**tests call the real Anthropic API; every test run costs money, requires network access, and is non-deterministic**), we decided **to use hand-rolled mock modules (`LLM.Mock`, `LLM.ErrorMock`) swapped via `Application.put_env` in test setup**, to achieve **deterministic, offline, free test execution**, accepting **that we cannot verify mock call arguments, tests share global mock state, and each new mock behavior requires a new module**.
+
+In the face of **choosing a mock implementation strategy for isolating LLM calls in tests**,
+instead of doing nothing
+(**tests call the real Anthropic API; every test run costs money, requires network access, and is non-deterministic**),
+we decided **to use hand-rolled mock modules (`LLM.Mock`, `LLM.ErrorMock`) swapped via `Application.put_env` in test setup**,
+to achieve **deterministic, offline, free test execution**,
+accepting **that we cannot verify mock call arguments, tests share global mock state, and each new mock behavior requires a new module**.
 
 ## Points
 
@@ -73,7 +84,7 @@ The current hand-rolled approach works: 295 tests pass, the suite runs in second
 - [concurrency] Tests using mocks must remain `async: false`
 - [cost] No API costs in tests
 
-## How
+## Implementation
 
 `LLM.Mock` and `LLM.ErrorMock` implement `@behaviour MaudeLibs.LLM`. Tests swap the module via `Application.put_env(:maude_libs, :llm_module, MockModule)` in setup blocks.
 

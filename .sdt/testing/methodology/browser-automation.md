@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Verification & Dev Workflow Feedback
+# SDF: Verification & Dev Workflow Feedback
 
 ## Scenario
 
@@ -30,13 +30,24 @@ How can we increase verification feedback and reduce the cost of testing multi-u
 2. [L2] Test brittleness - tests that break from minor UI changes rather than actual behavior changes
 3. [L3] Cognitive load - mental overhead of maintaining multiple browser tabs and remembering where you left off
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Use Wallaby (or Playwright via ports) to drive real browser sessions through the full multi-user UI workflow.
 
 ## Why(not)
 
-In the face of **needing to test multi-user, multi-stage decision workflows during development**, instead of doing nothing (**re-clicking through every stage after each restart**), we decided **to automate real browser sessions with Wallaby/Playwright**, to achieve **true end-to-end coverage including JS hooks, canvas rendering, and visual behavior**, accepting **slower test execution, ChromeDriver dependency, and higher test maintenance burden from CSS/DOM coupling**.
+
+In the face of **needing to test multi-user, multi-stage decision workflows during development**,
+instead of doing nothing
+(**re-clicking through every stage after each restart**),
+we decided **to automate real browser sessions with Wallaby/Playwright**,
+to achieve **true end-to-end coverage including JS hooks, canvas rendering, and visual behavior**,
+accepting **slower test execution, ChromeDriver dependency, and higher test maintenance burden from CSS/DOM coupling**.
 
 ## Points
 
@@ -69,7 +80,7 @@ In the face of **needing to test multi-user, multi-stage decision workflows duri
 
 <!-- optional epistemological layer -->
 
-## How
+## Implementation
 
 ```elixir
 # mix.exs

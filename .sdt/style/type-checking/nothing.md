@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Type Checking Strategy
+# SDF: Type Checking Strategy
 
 ## Scenario
 
@@ -30,13 +30,24 @@ How should we utilize Elixir's type system to improve code quality and catch bug
 2. [L2] Ecosystem fragmentation - Dialyzer specs, gradual types, and Hammox all read different things; unclear which source of truth to invest in
 3. [L3] Premature commitment - investing heavily in `@spec` annotations that may be replaced by new type syntax in v1.21+
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Do nothing - continue with `@callback` on the LLM behaviour and no other type annotations or checking
 
 ## Why(not)
 
-In the face of **utilizing Elixir's type system to improve code quality**, instead of doing nothing (**we continue with `@callback` on the LLM behaviour and no other type annotations or checking; bugs that types would catch are found at runtime or in tests; no compile-time type feedback beyond pattern match warnings**), we decided **to do nothing**, to achieve **zero overhead and no ecosystem commitment**, accepting **that type-related bugs are only caught at runtime or by tests, and we get no compile-time type feedback**.
+
+In the face of **utilizing Elixir's type system to improve code quality**,
+instead of doing nothing
+(**we continue with `@callback` on the LLM behaviour and no other type annotations or checking; bugs that types would catch are found at runtime or in tests; no compile-time type feedback beyond pattern match warnings**),
+we decided **to do nothing**,
+to achieve **zero overhead and no ecosystem commitment**,
+accepting **that type-related bugs are only caught at runtime or by tests, and we get no compile-time type feedback**.
 
 ## Points
 
@@ -67,7 +78,7 @@ The current codebase has exactly one type boundary: `@callback` specs on `MaudeL
 - [dx] No compile-time type feedback
 - [migration] No work needed; no future migration debt
 
-## How
+## Implementation
 
 Status quo. The only type annotations are `@callback` specs on the `MaudeLibs.LLM` behaviour. No `@spec` or `@type` elsewhere. No type checking tools.
 

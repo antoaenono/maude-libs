@@ -9,7 +9,7 @@ parent: null
 children: []
 ---
 
-# SDT: Verification & Dev Workflow Feedback
+# SDF: Verification & Dev Workflow Feedback
 
 ## Scenario
 
@@ -30,13 +30,24 @@ How can we increase verification feedback and reduce the cost of testing multi-u
 2. [L2] Test brittleness - tests that break from minor UI changes rather than actual behavior changes
 3. [L3] Cognitive load - mental overhead of maintaining multiple browser tabs and remembering where you left off
 
-## Chosen Option
+
+### Non
+
+1. [X1] Love
+
+## Decision
 
 Dev-only seed routes that programmatically create decisions pre-advanced to any stage with fake users already joined.
 
 ## Why(not)
 
-In the face of **needing to test multi-user, multi-stage decision workflows during development**, instead of doing nothing (**re-clicking through every stage after each restart**), we decided **to add dev-only routes that spawn decisions at any target stage with fake users pre-joined**, to achieve **instant access to any stage for manual UI testing**, accepting **no automated regression coverage - this is a dev productivity tool, not a test suite**.
+
+In the face of **needing to test multi-user, multi-stage decision workflows during development**,
+instead of doing nothing
+(**re-clicking through every stage after each restart**),
+we decided **to add dev-only routes that spawn decisions at any target stage with fake users pre-joined**,
+to achieve **instant access to any stage for manual UI testing**,
+accepting **no automated regression coverage - this is a dev productivity tool, not a test suite**.
 
 ## Points
 
@@ -68,7 +79,7 @@ In the face of **needing to test multi-user, multi-stage decision workflows duri
 
 <!-- optional epistemological layer -->
 
-## How
+## Implementation
 
 ```elixir
 # router.ex - dev only
