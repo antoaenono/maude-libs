@@ -35,7 +35,12 @@ defmodule MaudeLibs.MixProject do
   defp usage_rules do
     [
       file: "AGENTS.md",
-      usage_rules: :all
+      usage_rules: [
+        "phoenix:elixir",
+        "phoenix:html",
+        "phoenix:liveview",
+        "phoenix:phoenix"
+      ]
     ]
   end
 
