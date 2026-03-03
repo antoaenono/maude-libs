@@ -48,7 +48,7 @@ defmodule MaudeLibsWeb.DecisionLive.PrioritiesTest do
       Server.handle_message(decision.id, {:confirm_priority, "alice"})
 
       # Wait for PubSub
-      :timer.sleep(20)
+
       html = render(view)
       # Confirmed users get green border
       assert html =~ "border-success" or
@@ -81,7 +81,6 @@ defmodule MaudeLibsWeb.DecisionLive.PrioritiesTest do
       Server.handle_message(decision.id, {:ready_priority, "bob"})
 
       # Wait for PubSub
-      :timer.sleep(20)
 
       # Should be in Options stage now
       state = Server.get_state(decision.id)

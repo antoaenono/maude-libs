@@ -83,11 +83,13 @@ defmodule MaudeLibsWeb.DecisionLive.E2ETest do
 
       Server.handle_message(decision.id, {:confirm_option, "alice"})
       Server.handle_message(decision.id, {:confirm_option, "bob"})
+      Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{decision.id}")
       Server.handle_message(decision.id, {:ready_options, "alice"})
       Server.handle_message(decision.id, {:ready_options, "bob"})
 
-      # 6. Mock LLM resolves scaffold instantly, so we skip straight to Dashboard
-      :timer.sleep(20)
+      # 6. Wait for async LLM Task to resolve scaffolding -> dashboard
+      assert_receive {:decision_updated, %{stage: %MaudeLibs.Decision.Stage.Dashboard{}}}, 500
+
       state = Server.get_state(decision.id)
       assert %MaudeLibs.Decision.Stage.Dashboard{} = state.stage
 
@@ -101,8 +103,12 @@ defmodule MaudeLibsWeb.DecisionLive.E2ETest do
       assert %MaudeLibs.Decision.Stage.Complete{} = state.stage
       assert state.stage.winner == "Tacos"
 
-      # 8. Mock LLM's why_statement fires automatically on completion
-      :timer.sleep(20)
+      # Wait for async LLM why_statement Task to resolve
+      assert_receive {:decision_updated,
+                      %{stage: %MaudeLibs.Decision.Stage.Complete{why_statement: ws}}}
+                     when is_binary(ws),
+                     500
+
       alice_html = render(alice_view)
       assert alice_html =~ "Tacos"
       assert alice_html =~ "We decided on Tacos"

@@ -52,11 +52,13 @@ defmodule MaudeLibsWeb.DecisionLive.OptionsTest do
 
       Server.handle_message(decision.id, {:confirm_option, "alice"})
       Server.handle_message(decision.id, {:confirm_option, "bob"})
+      Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{decision.id}")
       Server.handle_message(decision.id, {:ready_options, "alice"})
       Server.handle_message(decision.id, {:ready_options, "bob"})
 
-      # Mock LLM resolves instantly, so scaffolding transitions straight to dashboard
-      :timer.sleep(20)
+      # Wait for async LLM Task to resolve scaffolding -> dashboard
+      assert_receive {:decision_updated, %{stage: %MaudeLibs.Decision.Stage.Dashboard{}}}, 500
+
       state = Server.get_state(decision.id)
       assert %MaudeLibs.Decision.Stage.Dashboard{} = state.stage
       assert length(state.stage.options) == 2

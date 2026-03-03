@@ -8,7 +8,6 @@ defmodule MaudeLibs.Decision.ServerTest do
   alias MaudeLibs.Decision.Supervisor, as: DecisionSup
   alias MaudeLibs.Decision.Stage
 
-  setup :set_mox_global
   setup :verify_on_exit!
 
   # Each test gets a unique decision ID to avoid registry conflicts
@@ -27,8 +26,15 @@ defmodule MaudeLibs.Decision.ServerTest do
   end
 
   defp start(id, creator \\ "alice", topic \\ "dinner?") do
-    {:ok, _pid} = DecisionSup.start_decision(id, creator, topic)
+    {:ok, pid} = DecisionSup.start_decision(id, creator, topic)
+    Mox.allow(MaudeLibs.LLM.MockBehaviour, self(), pid)
     id
+  end
+
+  defp seed(decision) do
+    {:ok, pid} = DecisionSup.start_with_state(decision)
+    Mox.allow(MaudeLibs.LLM.MockBehaviour, self(), pid)
+    decision.id
   end
 
   defp msg(id, message), do: Server.handle_message(id, message)
@@ -163,18 +169,22 @@ defmodule MaudeLibs.Decision.ServerTest do
 
     test "reconnect within grace cancels disconnect", %{id: id} do
       start(id, "alice")
+      Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
       Server.disconnect(id, "alice")
       msg(id, {:connect, "alice"})
-      # Wait past the grace period
-      Process.sleep(300)
-      d = state(id)
-      assert "alice" in d.connected
+      # Drain the reconnect broadcast
+      assert_receive {:decision_updated, %{connected: c}}, 200
+      assert "alice" in c
+      # If the disconnect timer was NOT cancelled, a second broadcast would arrive
+      # after 200ms with alice removed from connected
+      refute_receive {:decision_updated, _}, 300
     end
 
     @tag capture_log: true
     test "user disconnected after grace expires", %{id: id} do
       prev_level = Logger.level()
       Logger.configure(level: :info)
+      on_exit(fn -> Logger.configure(level: prev_level) end)
 
       start(id, "alice")
       Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
@@ -187,8 +197,6 @@ defmodule MaudeLibs.Decision.ServerTest do
       after
         500 -> flunk("timed out waiting for disconnect broadcast")
       end
-
-      Logger.configure(level: prev_level)
     end
 
     test "double disconnect cancels first timer", %{id: id} do
@@ -232,7 +240,7 @@ defmodule MaudeLibs.Decision.ServerTest do
         }
       }
 
-      DecisionSup.start_with_state(decision)
+      seed(decision)
       Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
       msg(id, {:vote_scenario, "alice", "dinner?"})
 
@@ -266,7 +274,7 @@ defmodule MaudeLibs.Decision.ServerTest do
         stage: %Stage.Scenario{submissions: %{"alice" => "first"}}
       }
 
-      DecisionSup.start_with_state(decision)
+      seed(decision)
 
       d =
         subscribe_and_run(
@@ -311,7 +319,7 @@ defmodule MaudeLibs.Decision.ServerTest do
         }
       }
 
-      DecisionSup.start_with_state(decision)
+      seed(decision)
       Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
       msg(id, {:vote_scenario, "alice", "dinner?"})
 
@@ -342,7 +350,7 @@ defmodule MaudeLibs.Decision.ServerTest do
         }
       }
 
-      DecisionSup.start_with_state(decision)
+      seed(decision)
       Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
       msg(id, {:confirm_priority, "alice"})
 
@@ -374,7 +382,7 @@ defmodule MaudeLibs.Decision.ServerTest do
         }
       }
 
-      DecisionSup.start_with_state(decision)
+      seed(decision)
       Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
       msg(id, {:confirm_option, "alice"})
 
@@ -427,7 +435,7 @@ defmodule MaudeLibs.Decision.ServerTest do
         }
       }
 
-      DecisionSup.start_with_state(decision)
+      seed(decision)
 
       d =
         subscribe_and_run(
@@ -462,7 +470,7 @@ defmodule MaudeLibs.Decision.ServerTest do
         }
       }
 
-      DecisionSup.start_with_state(decision)
+      seed(decision)
 
       d =
         subscribe_and_run(
@@ -497,7 +505,7 @@ defmodule MaudeLibs.Decision.ServerTest do
         }
       }
 
-      DecisionSup.start_with_state(decision)
+      seed(decision)
 
       d =
         subscribe_and_run(
@@ -534,7 +542,7 @@ defmodule MaudeLibs.Decision.ServerTest do
         }
       }
 
-      DecisionSup.start_with_state(decision)
+      seed(decision)
 
       d =
         subscribe_and_run(
@@ -568,7 +576,7 @@ defmodule MaudeLibs.Decision.ServerTest do
         }
       }
 
-      DecisionSup.start_with_state(decision)
+      seed(decision)
       # Tagline updates canvas via CanvasServer which broadcasts on "canvas"
       Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "canvas")
       msg(id, {:vote_scenario, "alice", "dinner?"})
@@ -616,7 +624,7 @@ defmodule MaudeLibs.Decision.ServerTest do
         }
       }
 
-      DecisionSup.start_with_state(decision)
+      seed(decision)
       Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
 
       # Submit a second scenario to trigger debounced synthesis
@@ -648,7 +656,7 @@ defmodule MaudeLibs.Decision.ServerTest do
         }
       }
 
-      DecisionSup.start_with_state(decision)
+      seed(decision)
 
       d =
         subscribe_and_run(
@@ -675,7 +683,7 @@ defmodule MaudeLibs.Decision.ServerTest do
         }
       }
 
-      DecisionSup.start_with_state(decision)
+      seed(decision)
 
       d =
         subscribe_and_run(
@@ -706,7 +714,7 @@ defmodule MaudeLibs.Decision.ServerTest do
         }
       }
 
-      DecisionSup.start_with_state(decision)
+      seed(decision)
 
       d =
         subscribe_and_run(
@@ -749,7 +757,7 @@ defmodule MaudeLibs.Decision.ServerTest do
         }
       }
 
-      DecisionSup.start_with_state(decision)
+      seed(decision)
 
       d =
         subscribe_and_run(

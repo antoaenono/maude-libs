@@ -59,8 +59,6 @@ defmodule MaudeLibsWeb.DecisionLive.DashboardTest do
       Server.handle_message(decision.id, {:ready_dashboard, "alice"})
       Server.handle_message(decision.id, {:ready_dashboard, "bob"})
 
-      :timer.sleep(20)
-
       state = Server.get_state(decision.id)
       assert %MaudeLibs.Decision.Stage.Complete{} = state.stage
       assert state.stage.winner == "Tacos"
@@ -82,7 +80,7 @@ defmodule MaudeLibsWeb.DecisionLive.DashboardTest do
       |> render_click()
 
       # Bob should see the vote count update
-      :timer.sleep(20)
+
       bob_html = render(bob_view)
       assert bob_html =~ "1"
     end

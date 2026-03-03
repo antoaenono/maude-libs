@@ -7,8 +7,7 @@ defmodule MaudeLibs.UserRegistryTest do
     test "registers a new username" do
       username = "reg-#{:erlang.unique_integer([:positive])}"
       UserRegistry.register(username)
-      # Cast is async, give it a moment
-      Process.sleep(5)
+      :sys.get_state(UserRegistry)
       assert username in UserRegistry.list_usernames()
     end
 
@@ -16,7 +15,7 @@ defmodule MaudeLibs.UserRegistryTest do
       username = "dup-#{:erlang.unique_integer([:positive])}"
       UserRegistry.register(username)
       UserRegistry.register(username)
-      Process.sleep(5)
+      :sys.get_state(UserRegistry)
       # Should appear exactly once in the list
       count = Enum.count(UserRegistry.list_usernames(), &(&1 == username))
       assert count == 1
@@ -34,7 +33,7 @@ defmodule MaudeLibs.UserRegistryTest do
       u2 = "list-#{:erlang.unique_integer([:positive])}"
       UserRegistry.register(u1)
       UserRegistry.register(u2)
-      Process.sleep(5)
+      :sys.get_state(UserRegistry)
       names = UserRegistry.list_usernames()
       assert u1 in names
       assert u2 in names

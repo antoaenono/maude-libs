@@ -241,7 +241,6 @@ defmodule MaudeLibsWeb.DecisionLive.BreadcrumbsTest do
       Server.handle_message(decision.id, {:ready_options, "bob"})
 
       # Mock LLM resolves instantly
-      :timer.sleep(20)
 
       # Should be at dashboard now
       assert has_element?(view, "[data-stage=options].text-success\\/70")

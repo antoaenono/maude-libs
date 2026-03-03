@@ -60,7 +60,6 @@ defmodule MaudeLibsWeb.DecisionLive.CompleteTest do
         {:why_statement_result, "Tacos won because everyone loves Mexican food"}
       )
 
-      :timer.sleep(20)
       html = render(view)
       assert html =~ "Tacos won because everyone loves Mexican food"
     end
@@ -99,7 +98,6 @@ defmodule MaudeLibsWeb.DecisionLive.CompleteTest do
 
       Server.handle_message(decision.id, {:scaffolding_result, scaffolded})
 
-      :timer.sleep(20)
       html = render(view)
       assert html =~ "Tacos"
       assert html =~ "Pizza"
@@ -128,7 +126,6 @@ defmodule MaudeLibsWeb.DecisionLive.CompleteTest do
 
       Server.handle_message(decision.id, {:scaffolding_error, :api_down})
 
-      :timer.sleep(20)
       html = render(view)
       assert html =~ "Analysis failed"
       assert html =~ "Retry"
@@ -166,7 +163,6 @@ defmodule MaudeLibsWeb.DecisionLive.CompleteTest do
 
       Server.handle_message(decision.id, {:why_statement_error, :api_down})
 
-      :timer.sleep(20)
       html = render(view)
       assert html =~ "Summary unavailable"
       refute html =~ "Generating summary"
@@ -186,7 +182,6 @@ defmodule MaudeLibsWeb.DecisionLive.CompleteTest do
         {:llm_error, :api_down}
       )
 
-      :timer.sleep(20)
       html = render(view)
       assert html =~ "Internal error."
     end
