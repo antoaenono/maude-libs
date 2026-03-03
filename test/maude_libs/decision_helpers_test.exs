@@ -39,6 +39,12 @@ defmodule MaudeLibs.DecisionHelpersTest do
   end
 
   describe "at_scenario/2" do
+    test "builds scenario stage with defaults" do
+      d = DecisionHelpers.at_scenario(["alice"])
+      assert %Stage.Scenario{} = d.stage
+      assert d.topic == "Where should we eat?"
+    end
+
     test "builds scenario stage with topic" do
       d = DecisionHelpers.at_scenario(["alice"], topic: "Where to eat?")
       assert %Stage.Scenario{} = d.stage

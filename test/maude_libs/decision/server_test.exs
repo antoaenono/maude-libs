@@ -18,6 +18,14 @@ defmodule MaudeLibs.Decision.ServerTest do
     {:ok, id: id}
   end
 
+  describe "mock stubs" do
+    test "synthesize_scenario stub handles empty submissions" do
+      # Directly invoke the stub to cover the fallback branch
+      {:ok, text} = MaudeLibs.LLM.MockBehaviour.synthesize_scenario([])
+      assert text == "How should we decide?"
+    end
+  end
+
   defp start(id, creator \\ "alice", topic \\ "dinner?") do
     {:ok, _pid} = DecisionSup.start_decision(id, creator, topic)
     id
@@ -175,6 +183,196 @@ defmodule MaudeLibs.Decision.ServerTest do
       after
         500 -> flunk("timed out waiting for disconnect broadcast")
       end
+    end
+
+    test "double disconnect cancels first timer", %{id: id} do
+      start(id, "alice")
+      Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
+      # First disconnect schedules a timer
+      Server.disconnect(id, "alice")
+      # Second disconnect should cancel the first timer and schedule a new one
+      Server.disconnect(id, "alice")
+
+      receive do
+        {:decision_updated, d} ->
+          refute "alice" in d.connected
+      after
+        500 -> flunk("timed out waiting for disconnect broadcast")
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Delayed broadcast (non-zero delay)
+  # ---------------------------------------------------------------------------
+
+  describe "delayed broadcast" do
+    setup do
+      prev = Application.get_env(:maude_libs, :scenario_resolve_delay_ms)
+      Application.put_env(:maude_libs, :scenario_resolve_delay_ms, 50)
+      on_exit(fn -> Application.put_env(:maude_libs, :scenario_resolve_delay_ms, prev || 0) end)
+      :ok
+    end
+
+    test "scenario resolution sends delayed broadcast", %{id: id} do
+      decision = %MaudeLibs.Decision.Core{
+        id: id,
+        creator: "alice",
+        topic: "dinner?",
+        connected: MapSet.new(["alice"]),
+        stage: %Stage.Scenario{
+          submissions: %{"alice" => "dinner?"},
+          votes: %{}
+        }
+      }
+
+      DecisionSup.start_with_state(decision)
+      Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
+      msg(id, {:vote_scenario, "alice", "dinner?"})
+
+      # First broadcast is immediate (resolved scenario with winner)
+      assert_receive {:decision_updated, d1}, 200
+      assert d1.stage.winner == "dinner?"
+
+      # Second broadcast arrives after the delay (transition to priorities)
+      assert_receive {:decision_updated, d2}, 200
+      assert %Stage.Priorities{} = d2.stage
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Debounce timer cancellation
+  # ---------------------------------------------------------------------------
+
+  describe "debounce timer cancellation" do
+    test "rapid submissions cancel previous debounce timer", %{id: id} do
+      # Use a longer debounce so we can submit multiple times before it fires
+      prev = Application.get_env(:maude_libs, :synthesis_debounce_ms)
+      Application.put_env(:maude_libs, :synthesis_debounce_ms, 200)
+      on_exit(fn -> Application.put_env(:maude_libs, :synthesis_debounce_ms, prev || 10) end)
+
+      # Seed at scenario with two users so submissions trigger debounce
+      decision = %MaudeLibs.Decision.Core{
+        id: id,
+        creator: "alice",
+        topic: "dinner?",
+        connected: MapSet.new(["alice", "bob"]),
+        stage: %Stage.Scenario{submissions: %{"alice" => "first"}}
+      }
+
+      DecisionSup.start_with_state(decision)
+
+      d =
+        subscribe_and_run(
+          id,
+          fn ->
+            # First bob submission triggers debounce (2 total submissions)
+            msg(id, {:submit_scenario, "bob", "second"})
+            # Update bob's submission before timer fires, cancelling the first
+            msg(id, {:submit_scenario, "bob", "third"})
+          end,
+          fn d -> d.stage.synthesis != nil end,
+          1000
+        )
+
+      assert is_binary(d.stage.synthesis)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # LLM error paths: tagline, suggest_priorities, suggest_options
+  # ---------------------------------------------------------------------------
+
+  describe "LLM error: tagline" do
+    setup do
+      Hammox.expect(MaudeLibs.LLM.MockBehaviour, :tagline, fn _scenario ->
+        {:error, :api_down}
+      end)
+
+      :ok
+    end
+
+    @tag capture_log: true
+    test "tagline error is logged but does not crash", %{id: id} do
+      decision = %MaudeLibs.Decision.Core{
+        id: id,
+        creator: "alice",
+        topic: "dinner?",
+        connected: MapSet.new(["alice"]),
+        stage: %Stage.Scenario{
+          submissions: %{"alice" => "dinner?"},
+          votes: %{}
+        }
+      }
+
+      DecisionSup.start_with_state(decision)
+      Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
+      msg(id, {:vote_scenario, "alice", "dinner?"})
+
+      # Server should still be alive after tagline error
+      assert_receive {:decision_updated, _}, 500
+      assert state(id) != nil
+    end
+  end
+
+  describe "LLM error: suggest_priorities" do
+    setup do
+      Hammox.expect(MaudeLibs.LLM.MockBehaviour, :suggest_priorities, fn _scenario, _priorities ->
+        {:error, :api_down}
+      end)
+
+      :ok
+    end
+
+    @tag capture_log: true
+    test "suggest_priorities error broadcasts llm_error", %{id: id} do
+      decision = %MaudeLibs.Decision.Core{
+        id: id,
+        creator: "alice",
+        topic: "dinner?",
+        connected: MapSet.new(["alice"]),
+        stage: %Stage.Priorities{
+          priorities: %{"alice" => %{text: "cost", direction: "-"}}
+        }
+      }
+
+      DecisionSup.start_with_state(decision)
+      Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
+      msg(id, {:confirm_priority, "alice"})
+
+      assert_receive {:llm_error, :api_down}, 2000
+    end
+  end
+
+  describe "LLM error: suggest_options" do
+    setup do
+      Hammox.expect(MaudeLibs.LLM.MockBehaviour, :suggest_options, fn _scenario,
+                                                                      _priorities,
+                                                                      _options ->
+        {:error, :api_down}
+      end)
+
+      :ok
+    end
+
+    @tag capture_log: true
+    test "suggest_options error broadcasts llm_error", %{id: id} do
+      decision = %MaudeLibs.Decision.Core{
+        id: id,
+        creator: "alice",
+        topic: "dinner?",
+        connected: MapSet.new(["alice"]),
+        priorities: [%{id: "+1", text: "speed", direction: "+"}],
+        stage: %Stage.Options{
+          proposals: %{"alice" => %{name: "tacos", desc: "quick tacos"}}
+        }
+      }
+
+      DecisionSup.start_with_state(decision)
+      Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
+      msg(id, {:confirm_option, "alice"})
+
+      assert_receive {:llm_error, :api_down}, 2000
     end
   end
 

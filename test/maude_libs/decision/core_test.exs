@@ -289,6 +289,15 @@ defmodule MaudeLibs.Decision.CoreTest do
                _ -> false
              end)
     end
+
+    test "vote with empty connected set does not advance" do
+      # Edge case: unanimous? returns false when connected is empty
+      stage = %Stage.Scenario{submissions: %{"ghost" => "dinner?"}, votes: %{}}
+      d = decision(connected: MapSet.new(), stage: stage, topic: "dinner?")
+      {:ok, d2, _effects} = Core.handle(d, {:vote_scenario, "ghost", "dinner?"})
+      # Should NOT advance to priorities because unanimous? returns false
+      assert %Stage.Scenario{} = d2.stage
+    end
   end
 
   # ---------------------------------------------------------------------------
