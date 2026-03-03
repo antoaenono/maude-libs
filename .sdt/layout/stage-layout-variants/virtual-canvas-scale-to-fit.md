@@ -2,7 +2,7 @@
 author: @antoaenono
 asked: 2026-03-01
 decided: 2026-03-01
-status: accepted
+status: superseded
 deciders: @antoaenono
 tags: [layout, viewport, navigation, canvas, scale, zoom-to-fit]
 parent: null

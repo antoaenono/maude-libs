@@ -2,7 +2,7 @@
 author: @antoaenono
 asked: 2026-02-28
 decided: 2026-02-28
-status: proposed
+status: accepted
 deciders: @antoaenono
 tags: [verification, testing, dev-workflow, seeds, liveview, integration]
 parent: null

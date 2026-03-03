@@ -6,7 +6,7 @@ status: accepted
 deciders: @antoaenono
 tags: [architecture, state-machine, genserver]
 parent: null
-children: []
+children: [llm/debounced-calls]
 ---
 
 # SDT: Decision State Machine Architecture
@@ -56,8 +56,9 @@ In the face of **structuring concurrent decision state management with LLM side 
 ## Consequences
 
 - [arch] Core module: pure functions only, returns effect lists
-- [arch] Server GenServer: owns state, pattern-matches effects, spawns Tasks for LLM
-- [testing] Layer 1 tests call Core directly, no process setup needed
+- [arch] Server GenServer: owns state, pattern-matches effects, spawns Tasks for LLM, manages debounce timers and disconnect grace periods
+- [testing] Core tests call handle/2 directly; Server tests use real GenServer with LLM.Mock behaviour
+- [effects] Four effect types: `{:broadcast, id, d}`, `{:async_llm, spec}`, `{:debounce, key, delay_ms, spec}`, `{:delayed_broadcast, id, d, delay_ms}`
 
 ## How
 
@@ -72,12 +73,18 @@ end
 def handle_call({:message, msg}, _from, %{decision: d} = state) do
   case Core.handle(d, msg) do
     {:ok, d2, effects} ->
-      Enum.each(effects, &dispatch_effect/1)
-      {:reply, :ok, %{state | decision: d2}}
+      new_state = Enum.reduce(effects, %{state | decision: d2}, &dispatch_effect/2)
+      {:reply, :ok, new_state}
     {:error, reason} ->
       {:reply, {:error, reason}, state}
   end
 end
+
+# Effect dispatch
+defp dispatch_effect({:broadcast, id, decision}, state)           # PubSub broadcast + CanvasServer update
+defp dispatch_effect({:async_llm, call_spec}, state)              # Spawn Task for LLM call
+defp dispatch_effect({:debounce, key, delay_ms, call_spec}, state) # Cancel previous, schedule new
+defp dispatch_effect({:delayed_broadcast, id, d, delay_ms}, state) # Timed broadcast for animations
 ```
 
 ## Reconsider

@@ -29,11 +29,11 @@ How many machines should we run on fly.io, and do we need BEAM clustering for Li
 
 ## Chosen Option
 
-Single machine on fly.io; no clustering needed; all GenServer state on one node
+Single machine on fly.io (sjc region); auto-stop/auto-start; no clustering needed; all GenServer state on one node
 
 ## Why(not)
 
-In the face of **configuring fly.io for a Phoenix LiveView app with server-side GenServer state**, instead of doing nothing (**deploy with defaults - might spin up 2 machines and break LiveView state distribution**), we decided **to configure fly.io with a single machine (min_machines_running = 1, max_machines = 1)**, to achieve **zero distributed state complexity - all Decision.Server GenProcesses on one BEAM node, all LiveView WebSockets to the same node**, accepting **that if the single machine goes down, all in-progress decisions are lost (acceptable for demo scale)**.
+In the face of **configuring fly.io for a Phoenix LiveView app with server-side GenServer state**, instead of doing nothing (**deploy with defaults - might spin up 2 machines and break LiveView state distribution**), we decided **to configure fly.io with a single auto-start/auto-stop machine (min_machines_running = 0) in the sjc region**, to achieve **zero distributed state complexity - all Decision.Server GenProcesses on one BEAM node, all LiveView WebSockets to the same node**, accepting **that if the single machine goes down, all in-progress decisions are lost (acceptable for demo scale)**.
 
 ## Points
 
@@ -53,20 +53,33 @@ In the face of **configuring fly.io for a Phoenix LiveView app with server-side 
 
 ## Consequences
 
-- [ops] fly.toml: min_machines_running = 1, max_machines = 1
+- [ops] fly.toml: min_machines_running = 0 with auto_stop/auto_start; single machine scales to zero when idle
 - [state] All GenServers on one node; no clustering configuration
-- [cost] Minimum fly.io tier; cheap and simple
+- [cost] Minimum fly.io tier; scales to zero when not in use
 
 ## How
 
 ```toml
 # fly.toml
+app = "maude-libs"
+primary_region = "sjc"
+
 [http_service]
-  min_machines_running = 1
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 1000
+    soft_limit = 500
 
 [[vm]]
-  size = "shared-cpu-1x"
   memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
 ```
 
 ```bash

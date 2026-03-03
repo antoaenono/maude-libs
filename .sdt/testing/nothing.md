@@ -2,7 +2,7 @@
 author: @antoaenono
 asked: 2026-02-28
 decided: 2026-02-28
-status: proposed
+status: rejected
 deciders: @antoaenono
 tags: [verification, testing, dev-workflow]
 parent: null

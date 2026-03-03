@@ -2,7 +2,7 @@
 author: @antoaenono
 asked: 2026-02-28
 decided: 2026-02-28
-status: accepted
+status: rejected
 deciders: @antoaenono
 tags: [canvas, physics, simulation]
 parent: null

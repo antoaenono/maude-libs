@@ -6,7 +6,7 @@ status: accepted
 deciders: @antoaenono
 tags: [realtime, ux, invite, lobby]
 parent: null
-children: []
+children: [realtime/user-registry]
 ---
 
 # SDT: Invite and Discovery Mechanism
@@ -29,22 +29,23 @@ How do invited participants discover and navigate to a decision they've been inv
 
 ## Chosen Option
 
-Canvas shows a toast/modal when a new decision appears that lists your username in invited; clicking joins
+Per-user PubSub topic (`"user:#{username}"`) delivers invite notifications; canvas shows a modal; creator uses add/remove list UI with UserRegistry autocomplete
 
 ## Why(not)
 
-In the face of **notifying invited participants about a new decision**, instead of doing nothing (**invited users must manually navigate to /d/:id - requires out-of-band sharing of the URL**), we decided **to broadcast the new decision to all canvas LiveViews via PubSub and show a prompt to users whose username is in the invited list**, to achieve **in-app invite discovery that requires no external messaging and works as long as the invitee is on /canvas**, accepting **that offline users will miss the invite and must ask the creator to add them later or navigate directly**.
+In the face of **notifying invited participants about a new decision**, instead of doing nothing (**invited users must manually navigate to /d/:id - requires out-of-band sharing of the URL**), we decided **to broadcast invites via per-user PubSub topics (`"user:#{username}"`) so only the invited user receives the notification, with creator-side add/remove list UI backed by UserRegistry autocomplete**, to achieve **targeted in-app invite delivery that requires no external messaging**, accepting **that offline users will miss the invite and must navigate directly via URL**.
 
 ## Points
 
 ### For
 
-- [M1] PubSub broadcast to "canvas:decisions" topic; canvas_live checks if username in invited; renders toast
+- [M1] Server broadcasts `{:invited, id, topic}` to `"user:#{username}"` topic; canvas_live subscribes on mount; shows modal with Join button
 - [M2] No email, no SMS, no external service needed; all within the LiveView WebSocket
+- [M1] Creator uses add/remove list UI with `UserRegistry.list_usernames()` autocomplete; each invite is a single `add_invite` event
 
 ### Against
 
-- [L2] Canvas subscribes to "canvas:decisions" for invite notifications + position updates - two topics or one combined
+- [L2] Canvas subscribes to both `"canvas"` (circle updates) and `"user:#{username}"` (invites) - two topics
 
 ## Artistic
 
@@ -52,20 +53,31 @@ In the face of **notifying invited participants about a new decision**, instead 
 
 ## Consequences
 
-- [ux] Toast/modal on canvas when invited; one click to join the lobby
-- [transport] "canvas:decisions" PubSub topic carries new decision events
-- [limitation] Offline users miss the live invite; must join via direct URL or creator re-invite
+- [ux] Modal on canvas when invited; one click to join the lobby
+- [transport] Per-user topic `"user:#{username}"` carries invite events; `"canvas"` topic carries circle metadata updates
+- [creator-ux] Add/remove list with autocomplete from ETS-backed UserRegistry
+- [limitation] Offline users miss the live invite; must join via direct URL
 
 ## How
 
 ```elixir
-# canvas_live.ex handle_info
-def handle_info({:decision_created, decision}, socket) do
-  if socket.assigns.username in decision.stage.invited do
-    {:noreply, assign(socket, invite_prompt: decision)}
-  else
-    {:noreply, socket}
+# Server broadcasts invite to per-user topic
+for username <- MapSet.to_list(decision.stage.invited) do
+  if username not in decision.stage.joined do
+    Phoenix.PubSub.broadcast(MaudeLibs.PubSub, "user:#{username}", {:invited, id, decision.topic})
   end
+end
+
+# canvas_live.ex subscribes on mount
+Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "user:#{username}")
+
+def handle_info({:invited, id, topic}, socket) do
+  {:noreply, assign(socket, invite: %{id: id, topic: topic})}
+end
+
+# Creator adds invites via add/remove list UI
+def handle_event("add_invite", %{"username" => username}, socket) do
+  Server.handle_message(socket.assigns.id, {:lobby_update, creator, topic, new_invited})
 end
 ```
 

@@ -4,7 +4,7 @@ asked: 2026-02-28
 decided: 2026-02-28
 status: accepted
 deciders: @antoaenono
-tags: [ui, css, tailwind]
+tags: [ui, css, tailwind, daisyui]
 parent: null
 children: []
 ---
@@ -29,11 +29,11 @@ Which CSS approach should we use for styling the Phoenix LiveView app?
 
 ## Chosen Option
 
-Tailwind CSS: Phoenix 1.7+ ships with it by default; zero additional setup
+Tailwind CSS + DaisyUI: Phoenix ships Tailwind by default; DaisyUI adds component classes (card, btn, badge, input) with custom dark/light themes in oklch
 
 ## Why(not)
 
-In the face of **choosing a CSS approach for a prototype Phoenix LiveView app**, instead of doing nothing (**plain browser CSS - slower iteration, no design system**), we decided **to use Tailwind CSS via Phoenix's built-in integration**, to achieve **fast utility-class-driven UI without any additional tooling configuration**, accepting **that utility class HTML can be verbose and hard to scan at first glance**.
+In the face of **choosing a CSS approach for a prototype Phoenix LiveView app**, instead of doing nothing (**plain browser CSS - slower iteration, no design system**), we decided **to use Tailwind CSS via Phoenix's built-in integration plus DaisyUI as a component library plugin with custom oklch themes**, to achieve **fast utility-class-driven UI with semantic component classes (card, btn, badge) and consistent theming**, accepting **that utility class HTML can be verbose and DaisyUI adds a vendor dependency**.
 
 ## Points
 
@@ -53,16 +53,33 @@ In the face of **choosing a CSS approach for a prototype Phoenix LiveView app**,
 
 ## Consequences
 
-- [deps] Tailwind included via `mix phx.new` default; no extra deps
-- [build] postcss/esbuild pipeline pre-configured by Phoenix generator
-- [dx] Utility classes in heex templates; component patterns via @apply sparingly
+- [deps] Tailwind included via Phoenix default; DaisyUI and daisyui-theme as vendored JS plugins in assets/vendor/
+- [build] esbuild pipeline pre-configured by Phoenix generator
+- [dx] Utility classes in heex templates; DaisyUI semantic classes for cards, buttons, badges, inputs
+- [theming] Custom dark/light themes defined in app.css via @plugin with oklch colors
 
 ## How
 
+```css
+/* assets/css/app.css */
+@import "tailwindcss" source(none);
+@plugin "../vendor/daisyui" { themes: false; }
+@plugin "../vendor/daisyui-theme" {
+  name: "dark";
+  prefersdark: true;
+  color-scheme: "dark";
+  /* oklch color definitions */
+}
+@plugin "../vendor/daisyui-theme" {
+  name: "light";
+  default: true;
+  color-scheme: "light";
+}
+```
+
 ```bash
-# Default Phoenix 1.7+ command includes Tailwind:
-mix phx.new maude_libs --live --no-dashboard --no-mailer
-# Do NOT add --no-tailwind
+# Phoenix 1.8 with Tailwind v4:
+mix phx.new maude_libs --live --no-dashboard --no-mailer --no-ecto
 ```
 
 ## Reconsider

@@ -2,7 +2,7 @@
 author: @antoaenono
 asked: 2026-02-28
 decided: 2026-02-28
-status: proposed
+status: superseded
 deciders: @antoaenono
 tags: [canvas, physics, force-layout, d3, javascript, libgraph]
 parent: canvas/physics
