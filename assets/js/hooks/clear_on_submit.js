@@ -4,6 +4,7 @@ const ClearOnSubmit = {
       requestAnimationFrame(() => {
         this.el.value = "";
       });
+      setTimeout(() => this.el.focus(), 50);
     });
   },
 };
