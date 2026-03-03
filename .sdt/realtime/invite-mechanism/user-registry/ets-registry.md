@@ -5,7 +5,7 @@ decided: 2026-03-02
 status: accepted
 deciders: @antoaenono
 tags: [realtime, identity, ets, autocomplete, invite]
-parent: realtime/invite-mechanism
+parent: realtime/invite-mechanism/pubsub-invite
 children: []
 ---
 

@@ -5,7 +5,7 @@ decided: 2026-02-28
 status: rejected
 deciders: @antoaenono
 tags: [canvas, physics, force-layout, convergence]
-parent: canvas/physics
+parent: frontend/layout/canvas-physics/physics
 children: []
 ---
 

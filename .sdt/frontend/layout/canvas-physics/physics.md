@@ -6,7 +6,7 @@ status: rejected
 deciders: @antoaenono
 tags: [canvas, physics, simulation]
 parent: null
-children: [canvas/force-layout-strategy]
+children: [frontend/layout/force-layout-strategy]
 ---
 
 # SDT: Canvas Repulsion Model

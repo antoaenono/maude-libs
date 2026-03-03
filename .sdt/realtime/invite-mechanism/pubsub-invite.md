@@ -6,7 +6,7 @@ status: accepted
 deciders: @antoaenono
 tags: [realtime, ux, invite, lobby]
 parent: null
-children: [realtime/user-registry]
+children: [realtime/invite-mechanism/user-registry]
 ---
 
 # SDT: Invite and Discovery Mechanism

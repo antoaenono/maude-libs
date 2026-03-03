@@ -5,7 +5,7 @@ decided: 2026-03-02
 status: accepted
 deciders: @antoaenono
 tags: [state-machine, presence, disconnect, reconnect, grace-period]
-parent: state-machine/drop-handling
+parent: backend/state-machine/drop-handling
 children: []
 ---
 
