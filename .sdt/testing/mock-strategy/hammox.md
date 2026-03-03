@@ -43,11 +43,11 @@ In the face of **choosing a mock implementation strategy for isolating LLM calls
 
 ### For
 
-- [M1] Same per-process isolation as Mox via `$callers`; each test defines its own expectations
+- [M1] Mox supports per-process isolation via `$callers`; however, our OTP architecture (test -> DynamicSupervisor -> GenServer -> Task) breaks the `$callers` chain at the Supervisor boundary, so we use `set_mox_global` initially
 - [M2] Everything Mox provides (function/arity/argument verification) plus automatic validation that mock return values match `@callback` typespecs
 - [M2] Catches a class of bugs Mox misses: mock returning wrong type silently (e.g., returning `{:ok, 42}` when callback spec says `{:ok, String.t()}`)
 - [M3] Built on top of Mox; same idiomatic behaviour-based pattern
-- [M4] Per-process isolation means all mock-dependent tests can run with `async: true`
+- [M4] Per-process isolation would enable `async: true`, but requires refactoring GenServer startup in tests (e.g., `Mox.allow/3` or direct start without Supervisor); deferred to future work
 
 ### Against
 
@@ -70,39 +70,51 @@ Hammox is a thin wrapper - the entire library is a few hundred lines that interc
 - [deps] Adds `{:hammox, "~> 0.7", only: :test}` to mix.exs (pulls in Mox as transitive dep)
 - [migration] Remove `LLM.Mock`, `LLM.ErrorMock`; update all test files to use `Hammox.expect/3`
 - [test-quality] Tests verify arguments and return type conformance against `@callback` specs
-- [concurrency] All mock-dependent tests can run with `async: true`
+- [concurrency] Server tests use `set_mox_global` and remain `async: false` due to Supervisor breaking the `$callers` chain; per-process isolation deferred
 - [cost] No API costs in tests
 
 ## How
 
 ```elixir
-# test/support/mocks.ex (same as Mox - Hammox wraps, doesn't replace defmock)
+# test/support/mocks.ex
 Mox.defmock(MaudeLibs.LLM.MockBehaviour, for: MaudeLibs.LLM)
 
 # config/test.exs
 config :maude_libs, :llm_module, MaudeLibs.LLM.MockBehaviour
 
-# test/support/conn_case.ex or data_case.ex
-setup :verify_on_exit!
-setup :set_mox_from_context
-
-# In a test - swap Mox for Hammox
-test "synthesis returns valid typespec" do
-  Hammox.expect(MaudeLibs.LLM.MockBehaviour, :synthesize_scenario, fn _submissions ->
-    {:ok, "Where should we eat?"}
-  end)
-
-  # This would FAIL with Hammox (but pass with plain Mox):
-  # Hammox.expect(MockBehaviour, :synthesize_scenario, fn _ -> "bare string" end)
-  # Because @callback says :: {:ok, String.t()} | {:error, term()}
+# test/support/llm_mock_stubs.ex - default happy-path stubs
+# (replaces the role of LLM.Mock with same canned responses)
+defmodule MaudeLibs.LLM.MockStubs do
+  def stub_all_llm_calls do
+    Hammox.stub(MaudeLibs.LLM.MockBehaviour, :synthesize_scenario, fn subs -> ... end)
+    # ... stub all 6 callbacks
+  end
 end
 
-# Alternatively, use Hammox.protect to wrap an existing implementation:
-defn_mock = Hammox.protect({MaudeLibs.LLM.Anthropic, :synthesize_scenario, 1})
+# test/support/conn_case.ex - LiveView tests
+setup :verify_on_exit!
+# stub defaults so all LiveView tests get happy-path LLM
+
+# server_test.exs - integration tests
+setup :set_mox_global  # needed: Supervisor breaks $callers chain
+setup :verify_on_exit!
+# stub defaults, then override with expect in error tests
+
+# Error test example
+test "synthesis error broadcasts {:llm_error, _}" do
+  Hammox.expect(MaudeLibs.LLM.MockBehaviour, :synthesize_scenario, fn _subs ->
+    {:error, :api_down}
+  end)
+  # ... test code
+end
 ```
+
+**Why `set_mox_global`:** The GenServer is started via `DecisionSup` (DynamicSupervisor). LLM calls are spawned in `Task.start/1` from the GenServer. The process chain is test -> Supervisor -> GenServer -> Task. Mox's `$callers` mechanism walks up the spawning chain, but the Supervisor was started by the Application, not the test process. This breaks per-process isolation. `set_mox_global` makes expectations visible to all processes, matching the semantics of the previous `Application.put_env` approach while adding argument verification and typespec validation.
 
 ## Reconsider
 
+- observe: Server test suite grows large and `async: false` with `set_mox_global` becomes a bottleneck
+  respond: Refactor test GenServer startup to use `Mox.allow/3` or start GenServer directly under test process, enabling per-process isolation and `async: true`
 - observe: Elixir's gradual type system (v1.21+) covers `@callback` type signatures at compile time
   respond: Drop Hammox, swap `Hammox.expect` back to `Mox.expect`; the compiler now catches return type mismatches before tests even run. Hammox was a bridge for the gap year before compiler-native type checking.
 - observe: Hammox maintenance lags behind Mox releases

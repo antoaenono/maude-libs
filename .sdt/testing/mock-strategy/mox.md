@@ -43,10 +43,10 @@ In the face of **choosing a mock implementation strategy for isolating LLM calls
 
 ### For
 
-- [M1] Mox expectations are per-process (via `$callers`); each test defines its own return values with no global state leakage
+- [M1] Mox supports per-process isolation via `$callers`; however, our OTP architecture (test -> DynamicSupervisor -> GenServer -> Task) breaks the `$callers` chain at the Supervisor boundary, requiring `set_mox_global` initially
 - [M2] `Mox.expect/3` verifies function name, arity, and allows assertions on arguments inside the expectation function
 - [M3] Mox is Jose Valim's recommended mocking library; the behaviour-based approach is the idiomatic Elixir pattern
-- [M4] Per-process isolation means all mock-dependent tests can run with `async: true`
+- [M4] Per-process isolation would enable `async: true`, but requires refactoring GenServer startup in tests; deferred to future work
 - [L3] `Mox.stub/3` provides a default for tests that don't care about specific calls, reducing boilerplate for common cases
 
 ### Against
@@ -69,7 +69,7 @@ Mox is the most widely adopted mocking library in the Elixir ecosystem. Jose Val
 - [deps] Adds `{:mox, "~> 1.0", only: :test}` to mix.exs
 - [migration] Remove `LLM.Mock`, `LLM.ErrorMock`; update all test files to use `Mox.expect/3`
 - [test-quality] Tests can verify exact arguments passed to LLM calls
-- [concurrency] All mock-dependent tests can run with `async: true`
+- [concurrency] Server tests use `set_mox_global` and remain `async: false` due to Supervisor breaking `$callers` chain; per-process isolation deferred
 - [cost] No API costs in tests
 
 ## How

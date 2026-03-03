@@ -299,8 +299,12 @@ defmodule MaudeLibs.Decision.Server do
 
   defp spawn_llm_task(call_spec, server_pid) do
     Task.start(fn ->
-      result_msg = execute_llm_call(call_spec)
-      send(server_pid, {:llm_result, result_msg})
+      try do
+        result_msg = execute_llm_call(call_spec)
+        send(server_pid, {:llm_result, result_msg})
+      rescue
+        _ -> send(server_pid, {:llm_result, :noop})
+      end
     end)
   end
 

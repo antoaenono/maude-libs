@@ -16,6 +16,7 @@ defmodule MaudeLibsWeb.ConnCase do
   """
 
   use ExUnit.CaseTemplate
+  import Mox
 
   using do
     quote do
@@ -32,7 +33,14 @@ defmodule MaudeLibsWeb.ConnCase do
     end
   end
 
-  setup _tags do
+  setup :verify_on_exit!
+
+  setup tags do
+    unless tags[:async] do
+      Mox.set_mox_global(tags)
+    end
+
+    MaudeLibs.LLM.MockStubs.stub_all()
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end

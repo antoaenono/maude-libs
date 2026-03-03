@@ -2,13 +2,18 @@ defmodule MaudeLibs.Decision.ServerTest do
   use ExUnit.Case, async: false
 
   import ExUnit.CaptureLog
+  import Mox
 
   alias MaudeLibs.Decision.Server
   alias MaudeLibs.Decision.Supervisor, as: DecisionSup
   alias MaudeLibs.Decision.Stage
 
+  setup :set_mox_global
+  setup :verify_on_exit!
+
   # Each test gets a unique decision ID to avoid registry conflicts
   setup do
+    MaudeLibs.LLM.MockStubs.stub_all()
     id = "test-#{:erlang.unique_integer([:positive])}"
     {:ok, id: id}
   end
@@ -388,9 +393,10 @@ defmodule MaudeLibs.Decision.ServerTest do
 
   describe "LLM error: synthesis" do
     setup do
-      prev = Application.get_env(:maude_libs, :llm_module)
-      Application.put_env(:maude_libs, :llm_module, MaudeLibs.LLM.ErrorMock)
-      on_exit(fn -> Application.put_env(:maude_libs, :llm_module, prev) end)
+      Hammox.expect(MaudeLibs.LLM.MockBehaviour, :synthesize_scenario, fn _submissions ->
+        {:error, :api_down}
+      end)
+
       :ok
     end
 
@@ -418,9 +424,10 @@ defmodule MaudeLibs.Decision.ServerTest do
 
   describe "LLM error: scaffolding" do
     setup do
-      prev = Application.get_env(:maude_libs, :llm_module)
-      Application.put_env(:maude_libs, :llm_module, MaudeLibs.LLM.ErrorMock)
-      on_exit(fn -> Application.put_env(:maude_libs, :llm_module, prev) end)
+      Hammox.expect(MaudeLibs.LLM.MockBehaviour, :scaffold, fn _scenario, _priorities, _options ->
+        {:error, :api_down}
+      end)
+
       :ok
     end
 
@@ -512,9 +519,10 @@ defmodule MaudeLibs.Decision.ServerTest do
 
   describe "LLM error: why_statement" do
     setup do
-      prev = Application.get_env(:maude_libs, :llm_module)
-      Application.put_env(:maude_libs, :llm_module, MaudeLibs.LLM.ErrorMock)
-      on_exit(fn -> Application.put_env(:maude_libs, :llm_module, prev) end)
+      Hammox.expect(MaudeLibs.LLM.MockBehaviour, :why_statement, fn _scenario, _priorities, _winner, _vote_counts ->
+        {:error, :api_down}
+      end)
+
       :ok
     end
 
