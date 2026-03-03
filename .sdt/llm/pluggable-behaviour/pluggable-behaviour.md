@@ -5,7 +5,7 @@ decided: 2026-03-02
 status: accepted
 deciders: @antoaenono
 tags: [llm, testing, behaviour, mock, dependency-injection]
-parent: llm/api-wrapper
+parent: llm/api-wrapper/api-wrapper
 children: []
 ---
 

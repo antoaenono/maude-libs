@@ -6,7 +6,7 @@ status: accepted
 deciders: @antoaenono
 tags: [llm, http, req]
 parent: null
-children: [llm/pluggable-behaviour]
+children: [llm/pluggable-behaviour/pluggable-behaviour]
 ---
 
 # SDT: LLM API HTTP Client

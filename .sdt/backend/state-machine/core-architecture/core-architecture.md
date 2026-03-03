@@ -6,7 +6,7 @@ status: accepted
 deciders: @antoaenono
 tags: [architecture, state-machine, genserver]
 parent: null
-children: [llm/debounced-calls]
+children: [llm/debounced-calls/debounced-calls]
 ---
 
 # SDT: Decision State Machine Architecture

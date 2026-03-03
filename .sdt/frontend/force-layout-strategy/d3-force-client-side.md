@@ -5,7 +5,7 @@ decided: 2026-02-28
 status: superseded
 deciders: @antoaenono
 tags: [canvas, physics, force-layout, d3, javascript, libgraph]
-parent: frontend/layout/canvas-physics/physics
+parent: null
 children: []
 ---
 

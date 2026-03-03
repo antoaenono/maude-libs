@@ -6,7 +6,7 @@ status: accepted
 deciders: @antoaenono
 tags: [state-machine, presence, drop-handling]
 parent: null
-children: [backend/state-machine/disconnect-grace-period]
+children: [backend/state-machine/disconnect-grace-period/disconnect-grace-period]
 ---
 
 # SDT: Participant Drop Handling

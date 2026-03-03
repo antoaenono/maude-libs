@@ -5,7 +5,7 @@ decided: 2026-03-02
 status: accepted
 deciders: @antoaenono
 tags: [llm, debounce, state-machine, ux]
-parent: backend/state-machine/core-architecture
+parent: backend/state-machine/core-architecture/core-architecture
 children: []
 ---
 

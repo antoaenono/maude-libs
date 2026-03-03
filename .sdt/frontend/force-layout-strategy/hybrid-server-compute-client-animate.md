@@ -5,7 +5,7 @@ decided: 2026-02-28
 status: rejected
 deciders: @antoaenono
 tags: [canvas, physics, force-layout, hybrid]
-parent: frontend/layout/canvas-physics/physics
+parent: null
 children: []
 ---
 
