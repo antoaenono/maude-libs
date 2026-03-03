@@ -26,7 +26,8 @@ defmodule MaudeLibs.LLM do
 
   @behaviour __MODULE__
 
-  @model "claude-sonnet-4-6"
+  @model_default "claude-haiku-4-5-20251001"
+  @model_heavy "claude-sonnet-4-6"
   @base_url "https://api.anthropic.com/v1/messages"
   @max_tokens 2048
 
@@ -177,7 +178,7 @@ defmodule MaudeLibs.LLM do
     No markdown, no explanation, no code fences.
     """
 
-    case call(prompt, :scaffold) do
+    case call(prompt, :scaffold, @model_heavy) do
       {:ok, body} ->
         case body do
           %{"options" => scaffolded} when is_list(scaffolded) ->
@@ -228,7 +229,7 @@ defmodule MaudeLibs.LLM do
   # Private: HTTP call
   # ---------------------------------------------------------------------------
 
-  defp call(prompt, call_name) do
+  defp call(prompt, call_name, model \\ @model_default) do
     api_key =
       Application.get_env(:maude_libs, :anthropic_api_key) ||
         System.get_env("ANTHROPIC_API_KEY")
@@ -240,7 +241,7 @@ defmodule MaudeLibs.LLM do
       Logger.info("llm call", call: call_name)
 
       body = %{
-        model: @model,
+        model: model,
         max_tokens: @max_tokens,
         messages: [%{role: "user", content: prompt}]
       }
