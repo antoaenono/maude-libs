@@ -10,6 +10,7 @@ defmodule MaudeLibs.MixProject do
       start_permanent: Mix.env() == :prod,
       aliases: aliases(),
       deps: deps(),
+      test_coverage: [summary: [threshold: 99]],
       compilers: [:phoenix_live_view] ++ Mix.compilers(),
       listeners: [Phoenix.CodeReloader],
       usage_rules: usage_rules()
@@ -109,7 +110,7 @@ defmodule MaudeLibs.MixProject do
         "deps.unlock --unused",
         "format",
         "test.js",
-        "test"
+        "test --cover"
       ]
     ]
   end
