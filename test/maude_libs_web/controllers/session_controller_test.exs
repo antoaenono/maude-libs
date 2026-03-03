@@ -11,7 +11,8 @@ defmodule MaudeLibsWeb.SessionControllerTest do
     test "valid username registers in UserRegistry", %{conn: conn} do
       username = "sess#{:erlang.unique_integer([:positive])}"
       post(conn, "/session", %{"username" => username})
-      Process.sleep(5)
+      # Flush the GenServer mailbox so the cast is processed before we read ETS
+      :sys.get_state(MaudeLibs.UserRegistry)
       assert username in MaudeLibs.UserRegistry.list_usernames()
     end
 
