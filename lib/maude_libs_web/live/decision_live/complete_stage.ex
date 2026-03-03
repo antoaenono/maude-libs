@@ -29,13 +29,16 @@ defmodule MaudeLibsWeb.DecisionLive.CompleteStage do
                 <h2 class="font-bold text-lg">{@s.winner}</h2>
               </div>
 
-              <%= if @s.why_statement do %>
-                <p class="text-base-content/80 leading-relaxed">{@s.why_statement}</p>
-              <% else %>
-                <div class="flex items-center gap-2 text-base-content/40">
-                  <span class="loading loading-dots loading-sm"></span>
-                  <span class="text-sm">Generating summary...</span>
-                </div>
+              <%= cond do %>
+                <% @s.why_statement -> %>
+                  <p class="text-base-content/80 leading-relaxed">{@s.why_statement}</p>
+                <% @s.llm_error -> %>
+                  <p class="text-sm text-base-content/40 italic">Summary unavailable</p>
+                <% true -> %>
+                  <div class="flex items-center gap-2 text-base-content/40">
+                    <span class="loading loading-dots loading-sm"></span>
+                    <span class="text-sm">Generating summary...</span>
+                  </div>
               <% end %>
             </div>
           </div>

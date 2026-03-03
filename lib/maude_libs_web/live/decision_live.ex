@@ -113,6 +113,17 @@ defmodule MaudeLibsWeb.DecisionLive do
     {:noreply, assign(socket, decision: decision)}
   end
 
+  def handle_info({:llm_error, reason}, socket) do
+    message =
+      if Application.get_env(:maude_libs, :show_errors, false) do
+        "LLM call failed: #{inspect(reason)}"
+      else
+        "Internal error."
+      end
+
+    {:noreply, put_flash(socket, :error, message)}
+  end
+
   # ---------------------------------------------------------------------------
   # Modal
   # ---------------------------------------------------------------------------
@@ -304,6 +315,15 @@ defmodule MaudeLibsWeb.DecisionLive do
   end
 
   # ---------------------------------------------------------------------------
+  # Scaffolding events
+  # ---------------------------------------------------------------------------
+
+  def handle_event("retry_scaffold", _params, socket) do
+    Server.handle_message(socket.assigns.id, :retry_scaffold)
+    {:noreply, socket}
+  end
+
+  # ---------------------------------------------------------------------------
   # Render
   # ---------------------------------------------------------------------------
 
@@ -331,6 +351,8 @@ defmodule MaudeLibsWeb.DecisionLive do
     <% end %>
     <%!-- Route to correct stage component (each renders its own stage_shell with breadcrumbs) --%>
     {render_stage(assigns)}
+    <.flash kind={:info} flash={@flash} />
+    <.flash kind={:error} flash={@flash} />
     """
   end
 

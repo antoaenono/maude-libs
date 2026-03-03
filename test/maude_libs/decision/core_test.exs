@@ -786,6 +786,173 @@ defmodule MaudeLibs.Decision.CoreTest do
   end
 
   # ---------------------------------------------------------------------------
+  # LLM error handling
+  # ---------------------------------------------------------------------------
+
+  describe "synthesis error" do
+    test "sets synthesizing to false" do
+      stage = %Stage.Scenario{submissions: %{"a" => "x", "b" => "y"}, synthesizing: true}
+      d = decision(connected: connected(["a", "b"]), stage: stage)
+      {:ok, d2, _effects} = Core.handle(d, {:synthesis_error, :api_down})
+      assert d2.stage.synthesizing == false
+    end
+
+    test "emits broadcast and broadcast_error effects" do
+      stage = %Stage.Scenario{submissions: %{"a" => "x"}, synthesizing: true}
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, _d2, effects} = Core.handle(d, {:synthesis_error, :api_down})
+      assert Enum.any?(effects, &match?({:broadcast, _, _}, &1))
+      assert Enum.any?(effects, &match?({:broadcast_error, _, :api_down}, &1))
+    end
+  end
+
+  describe "priority suggestions error" do
+    test "sets suggesting to false" do
+      stage = %Stage.Priorities{suggesting: true}
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, d2, _effects} = Core.handle(d, {:priority_suggestions_error, :timeout})
+      assert d2.stage.suggesting == false
+    end
+
+    test "emits broadcast and broadcast_error effects" do
+      stage = %Stage.Priorities{suggesting: true}
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, _d2, effects} = Core.handle(d, {:priority_suggestions_error, :timeout})
+      assert Enum.any?(effects, &match?({:broadcast, _, _}, &1))
+      assert Enum.any?(effects, &match?({:broadcast_error, _, :timeout}, &1))
+    end
+  end
+
+  describe "option suggestions error" do
+    test "sets suggesting to false" do
+      stage = %Stage.Options{suggesting: true}
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, d2, _effects} = Core.handle(d, {:option_suggestions_error, :timeout})
+      assert d2.stage.suggesting == false
+    end
+
+    test "emits broadcast and broadcast_error effects" do
+      stage = %Stage.Options{suggesting: true}
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, _d2, effects} = Core.handle(d, {:option_suggestions_error, :timeout})
+      assert Enum.any?(effects, &match?({:broadcast, _, _}, &1))
+      assert Enum.any?(effects, &match?({:broadcast_error, _, :timeout}, &1))
+    end
+  end
+
+  describe "scaffolding error" do
+    test "stays on Scaffolding stage" do
+      stage = %Stage.Scaffolding{scaffold_topic: "t", scaffold_priorities: [], scaffold_options: []}
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, d2, _effects} = Core.handle(d, {:scaffolding_error, :api_down})
+      assert %Stage.Scaffolding{} = d2.stage
+    end
+
+    test "sets llm_error on the stage" do
+      stage = %Stage.Scaffolding{scaffold_topic: "t", scaffold_priorities: [], scaffold_options: []}
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, d2, _effects} = Core.handle(d, {:scaffolding_error, :api_down})
+      assert d2.stage.llm_error == true
+    end
+
+    test "emits broadcast and broadcast_error effects" do
+      stage = %Stage.Scaffolding{scaffold_topic: "t", scaffold_priorities: [], scaffold_options: []}
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, _d2, effects} = Core.handle(d, {:scaffolding_error, :api_down})
+      assert Enum.any?(effects, &match?({:broadcast, _, _}, &1))
+      assert Enum.any?(effects, &match?({:broadcast_error, _, :api_down}, &1))
+    end
+  end
+
+  describe "why_statement error" do
+    test "sets llm_error on Complete stage" do
+      stage = %Stage.Complete{options: [], winner: "tacos", why_statement: nil}
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, d2, _effects} = Core.handle(d, {:why_statement_error, :api_down})
+      assert d2.stage.llm_error == true
+    end
+
+    test "emits broadcast and broadcast_error effects" do
+      stage = %Stage.Complete{options: [], winner: "tacos", why_statement: nil}
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, _d2, effects} = Core.handle(d, {:why_statement_error, :api_down})
+      assert Enum.any?(effects, &match?({:broadcast, _, _}, &1))
+      assert Enum.any?(effects, &match?({:broadcast_error, _, :api_down}, &1))
+    end
+  end
+
+  describe "retry scaffold" do
+    test "clears llm_error and emits async_llm effect" do
+      stage = %Stage.Scaffolding{
+        llm_error: true,
+        scaffold_topic: "dinner?",
+        scaffold_priorities: [%{id: "+1", text: "speed", direction: "+"}],
+        scaffold_options: [%{name: "tacos", desc: "x"}]
+      }
+
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, d2, effects} = Core.handle(d, :retry_scaffold)
+      assert d2.stage.llm_error == nil
+
+      assert Enum.any?(effects, fn
+               {:async_llm, {:scaffold, "dinner?", _, _}} -> true
+               _ -> false
+             end)
+    end
+
+    test "rebuilds scaffold call with stored arguments" do
+      prios = [%{id: "+1", text: "speed", direction: "+"}]
+      opts = [%{name: "tacos", desc: "x"}, %{name: "pizza", desc: "y"}]
+
+      stage = %Stage.Scaffolding{
+        llm_error: true,
+        scaffold_topic: "dinner?",
+        scaffold_priorities: prios,
+        scaffold_options: opts
+      }
+
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, _d2, effects} = Core.handle(d, :retry_scaffold)
+
+      {:async_llm, {:scaffold, topic, priorities, options}} =
+        Enum.find(effects, &match?({:async_llm, _}, &1))
+
+      assert topic == "dinner?"
+      assert priorities == prios
+      assert options == opts
+    end
+
+    test "rejected when no error (guard)" do
+      stage = %Stage.Scaffolding{
+        llm_error: nil,
+        scaffold_topic: "dinner?",
+        scaffold_priorities: [],
+        scaffold_options: []
+      }
+
+      d = decision(connected: connected(["a"]), stage: stage)
+      assert {:error, _} = Core.handle(d, :retry_scaffold)
+    end
+  end
+
+  describe "options to scaffolding stores scaffold args" do
+    test "Scaffolding struct stores topic, priorities, and options" do
+      d =
+        options_decision(
+          users: ["alice"],
+          proposals: %{"alice" => %{name: "tacos", desc: "x"}},
+          priorities: [%{id: "+1", text: "speed", direction: "+"}]
+        )
+
+      {:ok, d2, _effects} = Core.handle(d, {:ready_options, "alice"})
+      assert %Stage.Scaffolding{} = d2.stage
+      assert d2.stage.scaffold_topic == "dinner?"
+      assert d2.stage.scaffold_priorities == [%{id: "+1", text: "speed", direction: "+"}]
+      assert d2.stage.scaffold_options == [%{name: "tacos", desc: "x"}]
+    end
+  end
+
+  # ---------------------------------------------------------------------------
   # Connected set
   # ---------------------------------------------------------------------------
 

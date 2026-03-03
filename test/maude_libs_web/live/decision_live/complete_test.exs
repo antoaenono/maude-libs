@@ -105,5 +105,90 @@ defmodule MaudeLibsWeb.DecisionLive.CompleteTest do
       assert html =~ "Pizza"
       assert html =~ "Ranking"
     end
+
+    @tag stage: :scaffolding
+    test "shows error state with retry button when llm_error is set" do
+      decision =
+        seed_decision(:scaffolding, ["alice"],
+          topic: "How do we pick lunch?",
+          llm_error: true
+        )
+
+      {:ok, _view, html} = mount_as("alice", decision.id)
+      assert html =~ "Analysis failed"
+      assert html =~ "Retry"
+      refute html =~ "Spelunking"
+    end
+
+    @tag stage: :scaffolding
+    test "shows error state after scaffolding_error message" do
+      decision = seed_decision(:scaffolding, ["alice"], topic: "How do we pick lunch?")
+      {:ok, view, html} = mount_as("alice", decision.id)
+      assert html =~ "Spelunking"
+
+      Server.handle_message(decision.id, {:scaffolding_error, :api_down})
+
+      :timer.sleep(20)
+      html = render(view)
+      assert html =~ "Analysis failed"
+      assert html =~ "Retry"
+      refute html =~ "Spelunking"
+    end
+  end
+
+  describe "complete stage LLM error" do
+    @tag stage: :complete
+    test "shows 'Summary unavailable' when llm_error is set" do
+      decision =
+        seed_decision(:complete, ["alice"],
+          topic: "How do we pick lunch?",
+          winner: "Tacos",
+          why_statement: nil,
+          llm_error: true
+        )
+
+      {:ok, _view, html} = mount_as("alice", decision.id)
+      assert html =~ "Summary unavailable"
+      refute html =~ "Generating summary"
+    end
+
+    @tag stage: :complete
+    test "shows 'Summary unavailable' after why_statement_error message" do
+      decision =
+        seed_decision(:complete, ["alice"],
+          topic: "How do we pick lunch?",
+          winner: "Tacos",
+          why_statement: nil
+        )
+
+      {:ok, view, html} = mount_as("alice", decision.id)
+      assert html =~ "Generating summary"
+
+      Server.handle_message(decision.id, {:why_statement_error, :api_down})
+
+      :timer.sleep(20)
+      html = render(view)
+      assert html =~ "Summary unavailable"
+      refute html =~ "Generating summary"
+    end
+  end
+
+  describe "LLM error flash" do
+    @tag stage: :scaffolding
+    test "llm_error broadcast puts error flash on socket" do
+      decision = seed_decision(:scaffolding, ["alice"], topic: "How do we pick lunch?")
+      {:ok, view, _} = mount_as("alice", decision.id)
+
+      # Broadcast an llm_error directly on the PubSub topic
+      Phoenix.PubSub.broadcast(
+        MaudeLibs.PubSub,
+        "decision:#{decision.id}",
+        {:llm_error, :api_down}
+      )
+
+      :timer.sleep(20)
+      html = render(view)
+      assert html =~ "Internal error."
+    end
   end
 end

@@ -60,6 +60,9 @@ config :maude_libs, MaudeLibsWeb.Endpoint,
 # Enable dev routes for dashboard and mailbox
 config :maude_libs, dev_routes: true
 
+# Show detailed LLM error messages in dev
+config :maude_libs, show_errors: true
+
 # Do not include metadata nor timestamps in development logs
 config :logger, :default_formatter, format: "[$level] $message\n"
 

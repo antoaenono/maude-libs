@@ -383,6 +383,173 @@ defmodule MaudeLibs.Decision.ServerTest do
   end
 
   # ---------------------------------------------------------------------------
+  # LLM error handling: error mock
+  # ---------------------------------------------------------------------------
+
+  describe "LLM error: synthesis" do
+    setup do
+      prev = Application.get_env(:maude_libs, :llm_module)
+      Application.put_env(:maude_libs, :llm_module, MaudeLibs.LLM.ErrorMock)
+      on_exit(fn -> Application.put_env(:maude_libs, :llm_module, prev) end)
+      :ok
+    end
+
+    @tag capture_log: true
+    test "synthesis error broadcasts {:llm_error, _} on decision topic", %{id: id} do
+      decision = %MaudeLibs.Decision.Core{
+        id: id,
+        creator: "alice",
+        topic: "dinner?",
+        connected: MapSet.new(["alice", "bob"]),
+        stage: %Stage.Scenario{
+          submissions: %{"alice" => "where?"}
+        }
+      }
+
+      DecisionSup.start_with_state(decision)
+      Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
+
+      # Submit a second scenario to trigger debounced synthesis
+      msg(id, {:submit_scenario, "bob", "what restaurant?"})
+
+      assert_receive {:llm_error, :api_down}, 2000
+    end
+  end
+
+  describe "LLM error: scaffolding" do
+    setup do
+      prev = Application.get_env(:maude_libs, :llm_module)
+      Application.put_env(:maude_libs, :llm_module, MaudeLibs.LLM.ErrorMock)
+      on_exit(fn -> Application.put_env(:maude_libs, :llm_module, prev) end)
+      :ok
+    end
+
+    @tag capture_log: true
+    test "scaffold error keeps stage as Scaffolding", %{id: id} do
+      decision = %MaudeLibs.Decision.Core{
+        id: id,
+        creator: "alice",
+        topic: "dinner?",
+        connected: MapSet.new(["alice"]),
+        priorities: [%{id: "+1", text: "speed", direction: "+"}],
+        stage: %Stage.Options{
+          proposals: %{"alice" => %{name: "tacos", desc: "x"}}
+        }
+      }
+
+      DecisionSup.start_with_state(decision)
+
+      d =
+        subscribe_and_run(
+          id,
+          fn -> msg(id, {:ready_options, "alice"}) end,
+          fn d -> d.stage.llm_error == true end,
+          2000
+        )
+
+      assert %Stage.Scaffolding{} = d.stage
+      assert d.stage.llm_error == true
+    end
+
+    @tag capture_log: true
+    test "scaffold error sets llm_error on stage", %{id: id} do
+      decision = %MaudeLibs.Decision.Core{
+        id: id,
+        creator: "alice",
+        topic: "dinner?",
+        connected: MapSet.new(["alice"]),
+        priorities: [%{id: "+1", text: "speed", direction: "+"}],
+        stage: %Stage.Options{
+          proposals: %{"alice" => %{name: "tacos", desc: "x"}}
+        }
+      }
+
+      DecisionSup.start_with_state(decision)
+
+      d =
+        subscribe_and_run(
+          id,
+          fn -> msg(id, {:ready_options, "alice"}) end,
+          fn d -> d.stage.llm_error == true end,
+          2000
+        )
+
+      assert d.stage.llm_error == true
+    end
+  end
+
+  describe "LLM error: scaffold retry" do
+    test "retry with normal Mock advances to Dashboard", %{id: id} do
+      # Start in a Scaffolding stage with llm_error and stored args
+      decision = %MaudeLibs.Decision.Core{
+        id: id,
+        creator: "alice",
+        topic: "dinner?",
+        connected: MapSet.new(["alice"]),
+        priorities: [%{id: "+1", text: "speed", direction: "+"}],
+        stage: %Stage.Scaffolding{
+          llm_error: true,
+          scaffold_topic: "dinner?",
+          scaffold_priorities: [%{id: "+1", text: "speed", direction: "+"}],
+          scaffold_options: [%{name: "tacos", desc: "x"}]
+        }
+      }
+
+      DecisionSup.start_with_state(decision)
+
+      d =
+        subscribe_and_run(
+          id,
+          fn -> msg(id, :retry_scaffold) end,
+          fn d -> match?(%Stage.Dashboard{}, d.stage) end,
+          2000
+        )
+
+      assert %Stage.Dashboard{} = d.stage
+      assert length(d.stage.options) > 0
+    end
+  end
+
+  describe "LLM error: why_statement" do
+    setup do
+      prev = Application.get_env(:maude_libs, :llm_module)
+      Application.put_env(:maude_libs, :llm_module, MaudeLibs.LLM.ErrorMock)
+      on_exit(fn -> Application.put_env(:maude_libs, :llm_module, prev) end)
+      :ok
+    end
+
+    @tag capture_log: true
+    test "why_statement error sets llm_error on Complete stage", %{id: id} do
+      decision = %MaudeLibs.Decision.Core{
+        id: id,
+        creator: "alice",
+        topic: "dinner?",
+        connected: MapSet.new(["alice"]),
+        stage: %Stage.Dashboard{
+          options: [
+            %{name: "tacos", desc: "x", for: [], against: []},
+            %{name: "pizza", desc: "y", for: [], against: []}
+          ],
+          votes: %{"alice" => ["tacos"]}
+        }
+      }
+
+      DecisionSup.start_with_state(decision)
+
+      d =
+        subscribe_and_run(
+          id,
+          fn -> msg(id, {:ready_dashboard, "alice"}) end,
+          fn d -> match?(%Stage.Complete{llm_error: true}, d.stage) end,
+          2000
+        )
+
+      assert d.stage.llm_error == true
+      assert d.stage.why_statement == nil
+    end
+  end
+
+  # ---------------------------------------------------------------------------
   # LLM error resilience
   # ---------------------------------------------------------------------------
 

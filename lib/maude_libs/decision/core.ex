@@ -5,8 +5,10 @@ defmodule MaudeLibs.Decision.Core do
 
   Effects are tuples the Server executes:
     {:broadcast, decision_id, decision}
+    {:broadcast_error, decision_id, reason}
     {:async_llm, call_spec}
     {:debounce, key, delay_ms, call_spec}
+    {:delayed_broadcast, decision_id, decision, delay_ms}
   """
 
   alias MaudeLibs.Decision.Stage
@@ -134,6 +136,12 @@ defmodule MaudeLibs.Decision.Core do
     {:ok, d2, [{:broadcast, d2.id, d2}]}
   end
 
+  def handle(%__MODULE__{stage: %Stage.Scenario{} = s} = d, {:synthesis_error, reason}) do
+    s2 = %{s | synthesizing: false}
+    d2 = %{d | stage: s2}
+    {:ok, d2, [{:broadcast, d2.id, d2}, {:broadcast_error, d2.id, reason}]}
+  end
+
   def handle(%__MODULE__{stage: %Stage.Scenario{} = s} = d, {:vote_scenario, user, candidate}) do
     all_candidates = scenario_candidates(s)
 
@@ -197,6 +205,15 @@ defmodule MaudeLibs.Decision.Core do
 
     d2 = %{d | stage: s2}
     {:ok, d2, [{:broadcast, d2.id, d2}]}
+  end
+
+  def handle(
+        %__MODULE__{stage: %Stage.Priorities{} = s} = d,
+        {:priority_suggestions_error, reason}
+      ) do
+    s2 = %{s | suggesting: false}
+    d2 = %{d | stage: s2}
+    {:ok, d2, [{:broadcast, d2.id, d2}, {:broadcast_error, d2.id, reason}]}
   end
 
   def handle(
@@ -271,6 +288,15 @@ defmodule MaudeLibs.Decision.Core do
 
   def handle(
         %__MODULE__{stage: %Stage.Options{} = s} = d,
+        {:option_suggestions_error, reason}
+      ) do
+    s2 = %{s | suggesting: false}
+    d2 = %{d | stage: s2}
+    {:ok, d2, [{:broadcast, d2.id, d2}, {:broadcast_error, d2.id, reason}]}
+  end
+
+  def handle(
+        %__MODULE__{stage: %Stage.Options{} = s} = d,
         {:toggle_option_suggestion, idx, included}
       ) do
     if idx < 0 or idx >= length(s.suggestions) do
@@ -299,7 +325,12 @@ defmodule MaudeLibs.Decision.Core do
         all_options = human_options ++ claude_options
         priorities = get_priorities_with_ids(d2)
 
-        scaffold_stage = %Stage.Scaffolding{}
+        scaffold_stage = %Stage.Scaffolding{
+          scaffold_topic: d2.topic,
+          scaffold_priorities: priorities,
+          scaffold_options: all_options
+        }
+
         d3 = %{d2 | stage: scaffold_stage}
 
         {:ok, d3,
@@ -316,6 +347,27 @@ defmodule MaudeLibs.Decision.Core do
     dashboard_stage = %Stage.Dashboard{options: options}
     d2 = %{d | stage: dashboard_stage}
     {:ok, d2, [{:broadcast, d2.id, d2}]}
+  end
+
+  def handle(%__MODULE__{stage: %Stage.Scaffolding{} = s} = d, {:scaffolding_error, reason}) do
+    s2 = %{s | llm_error: true}
+    d2 = %{d | stage: s2}
+    {:ok, d2, [{:broadcast, d2.id, d2}, {:broadcast_error, d2.id, reason}]}
+  end
+
+  def handle(
+        %__MODULE__{stage: %Stage.Scaffolding{llm_error: err} = s} = d,
+        :retry_scaffold
+      )
+      when err != nil do
+    s2 = %{s | llm_error: nil}
+    d2 = %{d | stage: s2}
+
+    {:ok, d2,
+     [
+       {:broadcast, d2.id, d2},
+       {:async_llm, {:scaffold, s.scaffold_topic, s.scaffold_priorities, s.scaffold_options}}
+     ]}
   end
 
   # Dashboard + Vote
@@ -374,6 +426,12 @@ defmodule MaudeLibs.Decision.Core do
     s2 = %{s | why_statement: text}
     d2 = %{d | stage: s2}
     {:ok, d2, [{:broadcast, d2.id, d2}]}
+  end
+
+  def handle(%__MODULE__{stage: %Stage.Complete{} = s} = d, {:why_statement_error, reason}) do
+    s2 = %{s | llm_error: true}
+    d2 = %{d | stage: s2}
+    {:ok, d2, [{:broadcast, d2.id, d2}, {:broadcast_error, d2.id, reason}]}
   end
 
   # Connect / Disconnect (cross-stage, must come after all stage-specific clauses)

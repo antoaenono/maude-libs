@@ -43,7 +43,10 @@ defmodule MaudeLibs.Decision.Stage do
 
   defmodule Scaffolding do
     @moduledoc "LLM scaffold call in flight. No user input at this stage."
-    defstruct []
+    defstruct llm_error: nil,
+              scaffold_topic: nil,
+              scaffold_priorities: [],
+              scaffold_options: []
   end
 
   defmodule Dashboard do
@@ -62,6 +65,7 @@ defmodule MaudeLibs.Decision.Stage do
     @moduledoc "Decision complete. why_statement is LLM-generated, nil until it arrives."
     defstruct why_statement: nil,
               options: [],
-              winner: nil
+              winner: nil,
+              llm_error: nil
   end
 end

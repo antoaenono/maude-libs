@@ -276,6 +276,11 @@ defmodule MaudeLibs.Decision.Server do
     state
   end
 
+  defp dispatch_effect({:broadcast_error, id, reason}, state) do
+    Phoenix.PubSub.broadcast(MaudeLibs.PubSub, "decision:#{id}", {:llm_error, reason})
+    state
+  end
+
   defp dispatch_effect({:async_llm, call_spec}, state) do
     Logger.info("llm call started", call: elem(call_spec, 0))
     spawn_llm_task(call_spec, self())
@@ -323,7 +328,7 @@ defmodule MaudeLibs.Decision.Server do
 
       {:error, reason} ->
         Logger.error("llm call failed", call: :synthesize_scenario, reason: inspect(reason))
-        {:synthesis_result, nil}
+        {:synthesis_error, reason}
     end
   end
 
@@ -334,7 +339,7 @@ defmodule MaudeLibs.Decision.Server do
 
       {:error, reason} ->
         Logger.error("llm call failed", call: :suggest_priorities, reason: inspect(reason))
-        {:priority_suggestions_result, []}
+        {:priority_suggestions_error, reason}
     end
   end
 
@@ -345,7 +350,7 @@ defmodule MaudeLibs.Decision.Server do
 
       {:error, reason} ->
         Logger.error("llm call failed", call: :suggest_options, reason: inspect(reason))
-        {:option_suggestions_result, []}
+        {:option_suggestions_error, reason}
     end
   end
 
@@ -356,7 +361,7 @@ defmodule MaudeLibs.Decision.Server do
 
       {:error, reason} ->
         Logger.error("llm call failed", call: :scaffold, reason: inspect(reason))
-        {:scaffolding_result, []}
+        {:scaffolding_error, reason}
     end
   end
 
@@ -367,7 +372,7 @@ defmodule MaudeLibs.Decision.Server do
 
       {:error, reason} ->
         Logger.error("llm call failed", call: :why_statement, reason: inspect(reason))
-        {:why_statement_result, nil}
+        {:why_statement_error, reason}
     end
   end
 

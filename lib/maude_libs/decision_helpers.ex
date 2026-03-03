@@ -87,7 +87,12 @@ defmodule MaudeLibs.DecisionHelpers do
       at_lobby(users, opts)
       | topic: topic,
         priorities: Keyword.get(opts, :assigned_priorities, []),
-        stage: %Stage.Scaffolding{}
+        stage: %Stage.Scaffolding{
+          llm_error: Keyword.get(opts, :llm_error, nil),
+          scaffold_topic: Keyword.get(opts, :scaffold_topic, nil),
+          scaffold_priorities: Keyword.get(opts, :scaffold_priorities, []),
+          scaffold_options: Keyword.get(opts, :scaffold_options, [])
+        }
     }
   end
 
@@ -144,7 +149,8 @@ defmodule MaudeLibs.DecisionHelpers do
         stage: %Stage.Complete{
           options: options,
           winner: Keyword.get(opts, :winner, "Tacos"),
-          why_statement: Keyword.get(opts, :why_statement, nil)
+          why_statement: Keyword.get(opts, :why_statement, nil),
+          llm_error: Keyword.get(opts, :llm_error, nil)
         }
     }
   end

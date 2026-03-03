@@ -520,6 +520,45 @@ defmodule MaudeLibs.Decision.CoreBoundaryTest do
       {:ok, _, effects} = Core.handle(d, {:why_statement_result, "Because tacos."})
       assert Enum.any?(effects, &match?({:broadcast, _, _}, &1))
     end
+
+    test "synthesis_error emits broadcast and broadcast_error" do
+      stage = %Stage.Scenario{submissions: %{"a" => "x"}, synthesizing: true}
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, _, effects} = Core.handle(d, {:synthesis_error, :api_down})
+      assert Enum.any?(effects, &match?({:broadcast, _, _}, &1))
+      assert Enum.any?(effects, &match?({:broadcast_error, _, _}, &1))
+    end
+
+    test "priority_suggestions_error emits broadcast and broadcast_error" do
+      stage = %Stage.Priorities{suggesting: true}
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, _, effects} = Core.handle(d, {:priority_suggestions_error, :timeout})
+      assert Enum.any?(effects, &match?({:broadcast, _, _}, &1))
+      assert Enum.any?(effects, &match?({:broadcast_error, _, _}, &1))
+    end
+
+    test "option_suggestions_error emits broadcast and broadcast_error" do
+      stage = %Stage.Options{suggesting: true}
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, _, effects} = Core.handle(d, {:option_suggestions_error, :timeout})
+      assert Enum.any?(effects, &match?({:broadcast, _, _}, &1))
+      assert Enum.any?(effects, &match?({:broadcast_error, _, _}, &1))
+    end
+
+    test "scaffolding_error emits broadcast and broadcast_error" do
+      d = decision(connected: connected(["a"]), stage: %Stage.Scaffolding{})
+      {:ok, _, effects} = Core.handle(d, {:scaffolding_error, :api_down})
+      assert Enum.any?(effects, &match?({:broadcast, _, _}, &1))
+      assert Enum.any?(effects, &match?({:broadcast_error, _, _}, &1))
+    end
+
+    test "why_statement_error emits broadcast and broadcast_error" do
+      stage = %Stage.Complete{options: [], winner: "tacos", why_statement: nil}
+      d = decision(connected: connected(["a"]), stage: stage)
+      {:ok, _, effects} = Core.handle(d, {:why_statement_error, :api_down})
+      assert Enum.any?(effects, &match?({:broadcast, _, _}, &1))
+      assert Enum.any?(effects, &match?({:broadcast_error, _, _}, &1))
+    end
   end
 
   # ---------------------------------------------------------------------------
