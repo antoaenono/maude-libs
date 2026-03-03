@@ -166,7 +166,7 @@ defmodule MaudeLibsWeb.DecisionLive.PrioritiesStage do
 
                   <form
                     phx-change="upsert_priority"
-                    phx-submit="upsert_priority"
+                    phx-submit="confirm_priority"
                     class="flex gap-2 items-center"
                   >
                     <div class="flex gap-1">

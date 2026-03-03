@@ -230,6 +230,18 @@ defmodule MaudeLibsWeb.DecisionLive do
     {:noreply, socket}
   end
 
+  def handle_event("confirm_priority", %{"text" => text, "direction" => direction}, socket) do
+    priority = %{text: text, direction: direction}
+
+    Server.handle_message(
+      socket.assigns.id,
+      {:upsert_priority, socket.assigns.username, priority}
+    )
+
+    Server.handle_message(socket.assigns.id, {:confirm_priority, socket.assigns.username})
+    {:noreply, socket}
+  end
+
   def handle_event("confirm_priority", _params, socket) do
     Server.handle_message(socket.assigns.id, {:confirm_priority, socket.assigns.username})
     {:noreply, socket}
@@ -259,9 +271,16 @@ defmodule MaudeLibsWeb.DecisionLive do
   # Options events
   # ---------------------------------------------------------------------------
 
-  def handle_event("upsert_option", %{"name" => name, "desc" => desc}, socket) do
-    option = %{name: name, desc: desc}
+  def handle_event("upsert_option", %{"name" => name} = params, socket) do
+    option = %{name: name, desc: Map.get(params, "desc", "")}
     Server.handle_message(socket.assigns.id, {:upsert_option, socket.assigns.username, option})
+    {:noreply, socket}
+  end
+
+  def handle_event("confirm_option", %{"name" => name} = params, socket) do
+    option = %{name: name, desc: Map.get(params, "desc", "")}
+    Server.handle_message(socket.assigns.id, {:upsert_option, socket.assigns.username, option})
+    Server.handle_message(socket.assigns.id, {:confirm_option, socket.assigns.username})
     {:noreply, socket}
   end
 

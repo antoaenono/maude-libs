@@ -166,7 +166,7 @@ defmodule MaudeLibsWeb.DecisionLive.OptionsStage do
 
                   <form
                     phx-change="upsert_option"
-                    phx-submit="upsert_option"
+                    phx-submit="confirm_option"
                     class="flex flex-col gap-2"
                   >
                     <input
@@ -177,23 +177,14 @@ defmodule MaudeLibsWeb.DecisionLive.OptionsStage do
                       class="input input-bordered input-sm"
                       autocomplete="off"
                     />
-                    <input
-                      type="text"
-                      name="desc"
-                      value={@my_desc}
-                      placeholder="One sentence description"
-                      class="input input-bordered input-sm"
-                      autocomplete="off"
-                    />
+                    <button
+                      type="submit"
+                      disabled={@my_name == "" or @is_ready}
+                      class={"btn btn-sm flex-1 " <> if(@is_confirmed, do: "btn-success", else: "btn-outline btn-success")}
+                    >
+                      {if @is_confirmed, do: "Confirmed ✓", else: "Confirm"}
+                    </button>
                   </form>
-
-                  <button
-                    phx-click="confirm_option"
-                    disabled={@my_name == "" or @is_ready}
-                    class={"btn btn-sm flex-1 " <> if(@is_confirmed, do: "btn-success", else: "btn-outline btn-success")}
-                  >
-                    {if @is_confirmed, do: "Confirmed ✓", else: "Confirm"}
-                  </button>
 
                   <%= if not @all_confirmed and @is_confirmed and @waiting_count > 0 do %>
                     <p class="text-xs text-base-content/40 text-center">
