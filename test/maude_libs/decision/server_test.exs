@@ -171,7 +171,11 @@ defmodule MaudeLibs.Decision.ServerTest do
       assert "alice" in d.connected
     end
 
+    @tag capture_log: true
     test "user disconnected after grace expires", %{id: id} do
+      prev_level = Logger.level()
+      Logger.configure(level: :info)
+
       start(id, "alice")
       Phoenix.PubSub.subscribe(MaudeLibs.PubSub, "decision:#{id}")
       Server.disconnect(id, "alice")
@@ -183,6 +187,8 @@ defmodule MaudeLibs.Decision.ServerTest do
       after
         500 -> flunk("timed out waiting for disconnect broadcast")
       end
+
+      Logger.configure(level: prev_level)
     end
 
     test "double disconnect cancels first timer", %{id: id} do

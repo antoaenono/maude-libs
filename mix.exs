@@ -11,7 +11,7 @@ defmodule MaudeLibs.MixProject do
       aliases: aliases(),
       deps: deps(),
       test_coverage: [
-        summary: [threshold: 98],
+        summary: [threshold: 99],
         ignore_modules: [
           # Phoenix-generated boilerplate with no meaningful runtime logic
           MaudeLibsWeb.PageHTML,

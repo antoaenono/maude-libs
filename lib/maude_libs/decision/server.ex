@@ -149,15 +149,10 @@ defmodule MaudeLibs.Decision.Server do
       # Immediate disconnect (used in tests)
       state2 = Map.put(state, :disconnect_timers, Map.delete(disconnect_timers, user))
 
-      case Core.handle(d, {:disconnect, user}) do
-        {:ok, d2, effects} ->
-          state3 = %{state2 | decision: d2}
-          state4 = dispatch_effects(effects, state3)
-          {:noreply, state4}
-
-        {:error, _} ->
-          {:noreply, state2}
-      end
+      {:ok, d2, effects} = Core.handle(d, {:disconnect, user})
+      state3 = %{state2 | decision: d2}
+      state4 = dispatch_effects(effects, state3)
+      {:noreply, state4}
     else
       ref = Process.send_after(self(), {:disconnect_timeout, user}, grace)
       {:noreply, Map.put(state, :disconnect_timers, Map.put(disconnect_timers, user, ref))}
@@ -177,15 +172,10 @@ defmodule MaudeLibs.Decision.Server do
     disconnect_timers = Map.get(state, :disconnect_timers, %{})
     state2 = Map.put(state, :disconnect_timers, Map.delete(disconnect_timers, user))
 
-    case Core.handle(d, {:disconnect, user}) do
-      {:ok, d2, effects} ->
-        state3 = %{state2 | decision: d2}
-        state4 = dispatch_effects(effects, state3)
-        {:noreply, state4}
-
-      {:error, _} ->
-        {:noreply, state2}
-    end
+    {:ok, d2, effects} = Core.handle(d, {:disconnect, user})
+    state3 = %{state2 | decision: d2}
+    state4 = dispatch_effects(effects, state3)
+    {:noreply, state4}
   end
 
   # Receive LLM result from async Task
