@@ -519,7 +519,10 @@ defmodule MaudeLibs.Decision.ServerTest do
 
   describe "LLM error: why_statement" do
     setup do
-      Hammox.expect(MaudeLibs.LLM.MockBehaviour, :why_statement, fn _scenario, _priorities, _winner, _vote_counts ->
+      Hammox.expect(MaudeLibs.LLM.MockBehaviour, :why_statement, fn _scenario,
+                                                                    _priorities,
+                                                                    _winner,
+                                                                    _vote_counts ->
         {:error, :api_down}
       end)
 

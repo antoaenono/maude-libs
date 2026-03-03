@@ -43,7 +43,7 @@ defmodule MaudeLibsWeb.DecisionLive.PrioritiesStage do
           <span class="text-xs font-mono text-base-content/40 uppercase tracking-widest">
             Name your priorities
           </span>
-           <span class="text-lg font-semibold text-base-content">{@decision.topic}</span>
+          <span class="text-lg font-semibold text-base-content">{@decision.topic}</span>
           <span class="text-xs text-base-content/40">
             Name a dimension, not a directional statement - e.g. "cost" not "too expensive"
           </span>
@@ -80,7 +80,7 @@ defmodule MaudeLibsWeb.DecisionLive.PrioritiesStage do
                       <span class={direction_color(p.direction) <> " font-mono font-bold text-xl"}>
                         {p.direction}
                       </span>
-                       <span class="text-sm">{p.text}</span>
+                      <span class="text-sm">{p.text}</span>
                     </div>
                   <% else %>
                     <p class="text-xs text-base-content/30 italic">thinking...</p>
@@ -136,7 +136,7 @@ defmodule MaudeLibsWeb.DecisionLive.PrioritiesStage do
                       <span class={direction_color(suggestion.direction) <> " font-mono font-bold text-lg w-4"}>
                         {suggestion.direction}
                       </span>
-                       <span class="text-sm flex-1">{suggestion.text}</span>
+                      <span class="text-sm flex-1">{suggestion.text}</span>
                     </button>
                   <% end %>
                 </div>

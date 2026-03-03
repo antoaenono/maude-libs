@@ -43,7 +43,7 @@ defmodule MaudeLibsWeb.DecisionLive.OptionsStage do
           <span class="text-xs font-mono text-base-content/40 uppercase tracking-widest">
             Propose options
           </span>
-           <span class="text-lg font-semibold text-base-content">{@decision.topic}</span>
+          <span class="text-lg font-semibold text-base-content">{@decision.topic}</span>
           <%= if length(@decision.priorities) > 0 do %>
             <div class="flex flex-wrap justify-center gap-1.5">
               <%= for p <- @decision.priorities do %>

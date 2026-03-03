@@ -127,7 +127,9 @@ defmodule MaudeLibsWeb.DecisionLive.LobbyStage do
               <%= for user <- MapSet.to_list(@s.joined) do %>
                 <div class="flex items-center gap-2">
                   <span class={"w-2 h-2 rounded-full " <> if(user in @s.ready, do: "bg-success", else: "bg-base-content/20")} />
-                  <span class={"font-mono text-sm " <> if(user == @username, do: "font-bold", else: "")}>{user}</span>
+                  <span class={"font-mono text-sm " <> if(user == @username, do: "font-bold", else: "")}>
+                    {user}
+                  </span>
                 </div>
               <% end %>
               <%= for user <- @ghost_users do %>

@@ -41,7 +41,7 @@ defmodule MaudeLibsWeb.DecisionLive.ScenarioStage do
           <span class="text-xs font-mono text-base-content/40 uppercase tracking-widest">
             Frame the scenario
           </span>
-           <span class="text-lg font-semibold text-base-content">{@decision.topic}</span>
+          <span class="text-lg font-semibold text-base-content">{@decision.topic}</span>
           <span class="text-xs text-base-content/40">
             Vote on a framing - everyone must agree to proceed
           </span>

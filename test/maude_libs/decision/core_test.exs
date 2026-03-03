@@ -842,21 +842,36 @@ defmodule MaudeLibs.Decision.CoreTest do
 
   describe "scaffolding error" do
     test "stays on Scaffolding stage" do
-      stage = %Stage.Scaffolding{scaffold_topic: "t", scaffold_priorities: [], scaffold_options: []}
+      stage = %Stage.Scaffolding{
+        scaffold_topic: "t",
+        scaffold_priorities: [],
+        scaffold_options: []
+      }
+
       d = decision(connected: connected(["a"]), stage: stage)
       {:ok, d2, _effects} = Core.handle(d, {:scaffolding_error, :api_down})
       assert %Stage.Scaffolding{} = d2.stage
     end
 
     test "sets llm_error on the stage" do
-      stage = %Stage.Scaffolding{scaffold_topic: "t", scaffold_priorities: [], scaffold_options: []}
+      stage = %Stage.Scaffolding{
+        scaffold_topic: "t",
+        scaffold_priorities: [],
+        scaffold_options: []
+      }
+
       d = decision(connected: connected(["a"]), stage: stage)
       {:ok, d2, _effects} = Core.handle(d, {:scaffolding_error, :api_down})
       assert d2.stage.llm_error == true
     end
 
     test "emits broadcast and broadcast_error effects" do
-      stage = %Stage.Scaffolding{scaffold_topic: "t", scaffold_priorities: [], scaffold_options: []}
+      stage = %Stage.Scaffolding{
+        scaffold_topic: "t",
+        scaffold_priorities: [],
+        scaffold_options: []
+      }
+
       d = decision(connected: connected(["a"]), stage: stage)
       {:ok, _d2, effects} = Core.handle(d, {:scaffolding_error, :api_down})
       assert Enum.any?(effects, &match?({:broadcast, _, _}, &1))
