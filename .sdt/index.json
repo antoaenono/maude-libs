@@ -738,7 +738,94 @@
     ]
   },
   {
-    "path": "testing/browser-automation/browser-automation.md",
+    "path": "testing/coverage/100-percent-with-ignores.md",
+    "status": "rejected",
+    "tags": [
+      "testing",
+      "coverage",
+      "elixir",
+      "precommit"
+    ],
+    "scenario": "What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?",
+    "chosen_option": "Set threshold to 100% and add stage component modules to `ignore_modules`, unignoring them temporarily when modifying their code.",
+    "parent": null,
+    "children": [],
+    "decided": "2026-03-03",
+    "reconsider": [
+      {
+        "observe": "Elixir's cover tool fixes the `defmodule` counting",
+        "respond": "Remove stage components from ignore_modules; 100% is achievable natively"
+      },
+      {
+        "observe": "Developers keep forgetting the unignore/re-ignore step and real gaps slip through",
+        "respond": "Drop to 99% threshold and remove stage components from ignore_modules"
+      },
+      {
+        "observe": "New stage components are added and the ignore_modules list keeps growing",
+        "respond": "Evaluate whether the bookkeeping cost outweighs the benefit of the 100% headline number"
+      },
+      {
+        "observe": "A CI script could automate the unignore check (run coverage once without ignore for each changed module)",
+        "respond": "Build the automation; this eliminates L2 workflow friction and L1 blind spot risk"
+      }
+    ]
+  },
+  {
+    "path": "testing/coverage/99-percent.md",
+    "status": "accepted",
+    "tags": [
+      "testing",
+      "coverage",
+      "elixir",
+      "precommit"
+    ],
+    "scenario": "What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?",
+    "chosen_option": "Set threshold to 99% and accept the `defmodule` gap without workarounds.",
+    "parent": null,
+    "children": [],
+    "decided": "2026-03-03",
+    "reconsider": [
+      {
+        "observe": "Elixir's cover tool fixes the `defmodule` counting (e.g., stops marking it as a relevant line)",
+        "respond": "Bump threshold to 100%; the gap closes naturally"
+      },
+      {
+        "observe": "More modules with `defmodule`-only gaps accumulate, eroding the 99% buffer",
+        "respond": "Either add them to ignore_modules or lower threshold further - but this signals a code organization issue, not a coverage issue"
+      },
+      {
+        "observe": "A real bug hides in the 0.76% headroom",
+        "respond": "Tighten the threshold or switch to the 100% + ignore_modules approach"
+      }
+    ]
+  },
+  {
+    "path": "testing/coverage/nothing.md",
+    "status": "rejected",
+    "tags": [
+      "testing",
+      "coverage",
+      "elixir",
+      "precommit"
+    ],
+    "scenario": "What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?",
+    "chosen_option": "Do nothing - no coverage threshold enforcement.",
+    "parent": null,
+    "children": [],
+    "decided": "2026-03-03",
+    "reconsider": [
+      {
+        "observe": "A bug ships to production that would have been caught by even basic coverage enforcement",
+        "respond": "Revisit adding a threshold, even a low one like 80%"
+      },
+      {
+        "observe": "Test suite grows organically and maintains high coverage through culture alone",
+        "respond": "Status quo is working; formalize with a threshold only if drift appears"
+      }
+    ]
+  },
+  {
+    "path": "testing/methodology/browser-automation.md",
     "status": "rejected",
     "tags": [
       "verification",
@@ -763,7 +850,7 @@
     ]
   },
   {
-    "path": "testing/combined-seeds-and-liveview-tests/combined-seeds-and-liveview-tests.md",
+    "path": "testing/methodology/combined-seeds-and-liveview-tests.md",
     "status": "accepted",
     "tags": [
       "verification",
@@ -794,7 +881,7 @@
     ]
   },
   {
-    "path": "testing/dev-seed-routes/dev-seed-routes.md",
+    "path": "testing/methodology/dev-seed-routes.md",
     "status": "rejected",
     "tags": [
       "verification",
@@ -819,7 +906,7 @@
     ]
   },
   {
-    "path": "testing/liveview-integration-tests/liveview-integration-tests.md",
+    "path": "testing/methodology/liveview-integration-tests.md",
     "status": "rejected",
     "tags": [
       "verification",
@@ -840,6 +927,60 @@
       {
         "observe": "Test setup for multi-user flows is too verbose",
         "respond": "Extract shared builder/helper modules (similar to existing `decision()` helpers in core_test)"
+      }
+    ]
+  },
+  {
+    "path": "testing/methodology/nothing.md",
+    "status": "rejected",
+    "tags": [
+      "verification",
+      "testing",
+      "dev-workflow"
+    ],
+    "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+    "chosen_option": "Do nothing; continue with manual browser testing and existing Core unit tests.",
+    "parent": null,
+    "children": [],
+    "decided": "2026-02-28",
+    "reconsider": [
+      {
+        "observe": "Time spent manually testing exceeds time you'd spend writing test infrastructure",
+        "respond": "Adopt one of the other variants"
+      },
+      {
+        "observe": "A regression ships that automated tests would have caught",
+        "respond": "Prioritize automated coverage"
+      }
+    ]
+  },
+  {
+    "path": "testing/methodology/tidewave-agentic-verification.md",
+    "status": "rejected",
+    "tags": [
+      "verification",
+      "testing",
+      "dev-workflow",
+      "tidewave",
+      "agentic"
+    ],
+    "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
+    "chosen_option": "Use Tidewave's MCP tools (project_eval, browser_eval, get_logs) as a live agentic verification layer during Claude Code sessions, complementing automated tests and seed routes.",
+    "parent": null,
+    "children": [],
+    "decided": "2026-02-28",
+    "reconsider": [
+      {
+        "observe": "You find yourself re-doing the same Tidewave verification steps across sessions",
+        "respond": "Encode those steps as LiveView integration tests so they persist"
+      },
+      {
+        "observe": "Tidewave snapshots become the only verification and tests are neglected",
+        "respond": "Tidewave is complementary, not a replacement. Run mix test before committing."
+      },
+      {
+        "observe": "A new team member can't reproduce verification steps from a previous session",
+        "respond": "Document common verification patterns in a dev guide, or encode as tests"
       }
     ]
   },
@@ -948,60 +1089,6 @@
       {
         "observe": "This is the starting point before any mocking exists",
         "respond": "Any project with external API calls should introduce mocking early"
-      }
-    ]
-  },
-  {
-    "path": "testing/nothing/nothing.md",
-    "status": "rejected",
-    "tags": [
-      "verification",
-      "testing",
-      "dev-workflow"
-    ],
-    "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
-    "chosen_option": "Do nothing; continue with manual browser testing and existing Core unit tests.",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "Time spent manually testing exceeds time you'd spend writing test infrastructure",
-        "respond": "Adopt one of the other variants"
-      },
-      {
-        "observe": "A regression ships that automated tests would have caught",
-        "respond": "Prioritize automated coverage"
-      }
-    ]
-  },
-  {
-    "path": "testing/tidewave-agentic-verification/tidewave-agentic-verification.md",
-    "status": "rejected",
-    "tags": [
-      "verification",
-      "testing",
-      "dev-workflow",
-      "tidewave",
-      "agentic"
-    ],
-    "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?",
-    "chosen_option": "Use Tidewave's MCP tools (project_eval, browser_eval, get_logs) as a live agentic verification layer during Claude Code sessions, complementing automated tests and seed routes.",
-    "parent": null,
-    "children": [],
-    "decided": "2026-02-28",
-    "reconsider": [
-      {
-        "observe": "You find yourself re-doing the same Tidewave verification steps across sessions",
-        "respond": "Encode those steps as LiveView integration tests so they persist"
-      },
-      {
-        "observe": "Tidewave snapshots become the only verification and tests are neglected",
-        "respond": "Tidewave is complementary, not a replacement. Run mix test before committing."
-      },
-      {
-        "observe": "A new team member can't reproduce verification steps from a previous session",
-        "respond": "Document common verification patterns in a dev guide, or encode as tests"
       }
     ]
   }
