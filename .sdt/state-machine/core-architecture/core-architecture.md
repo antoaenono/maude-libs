@@ -6,7 +6,7 @@ status: accepted
 deciders: @antoaenono
 tags: [architecture, state-machine, genserver]
 parent: null
-children: [architecture/state-machine/debounced-calls]
+children: [state-machine/debounced-calls]
 ---
 
 # SDF: Decision State Machine Architecture

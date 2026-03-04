@@ -6,7 +6,7 @@ status: accepted
 deciders: @antoaenono
 tags: [realtime, ux, invite, lobby]
 parent: null
-children: [architecture/realtime/invite-mechanism/user-registry]
+children: [realtime/invites/user-registry]
 ---
 
 # SDF: Invite and Discovery Mechanism

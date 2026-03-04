@@ -6,7 +6,7 @@ status: accepted
 deciders: @antoaenono
 tags: [state-machine, presence, drop-handling]
 parent: null
-children: [architecture/state-machine/disconnect-grace-period/disconnect-grace-period]
+children: [state-machine/disconnect-grace]
 ---
 
 # SDF: Participant Drop Handling
