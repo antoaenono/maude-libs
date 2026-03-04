@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SDT Decision Tree</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #1a1a2e; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; }
+  #canvas { width: 100vw; height: 100vh; cursor: grab; }
+  #canvas:active { cursor: grabbing; }
+  #controls {
+    position: fixed; bottom: 20px; right: 20px; display: flex; gap: 8px; z-index: 10;
+  }
+  #controls button {
+    background: #16213e; color: #e2e8f0; border: 1px solid #334155;
+    border-radius: 6px; padding: 8px 14px; cursor: pointer; font-size: 14px;
+  }
+  #controls button:hover { background: #1e3a5f; }
+  #title {
+    position: fixed; top: 20px; left: 20px; color: #94a3b8; font-size: 13px;
+    z-index: 10; user-select: none;
+  }
+  #title span { color: #e2e8f0; font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="title"><span>.sdt/</span> decision tree - scroll to zoom, drag to pan</div>
+<svg id="canvas"></svg>
+<div id="controls">
+  <button onclick="resetView()">Reset</button>
+  <button onclick="zoomBy(1.3)">+</button>
+  <button onclick="zoomBy(0.7)">&minus;</button>
+</div>
+<script>
+const data = {"nodes": [{"id": "deployment", "label": "deployment", "is_decision": false, "scenario": "", "decision": "", "accepted": null}, {"id": "deployment/fly-config", "label": "fly-config", "is_decision": true, "scenario": "How many machines should we run on fly.io, and do we need BEAM clustering for LiveView state?", "decision": "Single machine on fly.io (sjc region); auto-stop/auto-start; no clustering needed; all GenServer state on one node", "accepted": "deployment/fly-config/fly-config.md"}, {"id": "deployment/state-persistence", "label": "state-persistence", "is_decision": true, "scenario": "Should decision state be persisted to a database, ETS, or live only in GenServer memory?", "decision": "Ephemeral GenServers: all decision state in memory; accept state loss on restart for prototype scope", "accepted": "deployment/state-persistence/state-persistence.md"}, {"id": "interface", "label": "interface", "is_decision": false, "scenario": "", "decision": "", "accepted": null}, {"id": "interface/components", "label": "components", "is_decision": true, "scenario": "How should we structure UI components across the decision stages - reusable LiveComponents, inline function components, or duplication?", "decision": "Inline function components (attr + slot, no stateful LiveComponent) for shared layout; per-stage inline heex for unique mechanics", "accepted": "interface/components/component-strategy.md"}, {"id": "interface/css", "label": "css", "is_decision": true, "scenario": "Which CSS approach should we use for styling the Phoenix LiveView app?", "decision": "Tailwind CSS + DaisyUI: Phoenix ships Tailwind by default; DaisyUI adds component classes (card, btn, badge, input) with custom dark/light themes in oklch", "accepted": "interface/css/css-framework.md"}, {"id": "interface/input-stages", "label": "input-stages", "is_decision": false, "scenario": "", "decision": "", "accepted": null}, {"id": "interface/input-stages/blind-mechanic", "label": "blind-mechanic", "is_decision": true, "scenario": "When multiple participants submit priorities or options, when should each participant's input become visible to the others?", "decision": "All inputs visible live as you type; confirm button separates \"I'm done\" from \"I'm ready to advance\"", "accepted": "interface/input-stages/blind-mechanic/blind-mechanic.md"}, {"id": "interface/input-stages/claude-suggestions", "label": "claude-suggestions", "is_decision": true, "scenario": "How should Claude's suggested priorities and options be presented and adopted by participants?", "decision": "Toggle model: anyone can include/exclude a suggestion; last write wins; broadcast immediately", "accepted": "interface/input-stages/claude-suggestions/claude-suggestions.md"}, {"id": "interface/input-stages/scenario-consensus", "label": "scenario-consensus", "is_decision": true, "scenario": "How do participants agree on the final scenario framing before advancing to priorities?", "decision": "Unanimous vote: all connected participants must select the same candidate to advance", "accepted": "interface/input-stages/scenario-consensus/scenario-consensus.md"}, {"id": "interface/layout", "label": "layout", "is_decision": true, "scenario": "How do we position decision circles on the lobby canvas and participant cards on stage views so that layouts are non-overlapping, visually balanced, responsive to viewport size, and work within LiveVi", "decision": "Three-layer architecture: (1) CSS fixed shell for persistent navigation, (2) D3 force simulation in JS hooks for position computation, (3) scale-to-fit transform on a virtual canvas for viewport adaptation. Two distinct D3 hooks serve the lobby canvas and stage views respectively.", "accepted": "interface/layout/client-side-d3-force-with-scale-to-fit.md"}, {"id": "llm", "label": "llm", "is_decision": false, "scenario": "", "decision": "", "accepted": null}, {"id": "llm/prompt-strategy", "label": "prompt-strategy", "is_decision": true, "scenario": "Should the scaffolding LLM call (generating for/against points per option) be one call for all options or one call per option?", "decision": "Single call: all options + priorities in one request; output array of {name, for, against} per option", "accepted": "llm/prompt-strategy/single-call.md"}, {"id": "llm/response-format", "label": "response-format", "is_decision": true, "scenario": "How do we ensure LLM responses are machine-parseable JSON that maps predictably to our Elixir structs?", "decision": "Prompt coercion: system prompt instructs model to return only raw JSON matching the specified schema; no tool use", "accepted": "llm/response-format/prompt-coercion.md"}, {"id": "realtime", "label": "realtime", "is_decision": false, "scenario": "", "decision": "", "accepted": null}, {"id": "realtime/invites", "label": "invites", "is_decision": true, "scenario": "How do invited participants discover and navigate to a decision they've been invited to join?", "decision": "Per-user PubSub topic (`\"user:#{username}\"`) delivers invite notifications; canvas shows a modal; creator uses add/remove list UI with UserRegistry autocomplete", "accepted": "realtime/invites/pubsub-invite.md"}, {"id": "realtime/invites/user-registry", "label": "user-registry", "is_decision": true, "scenario": "How does the invite UI know which usernames exist in the system so the creator can autocomplete when inviting participants?", "decision": "ETS-backed GenServer that registers every username on /join; `list_usernames/0` feeds an HTML `<datalist>` for autocomplete", "accepted": "realtime/invites/user-registry/ets-registry.md"}, {"id": "realtime/pubsub", "label": "pubsub", "is_decision": true, "scenario": "How does the Decision.Server broadcast state changes to all connected LiveViews for a given decision?", "decision": "Broadcast full Decision struct on every state change; LiveViews assign and re-render", "accepted": "realtime/pubsub/pubsub-model.md"}, {"id": "realtime/session-identity", "label": "session-identity", "is_decision": true, "scenario": "How do we identify participants across LiveView connections without building an authentication system?", "decision": "Username stored in Plug session via POST /session; session cookie persists the identity; no database, no accounts, no passwords", "accepted": "realtime/session-identity/session-identity.md"}, {"id": "realtime/spectator-view", "label": "spectator-view", "is_decision": true, "scenario": "How do non-participants (observers, dropped users) view a decision in progress without disrupting it?", "decision": "Same decision_live.ex; check `username in decision.connected` to gate input controls; spectators see all but can't interact", "accepted": "realtime/spectator-view/spectator-view.md"}, {"id": "state-machine", "label": "state-machine", "is_decision": false, "scenario": "", "decision": "", "accepted": null}, {"id": "state-machine/core-architecture", "label": "core-architecture", "is_decision": true, "scenario": "How do we structure the decision state machine so it is testable, predictable, and easy to reason about under concurrent LiveView connections?", "decision": "Pure Core + GenServer Shell: Core.handle/2 returns {:ok, decision, [effects]}, Server GenServer executes effects", "accepted": "state-machine/core-architecture/core-architecture.md"}, {"id": "state-machine/debounced-calls", "label": "debounced-calls", "is_decision": true, "scenario": "When multiple participants submit scenario reframings in rapid succession, should each submission trigger a separate LLM synthesis call, or should we debounce?", "decision": "800ms debounce: each new submission resets the timer; LLM call fires only after 800ms of quiet; managed via `{:debounce, key, delay_ms, call_spec}` effect", "accepted": "state-machine/debounced-calls/debounced-calls.md"}, {"id": "state-machine/disconnect-grace", "label": "disconnect-grace", "is_decision": true, "scenario": "When a participant's LiveView disconnects (page refresh, network hiccup, tab switch on mobile), should they be immediately removed from the connected set, or should there be a grace window for reconne", "decision": "5-second grace period: Server schedules a `{:disconnect_timeout, user}` message on disconnect; reconnect within 5s cancels the timer; configurable via `disconnect_grace_ms`", "accepted": "state-machine/disconnect-grace/disconnect-grace-period.md"}, {"id": "state-machine/drop-handling", "label": "drop-handling", "is_decision": true, "scenario": "How do we handle a participant's LiveView disconnecting mid-decision without blocking the remaining participants?", "decision": "connected + participants MapSets on Decision struct; terminate/2 triggers a 5-second grace period before removal; all ready-up checks use connected; participants persists across reconnects", "accepted": "state-machine/drop-handling/drop-handling.md"}, {"id": "state-machine/stage-representation", "label": "stage-representation", "is_decision": true, "scenario": "How do we represent the current stage of a decision and its stage-specific data in Elixir?", "decision": "Tagged struct per stage: %Stage.Lobby{}, %Stage.Scenario{}, etc., stored in Decision.stage", "accepted": "state-machine/stage-representation/stage-representation.md"}, {"id": "style", "label": "style", "is_decision": false, "scenario": "", "decision": "", "accepted": null}, {"id": "style/type-checking", "label": "type-checking", "is_decision": true, "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?", "decision": "Use both Dialyzer and the gradual type system during the transition period - maximum coverage now, converge to compiler-only when gradual types mature", "accepted": "style/type-checking/dialyzer-plus-gradual.md"}, {"id": "testing", "label": "testing", "is_decision": false, "scenario": "", "decision": "", "accepted": null}, {"id": "testing/coverage", "label": "coverage", "is_decision": true, "scenario": "What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?", "decision": "Set threshold to 99% and accept the `defmodule` gap without workarounds.", "accepted": "testing/coverage/99-percent.md"}, {"id": "testing/methodology", "label": "methodology", "is_decision": true, "scenario": "How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?", "decision": "Dev seed routes for instant manual stage access + LiveView integration tests for automated multi-user regression coverage. Skip browser automation to avoid brittleness.", "accepted": "testing/methodology/combined-seeds-and-liveview-tests.md"}, {"id": "testing/mocks", "label": "mocks", "is_decision": true, "scenario": "Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?", "decision": "Migrate to Hammox - Mox with automatic typespec validation on mock return values via `@callback` specs", "accepted": "testing/mocks/hammox.md"}], "edges": [{"from": "deployment", "to": "deployment/fly-config"}, {"from": "deployment", "to": "deployment/state-persistence"}, {"from": "interface", "to": "interface/components"}, {"from": "interface", "to": "interface/css"}, {"from": "interface", "to": "interface/input-stages"}, {"from": "interface/input-stages", "to": "interface/input-stages/blind-mechanic"}, {"from": "interface/input-stages", "to": "interface/input-stages/claude-suggestions"}, {"from": "interface/input-stages", "to": "interface/input-stages/scenario-consensus"}, {"from": "interface", "to": "interface/layout"}, {"from": "llm", "to": "llm/prompt-strategy"}, {"from": "llm", "to": "llm/response-format"}, {"from": "realtime", "to": "realtime/invites"}, {"from": "realtime/invites", "to": "realtime/invites/user-registry"}, {"from": "realtime", "to": "realtime/pubsub"}, {"from": "realtime", "to": "realtime/session-identity"}, {"from": "realtime", "to": "realtime/spectator-view"}, {"from": "state-machine", "to": "state-machine/core-architecture"}, {"from": "state-machine", "to": "state-machine/debounced-calls"}, {"from": "state-machine", "to": "state-machine/disconnect-grace"}, {"from": "state-machine", "to": "state-machine/drop-handling"}, {"from": "state-machine", "to": "state-machine/stage-representation"}, {"from": "style", "to": "style/type-checking"}, {"from": "testing", "to": "testing/coverage"}, {"from": "testing", "to": "testing/methodology"}, {"from": "testing", "to": "testing/mocks"}]};
+
+const svg = document.getElementById('canvas');
+const NS = 'http://www.w3.org/2000/svg';
+
+let vx = 0, vy = 0, vscale = 1;
+let dragging = false, dragX = 0, dragY = 0;
+
+// Layout: top-down tree
+const ROW_H = 140, COL_W = 300, PAD_X = 40, PAD_Y = 40;
+
+function layoutTree(nodes, edges) {
+  const children = {};
+  const roots = new Set(nodes.map(n => n.id));
+  edges.forEach(e => {
+    if (!children[e.from]) children[e.from] = [];
+    children[e.from].push(e.to);
+    roots.delete(e.to);
+  });
+
+  const positions = {};
+  let globalX = 0;
+
+  function layout(nodeId, depth) {
+    const kids = children[nodeId] || [];
+    if (kids.length === 0) {
+      positions[nodeId] = { x: globalX * COL_W + PAD_X, y: depth * ROW_H + PAD_Y };
+      globalX++;
+      return;
+    }
+    kids.forEach(kid => layout(kid, depth + 1));
+    const firstKid = positions[kids[0]];
+    const lastKid = positions[kids[kids.length - 1]];
+    positions[nodeId] = {
+      x: (firstKid.x + lastKid.x) / 2,
+      y: depth * ROW_H + PAD_Y
+    };
+  }
+
+  [...roots].forEach(r => layout(r, 0));
+  return positions;
+}
+
+const positions = layoutTree(data.nodes, data.edges);
+const nodeMap = {};
+data.nodes.forEach(n => nodeMap[n.id] = n);
+
+const g = document.createElementNS(NS, 'g');
+g.setAttribute('id', 'world');
+svg.appendChild(g);
+
+// Draw edges
+data.edges.forEach(e => {
+  const from = positions[e.from], to = positions[e.to];
+  if (!from || !to) return;
+  const fromNode = nodeMap[e.from];
+  const fromH = fromNode && fromNode.is_decision ? 60 : 36;
+  const path = document.createElementNS(NS, 'path');
+  const fx = from.x + 140, fy = from.y + fromH;
+  const tx = to.x + 140, ty = to.y;
+  const my = (fy + ty) / 2;
+  path.setAttribute('d', `M${fx},${fy} C${fx},${my} ${tx},${my} ${tx},${ty}`);
+  path.setAttribute('fill', 'none');
+  path.setAttribute('stroke', '#334155');
+  path.setAttribute('stroke-width', '1.5');
+  g.appendChild(path);
+});
+
+// Draw nodes
+data.nodes.forEach(n => {
+  const pos = positions[n.id];
+  if (!pos) return;
+
+  const group = document.createElementNS(NS, 'g');
+  group.setAttribute('transform', `translate(${pos.x},${pos.y})`);
+
+  if (n.is_decision) {
+    // Decision node
+    const rect = document.createElementNS(NS, 'rect');
+    const hasAccepted = !!n.accepted;
+    rect.setAttribute('width', '280');
+    rect.setAttribute('height', '60');
+    rect.setAttribute('rx', '8');
+    rect.setAttribute('fill', hasAccepted ? '#0f2a1f' : '#2a1f0f');
+    rect.setAttribute('stroke', hasAccepted ? '#22c55e' : '#eab308');
+    rect.setAttribute('stroke-width', '1.5');
+    group.appendChild(rect);
+
+    const icon = document.createElementNS(NS, 'text');
+    icon.setAttribute('x', '12');
+    icon.setAttribute('y', '24');
+    icon.setAttribute('fill', hasAccepted ? '#22c55e' : '#eab308');
+    icon.setAttribute('font-size', '16');
+    icon.textContent = hasAccepted ? '✓' : '?';
+    group.appendChild(icon);
+
+    const label = document.createElementNS(NS, 'text');
+    label.setAttribute('x', '30');
+    label.setAttribute('y', '24');
+    label.setAttribute('fill', '#e2e8f0');
+    label.setAttribute('font-size', '14');
+    label.setAttribute('font-weight', '600');
+    label.textContent = n.label;
+    group.appendChild(label);
+
+    if (n.decision) {
+      const dec = document.createElementNS(NS, 'text');
+      dec.setAttribute('x', '12');
+      dec.setAttribute('y', '46');
+      dec.setAttribute('fill', '#67e8f9');
+      dec.setAttribute('font-size', '10');
+      const t = n.decision.length > 42 ? n.decision.slice(0, 41) + '…' : n.decision;
+      dec.textContent = t;
+      group.appendChild(dec);
+    }
+
+    // Tooltip on hover
+    const title = document.createElementNS(NS, 'title');
+    title.textContent = n.scenario + (n.decision ? '\n\n-> ' + n.decision : '');
+    group.appendChild(title);
+  } else {
+    // Group node
+    const rect = document.createElementNS(NS, 'rect');
+    rect.setAttribute('width', '280');
+    rect.setAttribute('height', '36');
+    rect.setAttribute('rx', '6');
+    rect.setAttribute('fill', '#16213e');
+    rect.setAttribute('stroke', '#3b82f6');
+    rect.setAttribute('stroke-width', '1.5');
+    group.appendChild(rect);
+
+    const label = document.createElementNS(NS, 'text');
+    label.setAttribute('x', '12');
+    label.setAttribute('y', '23');
+    label.setAttribute('fill', '#60a5fa');
+    label.setAttribute('font-size', '14');
+    label.setAttribute('font-weight', '700');
+    label.textContent = n.label + '/';
+    group.appendChild(label);
+  }
+
+  g.appendChild(group);
+});
+
+// Pan and zoom
+function applyTransform() {
+  g.setAttribute('transform', `translate(${vx},${vy}) scale(${vscale})`);
+}
+
+svg.addEventListener('mousedown', e => {
+  dragging = true;
+  dragX = e.clientX;
+  dragY = e.clientY;
+});
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  vx += e.clientX - dragX;
+  vy += e.clientY - dragY;
+  dragX = e.clientX;
+  dragY = e.clientY;
+  applyTransform();
+});
+window.addEventListener('mouseup', () => dragging = false);
+
+svg.addEventListener('wheel', e => {
+  e.preventDefault();
+  const factor = e.deltaY > 0 ? 0.9 : 1.1;
+  const rect = svg.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  vx = mx - (mx - vx) * factor;
+  vy = my - (my - vy) * factor;
+  vscale *= factor;
+  applyTransform();
+}, { passive: false });
+
+function resetView() {
+  vx = 40; vy = 40; vscale = 1;
+  applyTransform();
+}
+
+function zoomBy(f) {
+  const cx = window.innerWidth / 2;
+  const cy = window.innerHeight / 2;
+  vx = cx - (cx - vx) * f;
+  vy = cy - (cy - vy) * f;
+  vscale *= f;
+  applyTransform();
+}
+
+resetView();
+</script>
+</body>
+</html>
