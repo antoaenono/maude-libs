@@ -2,48 +2,17 @@
   "graph": {
     "nodes": [
       {
-        "id": "architecture/llm/api-wrapper",
-        "scenario": "Which HTTP client should we use to call the Anthropic API from Elixir?",
-        "accepted": "architecture/llm/api-wrapper/api-wrapper.md",
-        "variants": [
-          {
-            "path": "architecture/llm/api-wrapper/api-wrapper.md",
-            "status": "accepted",
-            "decision": "Req: modern Elixir HTTP client, declarative API, built-in JSON handling"
-          }
-        ]
-      },
-      {
-        "id": "architecture/llm/debounced-calls",
-        "scenario": "When multiple participants submit scenario reframings in rapid succession, should each submission trigger a separate LLM synthesis call, or should we debounce?",
-        "accepted": "architecture/llm/debounced-calls/debounced-calls.md",
-        "variants": [
-          {
-            "path": "architecture/llm/debounced-calls/debounced-calls.md",
-            "status": "accepted",
-            "decision": "800ms debounce: each new submission resets the timer; LLM call fires only after 800ms of quiet; managed via `{:debounce, key, delay_ms, call_spec}` effect"
-          }
-        ]
-      },
-      {
-        "id": "architecture/llm/pluggable-behaviour",
-        "scenario": "How do we test decision flows that trigger LLM calls without making real API requests, while keeping the LLM integration swappable?",
-        "accepted": "architecture/llm/pluggable-behaviour/pluggable-behaviour.md",
-        "variants": [
-          {
-            "path": "architecture/llm/pluggable-behaviour/pluggable-behaviour.md",
-            "status": "accepted",
-            "decision": "Elixir `@behaviour` on the LLM module; `MaudeLibs.LLM.Mock` implements canned responses; Server reads the module from application config at startup"
-          }
-        ]
-      },
-      {
         "id": "architecture/llm/prompt-strategy",
         "scenario": "Should the scaffolding LLM call (generating for/against points per option) be one call for all options or one call per option?",
-        "accepted": "architecture/llm/prompt-strategy/prompt-strategy.md",
+        "accepted": "architecture/llm/prompt-strategy/single-call.md",
         "variants": [
           {
-            "path": "architecture/llm/prompt-strategy/prompt-strategy.md",
+            "path": "architecture/llm/prompt-strategy/nothing.md",
+            "status": "rejected",
+            "decision": "Do nothing - no LLM scaffolding; users write their own for/against points"
+          },
+          {
+            "path": "architecture/llm/prompt-strategy/single-call.md",
             "status": "accepted",
             "decision": "Single call: all options + priorities in one request; output array of {name, for, against} per option"
           }
@@ -52,10 +21,15 @@
       {
         "id": "architecture/llm/response-format",
         "scenario": "How do we ensure LLM responses are machine-parseable JSON that maps predictably to our Elixir structs?",
-        "accepted": "architecture/llm/response-format/response-format.md",
+        "accepted": "architecture/llm/response-format/prompt-coercion.md",
         "variants": [
           {
-            "path": "architecture/llm/response-format/response-format.md",
+            "path": "architecture/llm/response-format/nothing.md",
+            "status": "rejected",
+            "decision": "Do nothing - accept free-form text responses and parse them manually"
+          },
+          {
+            "path": "architecture/llm/response-format/prompt-coercion.md",
             "status": "accepted",
             "decision": "Prompt coercion: system prompt instructs model to return only raw JSON matching the specified schema; no tool use"
           }
@@ -130,6 +104,18 @@
             "path": "architecture/state-machine/core-architecture/core-architecture.md",
             "status": "accepted",
             "decision": "Pure Core + GenServer Shell: Core.handle/2 returns {:ok, decision, [effects]}, Server GenServer executes effects"
+          }
+        ]
+      },
+      {
+        "id": "architecture/state-machine/debounced-calls",
+        "scenario": "When multiple participants submit scenario reframings in rapid succession, should each submission trigger a separate LLM synthesis call, or should we debounce?",
+        "accepted": "architecture/state-machine/debounced-calls/debounced-calls.md",
+        "variants": [
+          {
+            "path": "architecture/state-machine/debounced-calls/debounced-calls.md",
+            "status": "accepted",
+            "decision": "800ms debounce: each new submission resets the timer; LLM call fires only after 800ms of quiet; managed via `{:debounce, key, delay_ms, call_spec}` effect"
           }
         ]
       },
@@ -406,16 +392,6 @@
     ],
     "edges": [
       {
-        "from": "architecture/llm/api-wrapper",
-        "to": "architecture/llm/pluggable-behaviour",
-        "type": "parent-child"
-      },
-      {
-        "from": "architecture/state-machine/core-architecture",
-        "to": "architecture/llm/debounced-calls",
-        "type": "parent-child"
-      },
-      {
         "from": "architecture/realtime/invite-mechanism",
         "to": "architecture/realtime/invite-mechanism",
         "type": "parent-child"
@@ -423,6 +399,16 @@
       {
         "from": "architecture/realtime/invite-mechanism",
         "to": "architecture/realtime/invite-mechanism/user-registry",
+        "type": "parent-child"
+      },
+      {
+        "from": "architecture/state-machine/core-architecture",
+        "to": "architecture/state-machine",
+        "type": "parent-child"
+      },
+      {
+        "from": "architecture/state-machine",
+        "to": "architecture/state-machine/debounced-calls",
         "type": "parent-child"
       },
       {
@@ -435,103 +421,32 @@
   "tree": {
     "architecture": {
       "llm": {
-        "api-wrapper": {
-          "scenario": "Which HTTP client should we use to call the Anthropic API from Elixir?",
-          "accepted": "architecture/llm/api-wrapper/api-wrapper.md",
+        "prompt-strategy": {
+          "scenario": "Should the scaffolding LLM call (generating for/against points per option) be one call for all options or one call per option?",
+          "accepted": "architecture/llm/prompt-strategy/single-call.md",
           "variants": [
             {
-              "path": "architecture/llm/api-wrapper/api-wrapper.md",
-              "status": "accepted",
+              "path": "architecture/llm/prompt-strategy/nothing.md",
+              "status": "rejected",
               "tags": [
                 "llm",
-                "http",
-                "req"
+                "scaffolding",
+                "prompts"
               ],
-              "scenario": "Which HTTP client should we use to call the Anthropic API from Elixir?",
-              "chosen_option": "Req: modern Elixir HTTP client, declarative API, built-in JSON handling",
+              "scenario": "Should the scaffolding LLM call (generating for/against points per option) be one call for all options or one call per option?",
+              "chosen_option": "Do nothing - no LLM scaffolding; users write their own for/against points",
               "parent": null,
-              "children": [
-                "architecture/llm/pluggable-behaviour/pluggable-behaviour"
-              ],
+              "children": [],
               "decided": "2026-02-28",
               "reconsider": [
                 {
-                  "observe": "Anthropic API changes (new models, new message format)",
-                  "respond": "Thin wrapper means changes are localized to llm.ex; update in one place"
+                  "observe": "Never - this option was rejected at decision time",
+                  "respond": "N/A"
                 }
               ]
-            }
-          ]
-        },
-        "debounced-calls": {
-          "scenario": "When multiple participants submit scenario reframings in rapid succession, should each submission trigger a separate LLM synthesis call, or should we debounce?",
-          "accepted": "architecture/llm/debounced-calls/debounced-calls.md",
-          "variants": [
+            },
             {
-              "path": "architecture/llm/debounced-calls/debounced-calls.md",
-              "status": "accepted",
-              "tags": [
-                "llm",
-                "debounce",
-                "state-machine",
-                "ux"
-              ],
-              "scenario": "When multiple participants submit scenario reframings in rapid succession, should each submission trigger a separate LLM synthesis call, or should we debounce?",
-              "chosen_option": "800ms debounce: each new submission resets the timer; LLM call fires only after 800ms of quiet; managed via `{:debounce, key, delay_ms, call_spec}` effect",
-              "parent": "architecture/state-machine/core-architecture/core-architecture",
-              "children": [],
-              "decided": "2026-03-02",
-              "reconsider": [
-                {
-                  "observe": "800ms feels sluggish when only one participant is submitting",
-                  "respond": "Reduce to 300-500ms; or fire immediately if only one connected user has submitted"
-                },
-                {
-                  "observe": "Debounce timer accumulates across stages (key collision)",
-                  "respond": "Namespace keys by stage or clear all debounce timers on stage transition"
-                }
-              ]
-            }
-          ]
-        },
-        "pluggable-behaviour": {
-          "scenario": "How do we test decision flows that trigger LLM calls without making real API requests, while keeping the LLM integration swappable?",
-          "accepted": "architecture/llm/pluggable-behaviour/pluggable-behaviour.md",
-          "variants": [
-            {
-              "path": "architecture/llm/pluggable-behaviour/pluggable-behaviour.md",
-              "status": "accepted",
-              "tags": [
-                "llm",
-                "testing",
-                "behaviour",
-                "mock",
-                "dependency-injection"
-              ],
-              "scenario": "How do we test decision flows that trigger LLM calls without making real API requests, while keeping the LLM integration swappable?",
-              "chosen_option": "Elixir `@behaviour` on the LLM module; `MaudeLibs.LLM.Mock` implements canned responses; Server reads the module from application config at startup",
-              "parent": "architecture/llm/api-wrapper/api-wrapper",
-              "children": [],
-              "decided": "2026-03-02",
-              "reconsider": [
-                {
-                  "observe": "Need to test error paths (LLM returns {:error, ...})",
-                  "respond": "Add Mock variants or make Mock configurable per-test via process dictionary or Agent"
-                },
-                {
-                  "observe": "Mock responses are too simplistic; don't exercise JSON parsing edge cases",
-                  "respond": "Make Mock responses match exact API response shape, including nested structures"
-                }
-              ]
-            }
-          ]
-        },
-        "prompt-strategy": {
-          "scenario": "Should the scaffolding LLM call (generating for/against points per option) be one call for all options or one call per option?",
-          "accepted": "architecture/llm/prompt-strategy/prompt-strategy.md",
-          "variants": [
-            {
-              "path": "architecture/llm/prompt-strategy/prompt-strategy.md",
+              "path": "architecture/llm/prompt-strategy/single-call.md",
               "status": "accepted",
               "tags": [
                 "llm",
@@ -554,10 +469,30 @@
         },
         "response-format": {
           "scenario": "How do we ensure LLM responses are machine-parseable JSON that maps predictably to our Elixir structs?",
-          "accepted": "architecture/llm/response-format/response-format.md",
+          "accepted": "architecture/llm/response-format/prompt-coercion.md",
           "variants": [
             {
-              "path": "architecture/llm/response-format/response-format.md",
+              "path": "architecture/llm/response-format/nothing.md",
+              "status": "rejected",
+              "tags": [
+                "llm",
+                "json",
+                "structured-output"
+              ],
+              "scenario": "How do we ensure LLM responses are machine-parseable JSON that maps predictably to our Elixir structs?",
+              "chosen_option": "Do nothing - accept free-form text responses and parse them manually",
+              "parent": null,
+              "children": [],
+              "decided": "2026-02-28",
+              "reconsider": [
+                {
+                  "observe": "Never - this option was rejected at decision time",
+                  "respond": "N/A"
+                }
+              ]
+            },
+            {
+              "path": "architecture/llm/response-format/prompt-coercion.md",
               "status": "accepted",
               "tags": [
                 "llm",
@@ -742,13 +677,44 @@
               "chosen_option": "Pure Core + GenServer Shell: Core.handle/2 returns {:ok, decision, [effects]}, Server GenServer executes effects",
               "parent": null,
               "children": [
-                "architecture/llm/debounced-calls/debounced-calls"
+                "architecture/state-machine/debounced-calls"
               ],
               "decided": "2026-02-28",
               "reconsider": [
                 {
                   "observe": "Effect list grows complex (debounce + async_llm + broadcast in one transition)",
                   "respond": "Add effect priority ordering or a dedicated effect pipeline module"
+                }
+              ]
+            }
+          ]
+        },
+        "debounced-calls": {
+          "scenario": "When multiple participants submit scenario reframings in rapid succession, should each submission trigger a separate LLM synthesis call, or should we debounce?",
+          "accepted": "architecture/state-machine/debounced-calls/debounced-calls.md",
+          "variants": [
+            {
+              "path": "architecture/state-machine/debounced-calls/debounced-calls.md",
+              "status": "accepted",
+              "tags": [
+                "llm",
+                "debounce",
+                "state-machine",
+                "ux"
+              ],
+              "scenario": "When multiple participants submit scenario reframings in rapid succession, should each submission trigger a separate LLM synthesis call, or should we debounce?",
+              "chosen_option": "800ms debounce: each new submission resets the timer; LLM call fires only after 800ms of quiet; managed via `{:debounce, key, delay_ms, call_spec}` effect",
+              "parent": "architecture/state-machine/core-architecture",
+              "children": [],
+              "decided": "2026-03-02",
+              "reconsider": [
+                {
+                  "observe": "800ms feels sluggish when only one participant is submitting",
+                  "respond": "Reduce to 300-500ms; or fire immediately if only one connected user has submitted"
+                },
+                {
+                  "observe": "Debounce timer accumulates across stages (key collision)",
+                  "respond": "Namespace keys by stage or clear all debounce timers on stage transition"
                 }
               ]
             }
@@ -1705,80 +1671,27 @@
   },
   "flat": [
     {
-      "path": "architecture/llm/api-wrapper/api-wrapper.md",
-      "status": "accepted",
+      "path": "architecture/llm/prompt-strategy/nothing.md",
+      "status": "rejected",
       "tags": [
         "llm",
-        "http",
-        "req"
+        "scaffolding",
+        "prompts"
       ],
-      "scenario": "Which HTTP client should we use to call the Anthropic API from Elixir?",
-      "chosen_option": "Req: modern Elixir HTTP client, declarative API, built-in JSON handling",
+      "scenario": "Should the scaffolding LLM call (generating for/against points per option) be one call for all options or one call per option?",
+      "chosen_option": "Do nothing - no LLM scaffolding; users write their own for/against points",
       "parent": null,
-      "children": [
-        "architecture/llm/pluggable-behaviour/pluggable-behaviour"
-      ],
+      "children": [],
       "decided": "2026-02-28",
       "reconsider": [
         {
-          "observe": "Anthropic API changes (new models, new message format)",
-          "respond": "Thin wrapper means changes are localized to llm.ex; update in one place"
+          "observe": "Never - this option was rejected at decision time",
+          "respond": "N/A"
         }
       ]
     },
     {
-      "path": "architecture/llm/debounced-calls/debounced-calls.md",
-      "status": "accepted",
-      "tags": [
-        "llm",
-        "debounce",
-        "state-machine",
-        "ux"
-      ],
-      "scenario": "When multiple participants submit scenario reframings in rapid succession, should each submission trigger a separate LLM synthesis call, or should we debounce?",
-      "chosen_option": "800ms debounce: each new submission resets the timer; LLM call fires only after 800ms of quiet; managed via `{:debounce, key, delay_ms, call_spec}` effect",
-      "parent": "architecture/state-machine/core-architecture/core-architecture",
-      "children": [],
-      "decided": "2026-03-02",
-      "reconsider": [
-        {
-          "observe": "800ms feels sluggish when only one participant is submitting",
-          "respond": "Reduce to 300-500ms; or fire immediately if only one connected user has submitted"
-        },
-        {
-          "observe": "Debounce timer accumulates across stages (key collision)",
-          "respond": "Namespace keys by stage or clear all debounce timers on stage transition"
-        }
-      ]
-    },
-    {
-      "path": "architecture/llm/pluggable-behaviour/pluggable-behaviour.md",
-      "status": "accepted",
-      "tags": [
-        "llm",
-        "testing",
-        "behaviour",
-        "mock",
-        "dependency-injection"
-      ],
-      "scenario": "How do we test decision flows that trigger LLM calls without making real API requests, while keeping the LLM integration swappable?",
-      "chosen_option": "Elixir `@behaviour` on the LLM module; `MaudeLibs.LLM.Mock` implements canned responses; Server reads the module from application config at startup",
-      "parent": "architecture/llm/api-wrapper/api-wrapper",
-      "children": [],
-      "decided": "2026-03-02",
-      "reconsider": [
-        {
-          "observe": "Need to test error paths (LLM returns {:error, ...})",
-          "respond": "Add Mock variants or make Mock configurable per-test via process dictionary or Agent"
-        },
-        {
-          "observe": "Mock responses are too simplistic; don't exercise JSON parsing edge cases",
-          "respond": "Make Mock responses match exact API response shape, including nested structures"
-        }
-      ]
-    },
-    {
-      "path": "architecture/llm/prompt-strategy/prompt-strategy.md",
+      "path": "architecture/llm/prompt-strategy/single-call.md",
       "status": "accepted",
       "tags": [
         "llm",
@@ -1798,7 +1711,27 @@
       ]
     },
     {
-      "path": "architecture/llm/response-format/response-format.md",
+      "path": "architecture/llm/response-format/nothing.md",
+      "status": "rejected",
+      "tags": [
+        "llm",
+        "json",
+        "structured-output"
+      ],
+      "scenario": "How do we ensure LLM responses are machine-parseable JSON that maps predictably to our Elixir structs?",
+      "chosen_option": "Do nothing - accept free-form text responses and parse them manually",
+      "parent": null,
+      "children": [],
+      "decided": "2026-02-28",
+      "reconsider": [
+        {
+          "observe": "Never - this option was rejected at decision time",
+          "respond": "N/A"
+        }
+      ]
+    },
+    {
+      "path": "architecture/llm/response-format/prompt-coercion.md",
       "status": "accepted",
       "tags": [
         "llm",
@@ -1943,13 +1876,38 @@
       "chosen_option": "Pure Core + GenServer Shell: Core.handle/2 returns {:ok, decision, [effects]}, Server GenServer executes effects",
       "parent": null,
       "children": [
-        "architecture/llm/debounced-calls/debounced-calls"
+        "architecture/state-machine/debounced-calls"
       ],
       "decided": "2026-02-28",
       "reconsider": [
         {
           "observe": "Effect list grows complex (debounce + async_llm + broadcast in one transition)",
           "respond": "Add effect priority ordering or a dedicated effect pipeline module"
+        }
+      ]
+    },
+    {
+      "path": "architecture/state-machine/debounced-calls/debounced-calls.md",
+      "status": "accepted",
+      "tags": [
+        "llm",
+        "debounce",
+        "state-machine",
+        "ux"
+      ],
+      "scenario": "When multiple participants submit scenario reframings in rapid succession, should each submission trigger a separate LLM synthesis call, or should we debounce?",
+      "chosen_option": "800ms debounce: each new submission resets the timer; LLM call fires only after 800ms of quiet; managed via `{:debounce, key, delay_ms, call_spec}` effect",
+      "parent": "architecture/state-machine/core-architecture",
+      "children": [],
+      "decided": "2026-03-02",
+      "reconsider": [
+        {
+          "observe": "800ms feels sluggish when only one participant is submitting",
+          "respond": "Reduce to 300-500ms; or fire immediately if only one connected user has submitted"
+        },
+        {
+          "observe": "Debounce timer accumulates across stages (key collision)",
+          "respond": "Namespace keys by stage or clear all debounce timers on stage transition"
         }
       ]
     },
