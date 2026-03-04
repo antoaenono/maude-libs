@@ -40,80 +40,219 @@ const NS = 'http://www.w3.org/2000/svg';
 let vx = 0, vy = 0, vscale = 1;
 let dragging = false, dragX = 0, dragY = 0;
 
-// Layout: top-down tree
-const ROW_H = 140, COL_W = 300, PAD_X = 40, PAD_Y = 40;
-
-function layoutTree(nodes, edges) {
-  const children = {};
-  const roots = new Set(nodes.map(n => n.id));
-  edges.forEach(e => {
-    if (!children[e.from]) children[e.from] = [];
-    children[e.from].push(e.to);
-    roots.delete(e.to);
-  });
-
-  const positions = {};
-  let globalX = 0;
-
-  function layout(nodeId, depth) {
-    const kids = children[nodeId] || [];
-    if (kids.length === 0) {
-      positions[nodeId] = { x: globalX * COL_W + PAD_X, y: depth * ROW_H + PAD_Y };
-      globalX++;
-      return;
-    }
-    kids.forEach(kid => layout(kid, depth + 1));
-    const firstKid = positions[kids[0]];
-    const lastKid = positions[kids[kids.length - 1]];
-    positions[nodeId] = {
-      x: (firstKid.x + lastKid.x) / 2,
-      y: depth * ROW_H + PAD_Y
-    };
-  }
-
-  [...roots].forEach(r => layout(r, 0));
-  return positions;
-}
-
-const positions = layoutTree(data.nodes, data.edges);
+// Build adjacency
+const childrenOf = {};
+const roots = new Set(data.nodes.map(n => n.id));
+data.edges.forEach(e => {
+  if (!childrenOf[e.from]) childrenOf[e.from] = [];
+  childrenOf[e.from].push(e.to);
+  roots.delete(e.to);
+});
+const rootList = [...roots];
 const nodeMap = {};
 data.nodes.forEach(n => nodeMap[n.id] = n);
 
+// Count leaves under each node (determines angular width)
+const leafCount = {};
+function countLeaves(id) {
+  const kids = childrenOf[id] || [];
+  if (kids.length === 0) { leafCount[id] = 1; return 1; }
+  let total = 0;
+  kids.forEach(k => total += countLeaves(k));
+  leafCount[id] = total;
+  return total;
+}
+rootList.forEach(r => countLeaves(r));
+
+// Radial layout
+const RING_GAP = 320;
+const INNER_R = 260;
+const positions = {};  // id -> {x, y, angle}
+
+// Total leaves across all roots
+const totalLeaves = rootList.reduce((s, r) => s + leafCount[r], 0);
+
+let angleOffset = -Math.PI / 2; // start at top
+
+function layoutRadial(nodeId, depth, startAngle, endAngle) {
+  const midAngle = (startAngle + endAngle) / 2;
+  const r = INNER_R + depth * RING_GAP;
+  positions[nodeId] = {
+    x: Math.cos(midAngle) * r,
+    y: Math.sin(midAngle) * r,
+    angle: midAngle
+  };
+
+  const kids = childrenOf[nodeId] || [];
+  if (kids.length === 0) return;
+
+  const parentLeaves = leafCount[nodeId];
+  let cur = startAngle;
+  kids.forEach(kid => {
+    const share = leafCount[kid] / parentLeaves;
+    const kidEnd = cur + share * (endAngle - startAngle);
+    layoutRadial(kid, depth + 1, cur, kidEnd);
+    cur = kidEnd;
+  });
+}
+
+let curAngle = angleOffset;
+rootList.forEach(r => {
+  const share = leafCount[r] / totalLeaves;
+  const span = share * Math.PI * 2;
+  layoutRadial(r, 0, curAngle, curAngle + span);
+  curAngle += span;
+});
+
+// Node dimensions and text wrapping
+const NW = 280, NH_G = 32, LINE_H = 13, PAD = 10;
+
+function wrapText(text, charWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let cur = '';
+  words.forEach(w => {
+    if (cur && (cur + ' ' + w).length > charWidth) {
+      lines.push(cur);
+      cur = w;
+    } else {
+      cur = cur ? cur + ' ' + w : w;
+    }
+  });
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+// Estimate node height for collision detection
+function nodeHeight(id) {
+  const n = nodeMap[id];
+  if (!n || !n.is_decision) return NH_G;
+  const decLines = n.decision ? wrapText(n.decision, 38) : [];
+  return 18 + decLines.length * LINE_H + PAD * 2;
+}
+
+// Global collision resolution: check ALL node pairs for bounding-box overlap
+// This catches cross-depth overlaps that occur with horizontal orientation near x=0
+const allIds = data.nodes.map(n => n.id).filter(id => positions[id]);
+
+for (let pass = 0; pass < 30; pass++) {
+  // Sort all nodes by y for sweep-line efficiency
+  allIds.sort((a, b) => positions[a].y - positions[b].y);
+  let anyPushed = false;
+  for (let i = 0; i < allIds.length; i++) {
+    const aId = allIds[i];
+    const aPos = positions[aId];
+    const aH = nodeHeight(aId);
+    for (let j = i + 1; j < allIds.length; j++) {
+      const bId = allIds[j];
+      const bPos = positions[bId];
+      const bH = nodeHeight(bId);
+      // Early exit: if b is far below a, no more overlaps for a
+      if (bPos.y - aPos.y > aH / 2 + bH / 2 + 30) break;
+      // Check x overlap (both centered, width NW)
+      if (Math.abs(aPos.x - bPos.x) >= NW + 20) continue;
+      // Check y overlap
+      const minGap = (aH / 2) + (bH / 2) + 12;
+      const actualGap = bPos.y - aPos.y;
+      if (actualGap < minGap) {
+        const push = (minGap - actualGap) / 2;
+        aPos.y -= push;
+        bPos.y += push;
+        anyPushed = true;
+      }
+    }
+  }
+  if (!anyPushed) break;
+}
+
+// Render
 const g = document.createElementNS(NS, 'g');
 g.setAttribute('id', 'world');
 svg.appendChild(g);
+
+// Draw faint ring guides
+for (let d = 0; d <= 4; d++) {
+  const r = INNER_R + d * RING_GAP;
+  const circ = document.createElementNS(NS, 'circle');
+  circ.setAttribute('cx', '0');
+  circ.setAttribute('cy', '0');
+  circ.setAttribute('r', String(r));
+  circ.setAttribute('fill', 'none');
+  circ.setAttribute('stroke', '#1e293b');
+  circ.setAttribute('stroke-width', '1');
+  circ.setAttribute('stroke-dasharray', '4,8');
+  g.appendChild(circ);
+}
+
+// Center dot
+const center = document.createElementNS(NS, 'circle');
+center.setAttribute('cx', '0');
+center.setAttribute('cy', '0');
+center.setAttribute('r', '6');
+center.setAttribute('fill', '#334155');
+g.appendChild(center);
+const cLabel = document.createElementNS(NS, 'text');
+cLabel.setAttribute('x', '0');
+cLabel.setAttribute('y', '-14');
+cLabel.setAttribute('fill', '#64748b');
+cLabel.setAttribute('font-size', '12');
+cLabel.setAttribute('text-anchor', 'middle');
+cLabel.textContent = '.sdt/';
+g.appendChild(cLabel);
 
 // Draw edges
 data.edges.forEach(e => {
   const from = positions[e.from], to = positions[e.to];
   if (!from || !to) return;
-  const fromNode = nodeMap[e.from];
-  const fromH = fromNode && fromNode.is_decision ? 60 : 36;
-  const path = document.createElementNS(NS, 'path');
-  const fx = from.x + 140, fy = from.y + fromH;
-  const tx = to.x + 140, ty = to.y;
-  const my = (fy + ty) / 2;
-  path.setAttribute('d', `M${fx},${fy} C${fx},${my} ${tx},${my} ${tx},${ty}`);
-  path.setAttribute('fill', 'none');
-  path.setAttribute('stroke', '#334155');
-  path.setAttribute('stroke-width', '1.5');
-  g.appendChild(path);
+  const line = document.createElementNS(NS, 'line');
+  line.setAttribute('x1', String(from.x));
+  line.setAttribute('y1', String(from.y));
+  line.setAttribute('x2', String(to.x));
+  line.setAttribute('y2', String(to.y));
+  line.setAttribute('stroke', '#334155');
+  line.setAttribute('opacity', '0.5');
+  line.setAttribute('stroke-width', '1.5');
+  g.appendChild(line);
+});
+
+// Draw lines from center to roots
+rootList.forEach(r => {
+  const pos = positions[r];
+  if (!pos) return;
+  const line = document.createElementNS(NS, 'line');
+  line.setAttribute('x1', '0');
+  line.setAttribute('y1', '0');
+  line.setAttribute('x2', String(pos.x));
+  line.setAttribute('y2', String(pos.y));
+  line.setAttribute('stroke', '#334155');
+  line.setAttribute('opacity', '0.5');
+  line.setAttribute('stroke-width', '1.5');
+  g.appendChild(line);
 });
 
 // Draw nodes
+
 data.nodes.forEach(n => {
   const pos = positions[n.id];
   if (!pos) return;
 
   const group = document.createElementNS(NS, 'g');
-  group.setAttribute('transform', `translate(${pos.x},${pos.y})`);
+
+  // Position at the node's coordinates, keep horizontal
+  group.setAttribute('transform',
+    `translate(${pos.x},${pos.y})`);
 
   if (n.is_decision) {
-    // Decision node
-    const rect = document.createElementNS(NS, 'rect');
     const hasAccepted = !!n.accepted;
-    rect.setAttribute('width', '280');
-    rect.setAttribute('height', '60');
+    const decLines = n.decision ? wrapText(n.decision, 38) : [];
+    const titleLineH = 18;
+    const nh = titleLineH + decLines.length * LINE_H + PAD * 2;
+
+    const rect = document.createElementNS(NS, 'rect');
+    rect.setAttribute('x', String(-NW/2));
+    rect.setAttribute('y', String(-nh/2));
+    rect.setAttribute('width', String(NW));
+    rect.setAttribute('height', String(nh));
     rect.setAttribute('rx', '8');
     rect.setAttribute('fill', hasAccepted ? '#0f2a1f' : '#2a1f0f');
     rect.setAttribute('stroke', hasAccepted ? '#22c55e' : '#eab308');
@@ -121,42 +260,42 @@ data.nodes.forEach(n => {
     group.appendChild(rect);
 
     const icon = document.createElementNS(NS, 'text');
-    icon.setAttribute('x', '12');
-    icon.setAttribute('y', '24');
+    icon.setAttribute('x', String(-NW/2 + 10));
+    icon.setAttribute('y', String(-nh/2 + PAD + 12));
     icon.setAttribute('fill', hasAccepted ? '#22c55e' : '#eab308');
-    icon.setAttribute('font-size', '16');
+    icon.setAttribute('font-size', '14');
     icon.textContent = hasAccepted ? '✓' : '?';
     group.appendChild(icon);
 
     const label = document.createElementNS(NS, 'text');
-    label.setAttribute('x', '30');
-    label.setAttribute('y', '24');
+    label.setAttribute('x', String(-NW/2 + 26));
+    label.setAttribute('y', String(-nh/2 + PAD + 12));
     label.setAttribute('fill', '#e2e8f0');
-    label.setAttribute('font-size', '14');
+    label.setAttribute('font-size', '12');
     label.setAttribute('font-weight', '600');
     label.textContent = n.label;
     group.appendChild(label);
 
-    if (n.decision) {
+    decLines.forEach((line, i) => {
       const dec = document.createElementNS(NS, 'text');
-      dec.setAttribute('x', '12');
-      dec.setAttribute('y', '46');
+      dec.setAttribute('x', String(-NW/2 + 10));
+      dec.setAttribute('y', String(-nh/2 + PAD + titleLineH + 10 + i * LINE_H));
       dec.setAttribute('fill', '#67e8f9');
       dec.setAttribute('font-size', '10');
-      const t = n.decision.length > 42 ? n.decision.slice(0, 41) + '…' : n.decision;
-      dec.textContent = t;
+      dec.textContent = line;
       group.appendChild(dec);
-    }
+    });
 
-    // Tooltip on hover
     const title = document.createElementNS(NS, 'title');
     title.textContent = n.scenario + (n.decision ? '\n\n-> ' + n.decision : '');
     group.appendChild(title);
   } else {
-    // Group node
+    const nh = NH_G;
     const rect = document.createElementNS(NS, 'rect');
-    rect.setAttribute('width', '280');
-    rect.setAttribute('height', '36');
+    rect.setAttribute('x', String(-NW/2));
+    rect.setAttribute('y', String(-nh/2));
+    rect.setAttribute('width', String(NW));
+    rect.setAttribute('height', String(nh));
     rect.setAttribute('rx', '6');
     rect.setAttribute('fill', '#16213e');
     rect.setAttribute('stroke', '#3b82f6');
@@ -164,12 +303,14 @@ data.nodes.forEach(n => {
     group.appendChild(rect);
 
     const label = document.createElementNS(NS, 'text');
-    label.setAttribute('x', '12');
-    label.setAttribute('y', '23');
+    label.setAttribute('x', '0');
+    label.setAttribute('y', '0');
     label.setAttribute('fill', '#60a5fa');
-    label.setAttribute('font-size', '14');
+    label.setAttribute('font-size', '13');
     label.setAttribute('font-weight', '700');
-    label.textContent = n.label + '/';
+    label.setAttribute('text-anchor', 'middle');
+    label.setAttribute('dominant-baseline', 'central');
+    label.textContent = n.label;
     group.appendChild(label);
   }
 
@@ -209,7 +350,9 @@ svg.addEventListener('wheel', e => {
 }, { passive: false });
 
 function resetView() {
-  vx = 40; vy = 40; vscale = 1;
+  vx = window.innerWidth / 2;
+  vy = window.innerHeight / 2;
+  vscale = 0.7;
   applyTransform();
 }
 
