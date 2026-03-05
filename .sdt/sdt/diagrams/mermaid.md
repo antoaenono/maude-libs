@@ -30,9 +30,6 @@ Should SDT variant files include visual diagrams, and if so, in what format (Mer
 2. [L2] Staleness - diagrams that drift from the prose or implementation become misleading rather than helpful
 3. [L3] Format lock-in - choosing one diagram format constrains future tooling and rendering pipelines
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

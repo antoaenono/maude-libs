@@ -28,9 +28,6 @@ How does the Decision.Server broadcast state changes to all connected LiveViews 
 2. [L2] Over-engineering - diff/patch protocols add complexity we don't need at prototype scale
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

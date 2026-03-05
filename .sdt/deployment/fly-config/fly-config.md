@@ -28,9 +28,6 @@ How many machines should we run on fly.io, and do we need BEAM clustering for Li
 2. [L2] Distributed complexity - BEAM clustering for a hackathon demo is overkill
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

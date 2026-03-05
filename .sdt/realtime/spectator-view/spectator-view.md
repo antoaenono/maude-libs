@@ -28,9 +28,6 @@ How do non-participants (observers, dropped users) view a decision in progress w
 2. [L2] Route complexity - a separate /d/:id/watch route adds another entry to the router
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

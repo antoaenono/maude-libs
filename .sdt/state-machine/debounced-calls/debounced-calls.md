@@ -29,9 +29,6 @@ When multiple participants submit scenario reframings in rapid succession, shoul
 2. [L2] Complexity - timer management in the Server adds state (debounce timer refs)
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

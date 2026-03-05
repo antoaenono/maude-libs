@@ -28,9 +28,6 @@ When a participant's LiveView disconnects (page refresh, network hiccup, tab swi
 2. [L2] Stale presence - during the grace window, a disconnected user appears "connected" even though they're gone
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

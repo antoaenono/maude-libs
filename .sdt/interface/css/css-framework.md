@@ -28,9 +28,6 @@ Which CSS approach should we use for styling the Phoenix LiveView app?
 2. [L2] Bundle size - purging unused utilities must be configured correctly
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

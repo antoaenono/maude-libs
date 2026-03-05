@@ -29,9 +29,6 @@ How do participants agree on the final scenario framing before advancing to prio
 2. [L2] Implementation complexity of voting - tracking votes, detecting unanimity, handling ties
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

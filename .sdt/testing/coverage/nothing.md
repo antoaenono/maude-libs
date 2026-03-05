@@ -32,9 +32,6 @@ What level of line coverage enforcement should we adopt for our test suite, and 
 4. [L4] Threshold churn - lowering the threshold to accommodate tool quirks weakens the gate over time
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

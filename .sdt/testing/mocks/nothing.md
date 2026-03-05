@@ -32,9 +32,6 @@ Which mock implementation strategy should we use for isolating external dependen
 4. [L4] Learning curve - team members need to learn a new API vs simple module pattern
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

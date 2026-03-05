@@ -28,9 +28,6 @@ How do we handle a participant's LiveView disconnecting mid-decision without blo
 2. [L2] Surprise - remaining users should clearly see who is still present
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

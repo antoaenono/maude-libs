@@ -30,9 +30,6 @@ Should we adopt tooling to automatically discover and visualize code boundaries,
 2. [L2] Noise - dependency graphs for non-trivial systems are large and overwhelming without careful filtering and layering
 3. [L3] Elixir coupling - Elixir-specific tools (mix xref, boundary) do not cover JS hooks, CSS, or infrastructure files
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

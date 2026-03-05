@@ -30,9 +30,6 @@ Which application framework layer, if any, should sit between Phoenix and the do
 2. [L2] Architectural mismatch - the real-time decision flow (Pure Core + GenServer Shell) is stateful and event-driven, not CRUD; a resource framework must coexist without replacing it
 3. [L3] Premature abstraction - the current prototype has minimal resources; adopting a framework now may optimize for a future that doesn't arrive
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

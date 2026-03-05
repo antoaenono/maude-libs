@@ -28,9 +28,6 @@ How do we ensure LLM responses are machine-parseable JSON that maps predictably 
 2. [L2] Markdown wrapping - model wrapping JSON in ```json ... ``` fences
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

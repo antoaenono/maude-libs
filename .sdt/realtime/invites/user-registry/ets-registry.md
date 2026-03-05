@@ -28,9 +28,6 @@ How does the invite UI know which usernames exist in the system so the creator c
 2. [L2] Memory - ETS table grows monotonically; fine for demo scale (< 100 users)
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

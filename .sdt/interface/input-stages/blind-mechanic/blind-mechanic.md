@@ -29,9 +29,6 @@ When multiple participants submit priorities or options, when should each partic
 2. [L2] Implementation complexity - rolling reveal requires tracking "has submitted" state per user
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

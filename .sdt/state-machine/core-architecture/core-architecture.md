@@ -29,9 +29,6 @@ How do we structure the decision state machine so it is testable, predictable, a
 2. [L2] Indirection - tracing a bug requires looking in two modules
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

@@ -30,9 +30,6 @@ Which approach should we use to compute non-overlapping, center-clustered positi
 3. [L3] Tuning surface - fewer knobs to fiddle with
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

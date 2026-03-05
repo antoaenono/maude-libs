@@ -30,9 +30,6 @@ How should we enforce architectural boundaries between module groups to prevent 
 2. [L2] False constraints - overly strict boundaries can block legitimate cross-cutting concerns and require workarounds
 3. [L3] Scale mismatch - at ~20 modules, the codebase may not be large enough to justify formal boundary enforcement
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

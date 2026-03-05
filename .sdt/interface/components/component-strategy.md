@@ -28,9 +28,6 @@ How should we structure UI components across the decision stages - reusable Live
 2. [L2] State complexity - stateful LiveComponents have their own assigns, adding another layer
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

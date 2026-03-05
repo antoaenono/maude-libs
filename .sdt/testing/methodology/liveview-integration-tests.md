@@ -31,9 +31,6 @@ How can we increase verification feedback and reduce the cost of testing multi-u
 3. [L3] Cognitive load - mental overhead of maintaining multiple browser tabs and remembering where you left off
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

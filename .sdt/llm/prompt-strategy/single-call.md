@@ -29,9 +29,6 @@ Should the scaffolding LLM call (generating for/against points per option) be on
 2. [L2] Error handling complexity - if one option's points are malformed in a batch, we lose all
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

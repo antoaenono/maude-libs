@@ -28,9 +28,6 @@ How do we identify participants across LiveView connections without building an 
 2. [L2] Session loss - clearing cookies loses the identity; no recovery
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

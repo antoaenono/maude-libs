@@ -31,9 +31,6 @@ How should we utilize Elixir's type system to improve code quality and catch bug
 3. [L3] Premature commitment - investing heavily in `@spec` annotations that may be replaced by new type syntax in v1.21+
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

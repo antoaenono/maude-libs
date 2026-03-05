@@ -34,9 +34,6 @@ How do we position decision circles on the lobby canvas and participant cards on
 4. [L4] LiveView interop friction - hooks must coexist with LiveView's DOM patching
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

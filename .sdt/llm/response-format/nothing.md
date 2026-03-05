@@ -27,9 +27,6 @@ How do we ensure LLM responses are machine-parseable JSON that maps predictably 
 1. [L1] Hallucinated fields - model adding extra keys we don't expect
 2. [L2] Markdown wrapping - model wrapping JSON in ```json ... ``` fences
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

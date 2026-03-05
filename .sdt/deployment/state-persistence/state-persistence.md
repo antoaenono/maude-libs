@@ -28,9 +28,6 @@ Should decision state be persisted to a database, ETS, or live only in GenServer
 2. [L2] State loss risk - ephemeral GenServers lose all decisions on restart
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

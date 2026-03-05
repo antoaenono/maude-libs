@@ -29,9 +29,6 @@ How do we represent the current stage of a decision and its stage-specific data 
 2. [L2] Verbosity - we have 7 stages; struct per stage adds module boilerplate
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

@@ -29,9 +29,6 @@ How should Claude's suggested priorities and options be presented and adopted by
 2. [L2] Confusion - suggestions appearing before all humans have confirmed is noisy
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

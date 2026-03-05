@@ -28,9 +28,6 @@ How do invited participants discover and navigate to a decision they've been inv
 2. [L2] Polling overhead - canvas shouldn't need to poll for invites
 
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 

@@ -29,9 +29,6 @@ How should each SDT decision map to the source files it touches, so that decisio
 2. [L2] Authoring friction - adding file paths to every decision increases scaffolding cost
 3. [L3] False precision - overly specific paths break on refactors; overly broad globs are useless
 
-### Non
-
-1. [X1] Love
 
 ## Decision
 
