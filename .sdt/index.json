@@ -1,4 +1,11 @@
 {
+  "architecture": {
+    "framework": {
+      "scenario": "Which application framework layer, if any, should sit between Phoenix and the domain logic to manage resources, actions, authorization, and domain boundaries?",
+      "accepted": "architecture/framework/nothing.md",
+      "decision": "Do nothing: Phoenix + Ecto directly, with hand-written contexts and ad-hoc authorization as needed"
+    }
+  },
   "deployment": {
     "fly-config": {
       "scenario": "How many machines should we run on fly.io, and do we need BEAM clustering for LiveView state?",
@@ -84,6 +91,23 @@
       "decision": "Same decision_live.ex; check `username in decision.connected` to gate input controls; spectators see all but can't interact"
     }
   },
+  "sdt": {
+    "boundary-viz": {
+      "scenario": "Should we adopt tooling to automatically discover and visualize code boundaries, module dependencies, and how the program uses its dependencies, so that architectural diagrams stay grounded in the act",
+      "accepted": "sdt/boundary-viz/elixir-boundary.md",
+      "decision": "Adopt the `boundary` library: define module boundaries that mirror SDT decision categories, with compile-time cross-boundary call enforcement and `mix boundary.visualize` for dependency diagrams"
+    },
+    "code-mapping": {
+      "scenario": "How should each SDT decision map to the source files it touches, so that decisions are traceable to code and vice versa?",
+      "accepted": "sdt/code-mapping/globs-plus-xref.md",
+      "decision": "Manual globs in frontmatter with bidirectional xref verification: author `touches` globs manually, then use `mix xref` to both validate existing globs (flag stale paths) and discover missing files (suggest additions)"
+    },
+    "diagrams": {
+      "scenario": "Should SDT variant files include visual diagrams, and if so, in what format (Mermaid, ASCII, or both)? Diagrams must remain coherent across parent-child decision trees so that zooming into a child dec",
+      "accepted": "sdt/diagrams/mermaid.md",
+      "decision": "Mermaid diagrams: add a `## Diagram` section to each variant file containing a Mermaid code block that visualizes the decision's architecture, with parent-child subgraph conventions for tree coherence"
+    }
+  },
   "state-machine": {
     "core-architecture": {
       "scenario": "How do we structure the decision state machine so it is testable, predictable, and easy to reason about under concurrent LiveView connections?",
@@ -112,6 +136,11 @@
     }
   },
   "style": {
+    "boundary-enforcement": {
+      "scenario": "How should we enforce architectural boundaries between module groups to prevent cross-layer coupling and dependency violations?",
+      "accepted": "style/boundary-enforcement/boundary-lib.md",
+      "decision": "Adopt the `boundary` library: annotate top-level modules with `use Boundary` to define allowed dependencies and exports, enforced at compile time"
+    },
     "type-checking": {
       "scenario": "How should we utilize Elixir's type system to improve code quality and catch bugs?",
       "accepted": "style/type-checking/dialyzer-plus-gradual.md",
