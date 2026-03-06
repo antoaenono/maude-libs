@@ -11,6 +11,7 @@ children: []
 
 # SDF: Spectator / Read-Only View
 
+
 ## Scenario
 
 How do non-participants (observers, dropped users) view a decision in progress without disrupting it?
@@ -26,8 +27,6 @@ How do non-participants (observers, dropped users) view a decision in progress w
 
 1. [L1] Code duplication - separate LiveView duplicates all rendering logic
 2. [L2] Route complexity - a separate /d/:id/watch route adds another entry to the router
-
-
 
 ## Decision
 
@@ -54,15 +53,19 @@ accepting **that a bug in the gate condition could accidentally expose inputs to
 
 - [M1] If the input gate fails, a spectator could submit a form - but Core.handle rejects non-connected users anyway (defense in depth)
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [ux] Spectators see all stage content live via PubSub but have no input controls rendered
 - [routing] Same /d/:id route serves both participants and spectators
 - [security] Core rejects messages from users not in connected set (backup guard)
+
+## Evidence
+
+Most LiveView multiplayer apps use role-gated rendering within a single LiveView module. Phoenix Presence-based examples typically use presence metadata flags for the same purpose. The defense-in-depth pattern (UI gate + Core rejection) is a well-known security principle that prevents both accidental and malicious input from spectators.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -75,10 +78,18 @@ accepting **that a bug in the gate condition could accidentally expose inputs to
 <.priorities_list priorities={@decision.stage.priorities} />
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Spectators want to interact (e.g., ask to join)
   respond: Add a "request to join" mechanic that creator can approve
+
+## Artistic
+
+Same view, different permissions.
 
 ## Historic
 

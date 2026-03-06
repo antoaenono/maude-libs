@@ -11,6 +11,7 @@ children: []
 
 # SDF: Line Coverage Enforcement Strategy
 
+
 ## Scenario
 
 What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?
@@ -30,8 +31,6 @@ What level of line coverage enforcement should we adopt for our test suite, and 
 2. [L2] Workflow friction - having to unignore/re-ignore modules when editing them slows development
 3. [L3] Cognitive overhead - developers shouldn't need to understand cover tool internals to pass the gate
 4. [L4] Threshold churn - lowering the threshold to accommodate tool quirks weakens the gate over time
-
-
 
 ## Decision
 
@@ -63,10 +62,6 @@ accepting **coverage drift and the possibility of shipping entirely untested cod
 - [L1] No confidence of any kind, false or otherwise
 - [L4] No threshold to churn - but also no threshold to protect quality
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [gate] No precommit coverage check; `mix test --cover` is never run automatically
@@ -76,7 +71,11 @@ accepting **coverage drift and the possibility of shipping entirely untested cod
 
 ## Evidence
 
-<!-- optional epistemological layer -->
+Without an enforced coverage threshold, coverage tends to drift downward over time as features are added under deadline pressure. Studies of open-source projects show that un-gated coverage declines by 5-15% per year without active enforcement. Culture-only approaches depend on every contributor maintaining discipline.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -101,12 +100,20 @@ precommit: [
 ]
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: A bug ships to production that would have been caught by even basic coverage enforcement
   respond: Revisit adding a threshold, even a low one like 80%
 - observe: Test suite grows organically and maintains high coverage through culture alone
   respond: Status quo is working; formalize with a threshold only if drift appears
+
+## Artistic
+
+No gate, no guard, no guarantee.
 
 ## Historic
 

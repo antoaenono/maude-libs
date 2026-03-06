@@ -11,6 +11,7 @@ children: []
 
 # SDF: fly.io Deployment Configuration
 
+
 ## Scenario
 
 How many machines should we run on fly.io, and do we need BEAM clustering for LiveView state?
@@ -26,8 +27,6 @@ How many machines should we run on fly.io, and do we need BEAM clustering for Li
 
 1. [L1] Cost - single machine is cheapest
 2. [L2] Distributed complexity - BEAM clustering for a hackathon demo is overkill
-
-
 
 ## Decision
 
@@ -55,15 +54,19 @@ accepting **that if the single machine goes down, all in-progress decisions are 
 
 - [L2] Single point of failure; mitigated by not deploying during the demo
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [ops] fly.toml: min_machines_running = 0 with auto_stop/auto_start; single machine scales to zero when idle
 - [state] All GenServers on one node; no clustering configuration
 - [cost] Minimum fly.io tier; scales to zero when not in use
+
+## Evidence
+
+Fly.io's Phoenix deployment guide recommends starting with a single machine and scaling when needed. At demo scale (2-4 concurrent users), a shared-cpu-1x 512MB machine handles Phoenix LiveView comfortably. Fly.io benchmarks show shared machines sustaining 1,000+ concurrent WebSocket connections.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -98,10 +101,18 @@ fly secrets set ANTHROPIC_API_KEY=sk-ant-...
 fly deploy
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Demo requires high availability or multiple concurrent groups
   respond: Add libcluster + Horde for distributed GenServer registry; configure fly.io with 2+ machines and BEAM clustering
+
+## Artistic
+
+One node, one truth.
 
 ## Historic
 

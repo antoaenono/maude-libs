@@ -11,6 +11,7 @@ children: [state-machine/disconnect-grace]
 
 # SDF: Participant Drop Handling
 
+
 ## Scenario
 
 How do we handle a participant's LiveView disconnecting mid-decision without blocking the remaining participants?
@@ -26,8 +27,6 @@ How do we handle a participant's LiveView disconnecting mid-decision without blo
 
 1. [L1] State complexity - tracking presence separately from submissions adds a second truth
 2. [L2] Surprise - remaining users should clearly see who is still present
-
-
 
 ## Decision
 
@@ -54,16 +53,20 @@ accepting **that after the grace period, dropped users are removed from `connect
 
 - [L2] Other users see the slot vanish on next broadcast - could be startling without a visual indicator
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [data] Decision.connected: MapSet.t() - currently active users. Decision.participants: MapSet.t() - all users who ever joined (persists across disconnects)
 - [logic] All stage advance predicates check connected, not joined or participants
 - [grace] 5-second window (configurable via `disconnect_grace_ms`) allows reconnects without removal
 - [ux] Dropped user's slot disappears after grace period on next broadcast
+
+## Evidence
+
+The dual-set approach (connected vs participants) mirrors how Phoenix Presence tracks joins/leaves without losing historical data. The connected set drives all business logic (ready-up, advance), while participants preserves identity for spectator detection and rejoin. This avoids the complexity of Phoenix Presence's CRDT while providing the same functional behavior.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -100,10 +103,18 @@ def handle(d, {:disconnect, user}) do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: A decision gets stuck because all participants disconnected
   respond: Add a timeout or allow the last connected user to auto-advance after N minutes
+
+## Artistic
+
+The show goes on, but your seat stays warm.
 
 ## Historic
 

@@ -11,6 +11,7 @@ children: []
 
 # SDF: Application Framework Layer
 
+
 ## Scenario
 
 Which application framework layer, if any, should sit between Phoenix and the domain logic to manage resources, actions, authorization, and domain boundaries?
@@ -29,7 +30,6 @@ Which application framework layer, if any, should sit between Phoenix and the do
 1. [L1] Adoption cost - a framework layer adds learning curve, DSL complexity, and potential lock-in
 2. [L2] Architectural mismatch - the real-time decision flow (Pure Core + GenServer Shell) is stateful and event-driven, not CRUD; a resource framework must coexist without replacing it
 3. [L3] Premature abstraction - the current prototype has minimal resources; adopting a framework now may optimize for a future that doesn't arrive
-
 
 ## Decision
 
@@ -62,14 +62,6 @@ accepting **that conventions are enforced by discipline and review, not by tooli
 - [M4] No API generation; REST and GraphQL endpoints must be hand-built on top of contexts
 - [M2] As policy complexity grows (org scoping, role-based access, persona permissions), scattered `if` checks in contexts become unmaintainable
 
-## Artistic
-
-The framework you already have.
-
-## Evidence
-
-Phoenix contexts are the standard Elixir approach to domain organization. The `mix phx.gen.context` generator scaffolds context modules with CRUD operations, Ecto schemas, and query functions. For small-to-medium applications, contexts provide sufficient structure. The pattern breaks down when authorization policy becomes complex (contexts accumulate policy checks that duplicate across functions), when multiple API surfaces are needed (each requires manual wiring), or when resource count exceeds ~10 (boilerplate becomes a maintenance burden). The Phoenix documentation explicitly positions contexts as a starting point, not a complete domain layer.
-
 ## Consequences
 
 - [deps] No new dependencies
@@ -77,6 +69,14 @@ Phoenix contexts are the standard Elixir approach to domain organization. The `m
 - [auth] Authorization implemented as functions within contexts (e.g., `authorize_action/3`); no unified policy DSL
 - [api] Manual endpoint implementation; no generation
 - [migration] If a framework is adopted later, contexts provide a clean boundary for incremental migration
+
+## Evidence
+
+Phoenix contexts are the standard Elixir approach to domain organization. The `mix phx.gen.context` generator scaffolds context modules with CRUD operations, Ecto schemas, and query functions. For small-to-medium applications, contexts provide sufficient structure. The pattern breaks down when authorization policy becomes complex (contexts accumulate policy checks that duplicate across functions), when multiple API surfaces are needed (each requires manual wiring), or when resource count exceeds ~10 (boilerplate becomes a maintenance burden). The Phoenix documentation explicitly positions contexts as a starting point, not a complete domain layer.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -150,6 +150,10 @@ defmodule MaudeLibs.Decisions do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Authorization logic is duplicated across 4+ contexts with inconsistent patterns
@@ -158,6 +162,10 @@ end
   respond: A framework with API generation (Ash) would eliminate this duplication
 - observe: Context modules exceed 500 lines with many similar CRUD functions
   respond: The boilerplate has reached the threshold where a declarative framework pays for itself
+
+## Artistic
+
+The framework you already have.
 
 ## Historic
 

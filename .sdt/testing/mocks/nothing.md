@@ -11,6 +11,7 @@ children: []
 
 # SDF: Test Mock Implementation Strategy
 
+
 ## Scenario
 
 Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?
@@ -30,8 +31,6 @@ Which mock implementation strategy should we use for isolating external dependen
 2. [L2] Dependency count - adding a mock library means another hex dependency to maintain and keep updated
 3. [L3] Setup boilerplate - per-test mock setup code (expect/verify calls) can be verbose compared to a simple module swap
 4. [L4] Learning curve - team members need to learn a new API vs simple module pattern
-
-
 
 ## Decision
 
@@ -63,14 +62,6 @@ accepting **that tests are slow, expensive, flaky, and cannot run offline or in 
 - [M3] Testing against real external services is explicitly discouraged in the Elixir community
 - [M4] Tests are inherently serial due to shared external state; async would cause race conditions against the API
 
-## Artistic
-
-Pay per test run.
-
-## Evidence
-
-Without mocking, every test invocation hits the Anthropic API. At current Claude Haiku pricing, a typical test suite run exercising all 6 LLM callbacks costs roughly $0.01-0.05 per run. This adds up during TDD workflows where tests run dozens of times per hour. More critically, tests become non-deterministic: the same input may produce different LLM outputs across runs, making assertions fragile and failures hard to reproduce.
-
 ## Consequences
 
 - [deps] No dependencies
@@ -79,14 +70,30 @@ Without mocking, every test invocation hits the Anthropic API. At current Claude
 - [concurrency] Tests must be serial; real API calls cannot safely overlap
 - [cost] Every test run incurs Anthropic API costs
 
+## Evidence
+
+Without mocking, every test invocation hits the Anthropic API. At current Claude Haiku pricing, a typical test suite run exercising all 6 LLM callbacks costs roughly $0.01-0.05 per run. This adds up during TDD workflows where tests run dozens of times per hour. More critically, tests become non-deterministic: the same input may produce different LLM outputs across runs, making assertions fragile and failures hard to reproduce.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
+
 ## Implementation
 
 Tests call `MaudeLibs.LLM` directly with no module swap. The real implementation hits the Anthropic API on every invocation. Requires `ANTHROPIC_API_KEY` set in test environment.
+
+## Exceptions
+
+<!-- no exceptions -->
 
 ## Reconsider
 
 - observe: This is the starting point before any mocking exists
   respond: Any project with external API calls should introduce mocking early
+
+## Artistic
+
+Pay per test run.
 
 ## Historic
 

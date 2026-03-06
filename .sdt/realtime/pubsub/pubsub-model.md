@@ -11,6 +11,7 @@ children: []
 
 # SDF: Decision State Broadcast Model
 
+
 ## Scenario
 
 How does the Decision.Server broadcast state changes to all connected LiveViews for a given decision?
@@ -26,8 +27,6 @@ How does the Decision.Server broadcast state changes to all connected LiveViews 
 
 1. [L1] Stale renders - a LiveView should never show state older than the last broadcast
 2. [L2] Over-engineering - diff/patch protocols add complexity we don't need at prototype scale
-
-
 
 ## Decision
 
@@ -54,15 +53,19 @@ accepting **that the full Decision struct is sent on every change (fine at proto
 
 - [L2] Full struct broadcast is slightly wasteful; irrelevant for <20 decisions with small payloads
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [transport] Topic: "decision:{id}", payload: {:decision_updated, decision}
 - [liveview] mount/2 subscribes; handle_info updates socket assigns
 - [consistency] All LiveViews for the same decision are always in sync after each broadcast
+
+## Evidence
+
+Full-state broadcast is the standard Phoenix LiveView pattern for multiplayer apps at small scale. LiveView's own DOM diffing handles efficient updates, so sending the full struct is not wasteful - the client only re-renders what changed. At 4 participants with sub-10KB decision structs, broadcast overhead is negligible.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -80,10 +83,18 @@ def handle_info({:decision_updated, decision}, socket) do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Broadcast payload becomes large (many options with long for/against text)
   respond: Switch to broadcasting only the changed stage field or a diff
+
+## Artistic
+
+Broadcast the whole truth every time.
 
 ## Historic
 

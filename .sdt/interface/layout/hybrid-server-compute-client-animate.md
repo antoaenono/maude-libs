@@ -11,6 +11,7 @@ children: []
 
 # SDF: Canvas Force Layout Strategy
 
+
 ## Scenario
 
 Which approach should we use to compute non-overlapping, center-clustered positions for decision circles on the canvas homepage, given that the current hand-rolled server-side simulation oscillates and fails to converge at 8+ nodes?
@@ -28,8 +29,6 @@ Which approach should we use to compute non-overlapping, center-clustered positi
 1. [L1] Settling time - layout should reach equilibrium within 1-2 ticks, not 10+
 2. [L2] Architectural complexity - avoid introducing new runtimes, build steps, or JS interop layers
 3. [L3] Tuning surface - fewer knobs to fiddle with
-
-
 
 ## Decision
 
@@ -60,10 +59,6 @@ accepting **a Node.js runtime dependency, port communication overhead, and opera
 - [L3] d3-force API is simple, but the Elixir-to-Node bridge adds its own tuning surface (timeouts, encoding)
 - [L1] Port communication adds latency on top of simulation time; may not be faster than native Elixir for 20 nodes
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [deps] Node.js runtime required; d3-force npm package; Elixir port/NIF wrapper module
@@ -71,7 +66,15 @@ accepting **a Node.js runtime dependency, port communication overhead, and opera
 - [dx] Must maintain both Elixir and JS code; port lifecycle management
 - [ux] Positions are server-authoritative (good for spectators); animation via CSS transitions as before
 
-<!-- evidence -->
+Erlang ports are a well-established mechanism for calling external programs, used in production for ImageMagick, Pandoc, and other CLI tools. However, the round-trip adds 5-50ms latency per call depending on payload size. For 20 nodes, the port overhead may exceed the 1500ms tick budget when combined with JSON serialization.
+
+## Evidence
+
+Erlang ports are a well-established mechanism for calling external programs, used in production for ImageMagick, Pandoc, and other CLI tools. However, the round-trip adds 5-50ms latency per call depending on payload size. For 20 nodes, the port overhead may exceed the 1500ms tick budget when combined with JSON serialization.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -105,12 +108,20 @@ process.stdin.on("data", (buf) => {
 });
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Port communication latency exceeds the 1500ms tick budget
   respond: Move to client-side d3-force; server only tracks circle metadata
 - observe: Node.js process crashes or hangs
   respond: Add supervision and restart logic; consider fallback to simple grid layout
+
+## Artistic
+
+Server computes, client smooths.
 
 ## Historic
 

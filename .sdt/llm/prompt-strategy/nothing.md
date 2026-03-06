@@ -11,6 +11,7 @@ children: []
 
 # SDF: Scaffolding Call Strategy
 
+
 ## Scenario
 
 Should the scaffolding LLM call (generating for/against points per option) be one call for all options or one call per option?
@@ -27,7 +28,6 @@ Should the scaffolding LLM call (generating for/against points per option) be on
 
 1. [L1] Token usage - one big call uses more tokens than small targeted calls
 2. [L2] Error handling complexity - if one option's points are malformed in a batch, we lose all
-
 
 ## Decision
 
@@ -55,19 +55,19 @@ accepting **that users must manually author all for/against points, which is slo
 - [M2] Slower scaffolding stage; users must think through every point manually
 - [M3] Users may miss non-obvious arguments that the model would surface
 
-## Artistic
-
-Do all the thinking yourself.
-
-## Evidence
-
-Without LLM scaffolding, decision quality depends entirely on the participants' domain knowledge and analytical thoroughness. In practice, groups tend to anchor on obvious points and miss second-order considerations.
-
 ## Consequences
 
 - [llm] No LLM calls during scaffolding
 - [output] Empty for/against sections that users fill manually
 - [error] No error states to handle
+
+## Evidence
+
+Without LLM scaffolding, decision quality depends entirely on the participants' domain knowledge and analytical thoroughness. In practice, groups tend to anchor on obvious points and miss second-order considerations.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -79,10 +79,18 @@ def handle(d, :begin_scaffolding) do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Never - this option was rejected at decision time
   respond: N/A
+
+## Artistic
+
+Do all the thinking yourself.
 
 ## Historic
 

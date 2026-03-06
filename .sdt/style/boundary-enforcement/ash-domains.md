@@ -11,6 +11,7 @@ children: []
 
 # SDF: Module Boundary Enforcement
 
+
 ## Scenario
 
 How should we enforce architectural boundaries between module groups to prevent cross-layer coupling and dependency violations?
@@ -29,7 +30,6 @@ How should we enforce architectural boundaries between module groups to prevent 
 1. [L1] Annotation overhead - boundary declarations add ceremony to module definitions
 2. [L2] False constraints - overly strict boundaries can block legitimate cross-cutting concerns and require workarounds
 3. [L3] Scale mismatch - at ~20 modules, the codebase may not be large enough to justify formal boundary enforcement
-
 
 ## Decision
 
@@ -61,20 +61,20 @@ accepting **a major framework adoption that reshapes the entire application arch
 - [L1] The existing Pure Core + GenServer Shell architecture (see `state-machine/core-architecture`) would need substantial reworking to fit Ash's resource/action model
 - [M1] Ash's boundary enforcement is weaker than `boundary` - nothing prevents a module from calling a resource's functions directly, bypassing the domain
 
-## Artistic
-
-Bring a framework to a boundary fight.
-
-## Evidence
-
-Ash Framework organizes applications into Domains (renamed from APIs in Ash 3.0). Each domain registers resources and exposes actions through `Ash.read/2`, `Ash.create/2`, etc. This provides structural boundaries: resources belong to domains, and the domain module is the intended entry point. However, unlike the `boundary` library, Ash does not emit compile-time warnings when code bypasses a domain and calls a resource directly. The boundary enforcement is architectural (resources are grouped) rather than enforced (violations are caught). Adopting Ash for this project would also require rethinking the core-architecture decision, since Ash has its own patterns for state management, actions, and side effects that differ from the Pure Core + GenServer Shell pattern currently in use.
-
 ## Consequences
 
 - [deps] Add `{:ash, "~> 3.0"}` plus related packages; significant dependency footprint
 - [enforcement] Convention-based via domain registration; no compile-time violation detection
 - [dx] Ash's domain/resource structure provides clear boundaries but requires learning the Ash DSL and resource patterns
 - [onboarding] Steep learning curve; Ash is a full framework with its own conventions for actions, changesets, and queries
+
+## Evidence
+
+Ash Framework organizes applications into Domains (renamed from APIs in Ash 3.0). Each domain registers resources and exposes actions through `Ash.read/2`, `Ash.create/2`, etc. This provides structural boundaries: resources belong to domains, and the domain module is the intended entry point. However, unlike the `boundary` library, Ash does not emit compile-time warnings when code bypasses a domain and calls a resource directly. The boundary enforcement is architectural (resources are grouped) rather than enforced (violations are caught). Adopting Ash for this project would also require rethinking the core-architecture decision, since Ash has its own patterns for state management, actions, and side effects that differ from the Pure Core + GenServer Shell pattern currently in use.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -127,6 +127,10 @@ Ash.run_action(MaudeLibs.Decision, :join, %{user: "alice"})
 # NOT direct resource calls (convention, not enforced)
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: The project needs Ash's other features (data layer, authorization, API generation)
@@ -135,6 +139,10 @@ Ash.run_action(MaudeLibs.Decision, :join, %{user: "alice"})
   respond: Layer `boundary` library on top of Ash domains for compile-time enforcement
 - observe: The Pure Core + GenServer Shell architecture works well and Ash adoption would require a rewrite
   respond: Do not adopt Ash solely for boundaries; the architectural cost is too high
+
+## Artistic
+
+Bring a framework to a boundary fight.
 
 ## Historic
 

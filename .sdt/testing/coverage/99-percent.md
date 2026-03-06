@@ -11,6 +11,7 @@ children: []
 
 # SDF: Line Coverage Enforcement Strategy
 
+
 ## Scenario
 
 What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?
@@ -30,8 +31,6 @@ What level of line coverage enforcement should we adopt for our test suite, and 
 2. [L2] Workflow friction - having to unignore/re-ignore modules when editing them slows development
 3. [L3] Cognitive overhead - developers shouldn't need to understand cover tool internals to pass the gate
 4. [L4] Threshold churn - lowering the threshold to accommodate tool quirks weakens the gate over time
-
-
 
 ## Decision
 
@@ -65,10 +64,6 @@ accepting **a 0.76% gap between our reported number and theoretical maximum that
 - [M1] Leaves ~0.76% headroom where a real coverage gap could hide undetected (though in practice this is ~6 lines across the entire codebase)
 - [M4] The number isn't 100%, which could prompt questions about what's missing (answer: compile-time `defmodule` lines, nothing actionable)
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [gate] Precommit enforces 99% threshold via `mix test --cover`; fails if real coverage drops below
@@ -79,7 +74,11 @@ accepting **a 0.76% gap between our reported number and theoretical maximum that
 
 ## Evidence
 
-<!-- optional epistemological layer -->
+The 0.76% gap between 99% and the theoretical maximum is approximately 6 uncoverable `defmodule` lines across the codebase. Setting the threshold at 99% means every testable line must be covered while accepting the tool's inherent limitation. This is the most common coverage threshold in production Elixir projects that enforce coverage.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -107,6 +106,10 @@ test_coverage: [
 
 The 8 stage component modules (`ScaffoldingStage`, `CompleteStage`, `ScenarioStage`, `DecisionComponents`, `DashboardStage`, `LobbyStage`, `OptionsStage`, `PrioritiesStage`) remain in the coverage report. Their `defmodule` line shows as uncovered but all functions and template branches are fully tested.
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Elixir's cover tool fixes the `defmodule` counting (e.g., stops marking it as a relevant line)
@@ -115,6 +118,10 @@ The 8 stage component modules (`ScaffoldingStage`, `CompleteStage`, `ScenarioSta
   respond: Either add them to ignore_modules or lower threshold further - but this signals a code organization issue, not a coverage issue
 - observe: A real bug hides in the 0.76% headroom
   respond: Tighten the threshold or switch to the 100% + ignore_modules approach
+
+## Artistic
+
+Honest numbers need no asterisks.
 
 ## Historic
 

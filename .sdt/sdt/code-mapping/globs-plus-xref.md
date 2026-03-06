@@ -11,6 +11,7 @@ children: []
 
 # SDF: Decision-to-Code Traceability
 
+
 ## Scenario
 
 How should each SDT decision map to the source files it touches, so that decisions are traceable to code and vice versa?
@@ -28,7 +29,6 @@ How should each SDT decision map to the source files it touches, so that decisio
 1. [L1] Maintenance overhead - path mappings that drift from reality become misleading
 2. [L2] Authoring friction - adding file paths to every decision increases scaffolding cost
 3. [L3] False precision - overly specific paths break on refactors; overly broad globs are useless
-
 
 ## Decision
 
@@ -60,20 +60,20 @@ accepting **custom tooling investment to bridge sdt.py and `mix xref`, and incom
 - [L3] Xref only covers Elixir (.ex/.exs); JS hooks, CSS, config files, Dockerfiles cannot be discovered or validated this way
 - [L1] Discovery can be noisy: `mix xref graph --sink MaudeLibs.Decision.Core` may surface test helpers, support modules, and other files that are related but not meaningfully "touched" by the decision
 
-## Artistic
-
-Author the map; let the compiler check the territory.
-
-## Evidence
-
-`mix xref` produces machine-readable output in multiple formats. `mix xref graph --sink Module --format plain` lists all files that depend on a module, one per line. `mix xref callers Module` lists callers with file and line number. Both can be parsed by sdt.py to compare against `touches` globs. The key insight is that xref works in both directions: given a module (extracted from a decision's Implementation section), find all files that use it (discovery); given a file (from a `touches` glob), verify it actually references the expected modules (validation). This closes the loop that pure manual globs leave open.
-
 ## Consequences
 
 - [authoring] Same `touches` field as manual-globs variant; authors write globs, tooling augments them
 - [tooling] sdt.py gains three subcommands: `resolve` (glob -> files), `stale-check` (validate globs exist), `discover` (xref -> suggested additions); requires `mix xref` available in PATH
 - [traceability] Three layers: authored globs (fast lookup), validation (catch drift), discovery (find gaps)
 - [dx] Workflow: author globs during scaffolding, run `sdt.py discover` periodically or in CI to surface missing mappings
+
+## Evidence
+
+`mix xref` produces machine-readable output in multiple formats. `mix xref graph --sink Module --format plain` lists all files that depend on a module, one per line. `mix xref callers Module` lists callers with file and line number. Both can be parsed by sdt.py to compare against `touches` globs. The key insight is that xref works in both directions: given a module (extracted from a decision's Implementation section), find all files that use it (discovery); given a file (from a `touches` glob), verify it actually references the expected modules (validation). This closes the loop that pure manual globs leave open.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -195,6 +195,10 @@ touches:
   run: python3 ~/.claude/skills/sdt/sdt.py validate-touches --sdt-root .sdt --strict
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Discovery produces too many false positives (test helpers, support modules, indirect callers)
@@ -205,6 +209,10 @@ touches:
   respond: Use boundary group names instead of raw module extraction; boundary groups are the authoritative module-to-decision mapping
 - observe: Non-Elixir discovery is needed (JS hooks calling specific LiveView events)
   respond: Add a lightweight JS import parser for `assets/js/hooks/`; or accept manual-only for non-Elixir
+
+## Artistic
+
+Author the map; let the compiler check the territory.
 
 ## Historic
 

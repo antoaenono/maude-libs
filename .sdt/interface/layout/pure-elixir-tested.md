@@ -11,6 +11,7 @@ children: []
 
 # SDF: Canvas Force Layout Strategy
 
+
 ## Scenario
 
 Which approach should we use to compute non-overlapping, center-clustered positions for decision circles on the canvas homepage, given that the current hand-rolled server-side simulation oscillates and fails to converge at 8+ nodes?
@@ -28,8 +29,6 @@ Which approach should we use to compute non-overlapping, center-clustered positi
 1. [L1] Settling time - layout should reach equilibrium within 1-2 ticks, not 10+
 2. [L2] Architectural complexity - avoid introducing new runtimes, build steps, or JS interop layers
 3. [L3] Tuning surface - fewer knobs to fiddle with
-
-
 
 ## Decision
 
@@ -61,10 +60,6 @@ accepting **the risk of hitting the same tuning issues again, and O(n^2) computa
 - [L1] Must run enough iterations to converge within a single 1500ms tick; O(n^2) at 20 nodes = 400 pairs * iterations
 - [M2] Overlap resolution as a post-pass can fight the force layout, creating instability
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [deps] No change - pure Elixir, no new dependencies
@@ -72,7 +67,15 @@ accepting **the risk of hitting the same tuning issues again, and O(n^2) computa
 - [dx] Existing architecture unchanged; ForceLayout module is a pure function callable from CanvasServer
 - [ux] If convergence works: instant settled layout. If it doesn't: back to square one
 
-<!-- evidence -->
+Spring-electrical equilibrium is mathematically well-understood but numerically sensitive. The Fruchterman-Reingold algorithm (1991) requires a temperature schedule for convergence; removing it (fixed step size) trades convergence speed for stability but does not guarantee convergence for all force ratios. Five prior attempts at this approach have failed for this codebase.
+
+## Evidence
+
+Spring-electrical equilibrium is mathematically well-understood but numerically sensitive. The Fruchterman-Reingold algorithm (1991) requires a temperature schedule for convergence; removing it (fixed step size) trades convergence speed for stability but does not guarantee convergence for all force ratios. Five prior attempts at this approach have failed for this codebase.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -98,6 +101,10 @@ end
 
 Key insight: no temperature means the function is idempotent. `layout(layout(x)) == layout(x)` because at equilibrium, forces net to zero, so `force * step_size == 0`.
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Tests pass but visual result looks wrong (clumped, uneven)
@@ -106,6 +113,10 @@ Key insight: no temperature means the function is idempotent. `layout(layout(x))
   respond: Reduce iterations or switch to client-side computation
 - observe: Convergence tests are flaky due to floating point edge cases
   respond: Increase convergence threshold or use approximate equality
+
+## Artistic
+
+Sixth time's the charm.
 
 ## Historic
 

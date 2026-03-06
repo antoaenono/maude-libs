@@ -11,6 +11,7 @@ children: []
 
 # SDF: Automated Boundary and Dependency Visualization
 
+
 ## Scenario
 
 Should we adopt tooling to automatically discover and visualize code boundaries, module dependencies, and how the program uses its dependencies, so that architectural diagrams stay grounded in the actual codebase?
@@ -29,7 +30,6 @@ Should we adopt tooling to automatically discover and visualize code boundaries,
 1. [L1] Tooling investment - building or integrating analysis tools requires development effort and ongoing maintenance
 2. [L2] Noise - dependency graphs for non-trivial systems are large and overwhelming without careful filtering and layering
 3. [L3] Elixir coupling - Elixir-specific tools (mix xref, boundary) do not cover JS hooks, CSS, or infrastructure files
-
 
 ## Decision
 
@@ -62,20 +62,20 @@ accepting **significant development and maintenance effort for custom tooling, a
 - [M1] Custom parsing of JS/CSS imports is fragile compared to using established tooling in those ecosystems (e.g., Webpack's dependency graph, PostCSS AST)
 - [L1] Duplicates some functionality that the `boundary` library provides out of the box with less effort
 
-## Artistic
-
-Build the lens; see everything.
-
-## Evidence
-
-`mix xref graph` produces machine-readable dependency data in multiple formats (dot, stats, plain). For JS, import analysis can be done by regex on `import ... from` and `require(...)` statements - fragile but sufficient for a controlled codebase with consistent conventions. For CSS, Tailwind + DaisyUI uses `@apply` and `@plugin` which can be grepped. The key advantage over the `boundary` library is cross-language coverage and Mermaid output. The key disadvantage is development cost - this is a custom tool that must be built and maintained. Elixir also provides `Code.ensure_loaded/1` and `Module.definitions_in/1` for runtime introspection, and `mix xref callers ModuleName` for targeted queries.
-
 ## Consequences
 
 - [tooling] New mix task `mix sdt.deps` or Python script; ~200-400 lines covering three language parsers and Mermaid output
 - [visualization] Mermaid diagrams showing module/file dependencies with SDT decision overlays; embeddable in variant files
 - [enforcement] No compile-time enforcement (unlike `boundary`); drift detection is a separate analysis step
 - [dx] Full-stack visibility at the cost of maintaining custom tooling
+
+## Evidence
+
+`mix xref graph` produces machine-readable dependency data in multiple formats (dot, stats, plain). For JS, import analysis can be done by regex on `import ... from` and `require(...)` statements - fragile but sufficient for a controlled codebase with consistent conventions. For CSS, Tailwind + DaisyUI uses `@apply` and `@plugin` which can be grepped. The key advantage over the `boundary` library is cross-language coverage and Mermaid output. The key disadvantage is development cost - this is a custom tool that must be built and maintained. Elixir also provides `Code.ensure_loaded/1` and `Module.definitions_in/1` for runtime introspection, and `mix xref callers ModuleName` for targeted queries.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -158,6 +158,10 @@ mix sdt.deps --cross-boundary
 mix sdt.deps --full
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: The custom parser breaks frequently on JS/CSS changes
@@ -166,6 +170,10 @@ mix sdt.deps --full
   respond: Switch to `boundary` library; custom tooling is no longer needed
 - observe: The mix task produces graphs too large to be useful
   respond: Add aggressive filtering: only show cross-boundary edges, or only show modules touched by a specific SDT decision
+
+## Artistic
+
+Build the lens; see everything.
 
 ## Historic
 

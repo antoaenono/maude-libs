@@ -11,6 +11,7 @@ children: []
 
 # SDF: Scaffolding Call Strategy
 
+
 ## Scenario
 
 Should the scaffolding LLM call (generating for/against points per option) be one call for all options or one call per option?
@@ -27,8 +28,6 @@ Should the scaffolding LLM call (generating for/against points per option) be on
 
 1. [L1] Token usage - one big call uses more tokens than small targeted calls
 2. [L2] Error handling complexity - if one option's points are malformed in a batch, we lose all
-
-
 
 ## Decision
 
@@ -57,15 +56,19 @@ accepting **that a malformed response affects all options at once (mitigated by 
 - [L2] If JSON is malformed, all options lose their points; retry the whole call
 - [L1] Prompt grows with each option; at 6 options + 6 priorities the prompt is ~1KB - fine
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [llm] One scaffold call per decision, fires on Options->Scaffolding transition
 - [output] JSON array, one entry per option (including "do nothing")
 - [error] Server retries once on parse failure; shows error state if second attempt fails
+
+## Evidence
+
+Batch prompting for structured analysis is standard practice with modern LLMs. Both Claude and GPT-4 handle multi-item JSON arrays reliably up to ~50 items. A single call with 6 options and 6 priorities produces a prompt of roughly 1KB, well within context limits. Cross-option consistency is the primary advantage: the model can avoid redundant points and make comparisons.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -89,10 +92,18 @@ Output JSON shape:
 ]}
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: One call times out due to large option count
   respond: Split into N parallel calls (one per option) and merge results
+
+## Artistic
+
+One call to see the whole board.
 
 ## Historic
 

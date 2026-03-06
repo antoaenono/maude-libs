@@ -11,6 +11,7 @@ children: []
 
 # SDF: LiveView Component Strategy
 
+
 ## Scenario
 
 How should we structure UI components across the decision stages - reusable LiveComponents, inline function components, or duplication?
@@ -26,8 +27,6 @@ How should we structure UI components across the decision stages - reusable Live
 
 1. [L1] Premature abstraction - extracting components too early creates wrong abstractions
 2. [L2] State complexity - stateful LiveComponents have their own assigns, adding another layer
-
-
 
 ## Decision
 
@@ -55,15 +54,19 @@ accepting **that function components require passing all assigns explicitly (ver
 
 - [L2] All assigns must be explicitly passed; no shared state between function component invocations
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [structure] Shared spatial layout as function component; per-stage content as slots or inline heex
 - [stateful] Only decision_live.ex is stateful; no child LiveComponents
 - [dx] All heex in decision_live.ex or co-located function components
+
+## Evidence
+
+Phoenix function components are compiled to plain HEEx at build time with no runtime process overhead. LiveComponents spawn their own process-like lifecycle with separate assigns, adding complexity when the parent already owns all state. The Phoenix team recommends function components as the default, promoting to LiveComponent only when independent state handling is needed.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -82,10 +85,18 @@ defp input_stage_layout(assigns) do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: A component needs its own event handling (e.g., inline modal with close button)
   respond: Promote to stateful LiveComponent at that point only
+
+## Artistic
+
+Functions compile away; LiveComponents don't.
 
 ## Historic
 

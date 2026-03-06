@@ -11,6 +11,7 @@ children: []
 
 # SDF: Automated Boundary and Dependency Visualization
 
+
 ## Scenario
 
 Should we adopt tooling to automatically discover and visualize code boundaries, module dependencies, and how the program uses its dependencies, so that architectural diagrams stay grounded in the actual codebase?
@@ -29,7 +30,6 @@ Should we adopt tooling to automatically discover and visualize code boundaries,
 1. [L1] Tooling investment - building or integrating analysis tools requires development effort and ongoing maintenance
 2. [L2] Noise - dependency graphs for non-trivial systems are large and overwhelming without careful filtering and layering
 3. [L3] Elixir coupling - Elixir-specific tools (mix xref, boundary) do not cover JS hooks, CSS, or infrastructure files
-
 
 ## Decision
 
@@ -58,14 +58,6 @@ accepting **that architectural understanding remains manual and dependent on ind
 - [M3] No automated detection of architectural drift; violations are caught only in code review
 - [M4] New contributors must read code to understand structure; no visual overview available
 
-## Artistic
-
-Read the code, all of it.
-
-## Evidence
-
-The current project has approximately 20 Elixir modules organized under lib/maude_libs/ and lib/maude_libs_web/. At this scale, a developer can hold the full architecture in their head. However, as the codebase grows and more decisions are made, the implicit understanding becomes fragile. Elixir already ships `mix xref` which can answer basic dependency questions, but it requires manual invocation and produces raw output that is not linked to SDT decisions.
-
 ## Consequences
 
 - [tooling] No new tools, dependencies, or mix tasks
@@ -73,9 +65,21 @@ The current project has approximately 20 Elixir modules organized under lib/maud
 - [enforcement] No compile-time boundary checks; cross-boundary calls are uncaught
 - [dx] Developers rely on IDE navigation and grep to understand structure
 
+## Evidence
+
+The current project has approximately 20 Elixir modules organized under lib/maude_libs/ and lib/maude_libs_web/. At this scale, a developer can hold the full architecture in their head. However, as the codebase grows and more decisions are made, the implicit understanding becomes fragile. Elixir already ships `mix xref` which can answer basic dependency questions, but it requires manual invocation and produces raw output that is not linked to SDT decisions.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
+
 ## Implementation
 
 No changes. Developers can manually run `mix xref graph` when needed.
+
+## Exceptions
+
+<!-- no exceptions -->
 
 ## Reconsider
 
@@ -85,6 +89,10 @@ No changes. Developers can manually run `mix xref graph` when needed.
   respond: Generate dependency visualizations to provide an architectural overview
 - observe: SDT decisions describe an architecture that no longer matches the code
   respond: Automated analysis would detect this drift
+
+## Artistic
+
+Read the code, all of it.
 
 ## Historic
 

@@ -11,6 +11,7 @@ children: []
 
 # SDF: LLM Response Format
 
+
 ## Scenario
 
 How do we ensure LLM responses are machine-parseable JSON that maps predictably to our Elixir structs?
@@ -26,7 +27,6 @@ How do we ensure LLM responses are machine-parseable JSON that maps predictably 
 
 1. [L1] Hallucinated fields - model adding extra keys we don't expect
 2. [L2] Markdown wrapping - model wrapping JSON in ```json ... ``` fences
-
 
 ## Decision
 
@@ -53,19 +53,19 @@ accepting **that every LLM response requires ad-hoc regex or string parsing, wit
 - [L1] No guardrails against unexpected output structure
 - [L2] No way to prevent markdown wrapping without explicit instruction
 
-## Artistic
-
-Roll the dice on every response.
-
-## Evidence
-
-Without structured output constraints, LLM responses vary in format across calls. Extraction relies on regex or string splitting, which breaks when the model rephrases or restructures its output.
-
 ## Consequences
 
 - [prompts] No schema instructions in prompts
 - [parsing] Ad-hoc regex or string extraction per response type
 - [resilience] High failure rate on format changes; fragile pipeline
+
+## Evidence
+
+Without structured output constraints, LLM responses vary in format across calls. Extraction relies on regex or string splitting, which breaks when the model rephrases or restructures its output.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -77,10 +77,18 @@ case Regex.run(~r/synthesis[:\s]+(.+)/i, response_text) do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Never - this option was rejected at decision time
   respond: N/A
+
+## Artistic
+
+Roll the dice on every response.
 
 ## Historic
 

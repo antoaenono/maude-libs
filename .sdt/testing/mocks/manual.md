@@ -11,6 +11,7 @@ children: []
 
 # SDF: Test Mock Implementation Strategy
 
+
 ## Scenario
 
 Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?
@@ -30,8 +31,6 @@ Which mock implementation strategy should we use for isolating external dependen
 2. [L2] Dependency count - adding a mock library means another hex dependency to maintain and keep updated
 3. [L3] Setup boilerplate - per-test mock setup code (expect/verify calls) can be verbose compared to a simple module swap
 4. [L4] Learning curve - team members need to learn a new API vs simple module pattern
-
-
 
 ## Decision
 
@@ -65,14 +64,6 @@ accepting **that we cannot verify mock call arguments, tests share global mock s
 - [M4] Cannot run mock-dependent tests with `async: true` due to shared global config
 - [L3] Adding a new mock behavior (e.g., partial failure) requires creating a whole new module
 
-## Artistic
-
-Good enough until it isn't.
-
-## Evidence
-
-The current hand-rolled approach works: 295 tests pass, the suite runs in seconds, and no API costs are incurred. The pain points are theoretical for now - global mock state hasn't caused a real test isolation bug yet because the suite is small and runs with `async: false`. The risk grows as more tests are added and the `async: false` constraint becomes a bottleneck. We already hit the "new module per behavior" friction when adding `LLM.ErrorMock` for the error handling feature.
-
 ## Consequences
 
 - [deps] No new dependencies
@@ -80,6 +71,14 @@ The current hand-rolled approach works: 295 tests pass, the suite runs in second
 - [test-quality] Tests verify behavior but not mock call arguments
 - [concurrency] Tests using mocks must remain `async: false`
 - [cost] No API costs in tests
+
+## Evidence
+
+The current hand-rolled approach works: 295 tests pass, the suite runs in seconds, and no API costs are incurred. The pain points are theoretical for now - global mock state hasn't caused a real test isolation bug yet because the suite is small and runs with `async: false`. The risk grows as more tests are added and the `async: false` constraint becomes a bottleneck. We already hit the "new module per behavior" friction when adding `LLM.ErrorMock` for the error handling feature.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -114,6 +113,10 @@ setup do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Test suite grows large enough that `async: false` becomes a bottleneck
@@ -122,6 +125,10 @@ end
   respond: Mox expectations would have caught the argument mismatch
 - observe: Need a third mock behavior (e.g., partial success)
   respond: Creating yet another module is a sign the hand-rolled approach doesn't scale
+
+## Artistic
+
+Good enough until it isn't.
 
 ## Historic
 

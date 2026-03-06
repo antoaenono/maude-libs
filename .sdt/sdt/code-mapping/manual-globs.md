@@ -11,6 +11,7 @@ children: []
 
 # SDF: Decision-to-Code Traceability
 
+
 ## Scenario
 
 How should each SDT decision map to the source files it touches, so that decisions are traceable to code and vice versa?
@@ -28,7 +29,6 @@ How should each SDT decision map to the source files it touches, so that decisio
 1. [L1] Maintenance overhead - path mappings that drift from reality become misleading
 2. [L2] Authoring friction - adding file paths to every decision increases scaffolding cost
 3. [L3] False precision - overly specific paths break on refactors; overly broad globs are useless
-
 
 ## Decision
 
@@ -59,20 +59,20 @@ accepting **manual maintenance of glob lists and the risk of drift if paths are 
 - [L1] No automated check that globs still resolve to existing files (without additional tooling)
 - [L3] Choosing the right granularity is a judgment call: `lib/**/*` is too broad; `lib/maude_libs/decision/core.ex:42` is too narrow
 
-## Artistic
-
-Name what you touch.
-
-## Evidence
-
-The convention of listing affected files is common in changelogs (CHANGELOG.md) and migration guides. Terraform and Pulumi track which resources each module manages. In the SDT context, a rough mapping is already implicit in the Implementation section's code examples - the `touches` field makes it explicit and machine-readable. LLMs can both generate and maintain these glob lists during scaffolding and refactoring, reducing the manual burden. A glob like `test/maude_libs/decision/*_test.exs` is resilient to new test files being added while still capturing the right scope.
-
 ## Consequences
 
 - [authoring] New `touches` field in YAML frontmatter of accepted variants; optional for proposed variants
 - [tooling] sdt.py gains a `resolve` subcommand: given a file path, returns all decisions whose `touches` globs match it
 - [traceability] Bidirectional: decision -> files (expand globs) and file -> decisions (match against all globs)
 - [dx] LLM agents and IDE plugins can use the resolve command to surface relevant decisions contextually
+
+## Evidence
+
+The convention of listing affected files is common in changelogs (CHANGELOG.md) and migration guides. Terraform and Pulumi track which resources each module manages. In the SDT context, a rough mapping is already implicit in the Implementation section's code examples - the `touches` field makes it explicit and machine-readable. LLMs can both generate and maintain these glob lists during scaffolding and refactoring, reducing the manual burden. A glob like `test/maude_libs/decision/*_test.exs` is resilient to new test files being added while still capturing the right scope.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -140,6 +140,10 @@ When an LLM agent is editing a file, the workflow is:
 2. Load the matched SDT files as context
 3. The LLM now knows which architectural decisions constrain the code it is modifying
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Glob lists are frequently stale after refactors despite LLM assistance
@@ -148,6 +152,10 @@ When an LLM agent is editing a file, the workflow is:
   respond: Simplify to plain file paths without glob support; globs add complexity for little benefit at small scale
 - observe: Developers forget to update touches when adding new files
   respond: Add a CI check or pre-commit hook that warns when new files match no decision's touches list
+
+## Artistic
+
+Name what you touch.
 
 ## Historic
 

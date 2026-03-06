@@ -11,6 +11,7 @@ children: []
 
 # SDF: Session-Only Identity (No Authentication)
 
+
 ## Scenario
 
 How do we identify participants across LiveView connections without building an authentication system?
@@ -26,8 +27,6 @@ How do we identify participants across LiveView connections without building an 
 
 1. [L1] Identity spoofing - anyone can claim any username; no verification
 2. [L2] Session loss - clearing cookies loses the identity; no recovery
-
-
 
 ## Decision
 
@@ -56,16 +55,20 @@ accepting **that usernames are not unique-enforced, sessions are cookie-bound, a
 - [L1] Two users can pick the same username; first-come-first-served in practice
 - [L2] Private browsing or cookie clear = new identity; no way to reclaim
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [routing] GET /join renders the username form; POST /session stores it and redirects
 - [session] `put_session(conn, :username, username)` - standard Plug session
 - [liveview] All LiveViews read `session["username"]` in mount/3
 - [registry] UserRegistry (ETS) tracks all seen usernames for invite autocomplete; not for auth
+
+## Evidence
+
+Plug sessions use signed, encrypted cookies by default in Phoenix. No server-side session store is needed. The session cookie persists across page refreshes and browser restarts. This is the same identity model used by most hackathon prototypes, game jams, and demos where authentication infrastructure would be disproportionate.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -83,12 +86,20 @@ def create(conn, %{"username" => username}) do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Username collisions cause confusion in decisions
   respond: Add uniqueness check against UserRegistry; show error on /join if taken
 - observe: Need to persist decisions across sessions (e.g., "my decisions" page)
   respond: Add lightweight auth (magic link email, or OAuth) and associate decisions with accounts
+
+## Artistic
+
+Pick a name, get a cookie, start deciding.
 
 ## Historic
 

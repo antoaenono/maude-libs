@@ -11,6 +11,7 @@ children: []
 
 # SDF: Verification & Dev Workflow Feedback
 
+
 ## Scenario
 
 How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?
@@ -29,8 +30,6 @@ How can we increase verification feedback and reduce the cost of testing multi-u
 1. [L1] Manual repetition - having to re-click through Lobby -> Scenario -> Priorities every time the server restarts
 2. [L2] Test brittleness - tests that break from minor UI changes rather than actual behavior changes
 3. [L3] Cognitive load - mental overhead of maintaining multiple browser tabs and remembering where you left off
-
-
 
 ## Decision
 
@@ -61,10 +60,6 @@ accepting **no automated regression coverage - this is a dev productivity tool, 
 - [M4] No automated assertions - regressions can still slip through
 - [L2] Not applicable (no tests to break), but seed route itself could drift from real stage shapes
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [dx] Developer can jump to any stage in one URL; massive iteration speed boost
@@ -74,7 +69,11 @@ accepting **no automated regression coverage - this is a dev productivity tool, 
 
 ## Evidence
 
-<!-- optional epistemological layer -->
+Dev seed routes adapt the Rails `db:seed` pattern for in-memory GenServer state. They provide instant stage access for manual testing and demos but offer no automated regression coverage. The pattern is common in Phoenix apps that need to demonstrate multi-step flows without clicking through every step.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -114,12 +113,20 @@ def create_at_stage("priorities", users) do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: You find yourself manually testing the same flow repeatedly even with seeds
   respond: Add LiveView integration tests for that flow
 - observe: Seed routes drift from real stage shapes after a Core refactor
   respond: Share builders between seeds and tests
+
+## Artistic
+
+One URL to any stage.
 
 ## Historic
 

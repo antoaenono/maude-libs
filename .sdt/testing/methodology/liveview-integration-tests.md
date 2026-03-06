@@ -11,6 +11,7 @@ children: []
 
 # SDF: Verification & Dev Workflow Feedback
 
+
 ## Scenario
 
 How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?
@@ -29,8 +30,6 @@ How can we increase verification feedback and reduce the cost of testing multi-u
 1. [L1] Manual repetition - having to re-click through Lobby -> Scenario -> Priorities every time the server restarts
 2. [L2] Test brittleness - tests that break from minor UI changes rather than actual behavior changes
 3. [L3] Cognitive load - mental overhead of maintaining multiple browser tabs and remembering where you left off
-
-
 
 ## Decision
 
@@ -61,10 +60,6 @@ accepting **no visual/JS hook coverage and upfront time investment writing test 
 - [M2] Tests exercise full flows, but don't provide ad-hoc "jump to stage X" during dev (still need manual browser for exploratory UI work)
 - [L3] Writing the initial test suite has a learning curve, though Phoenix.LiveViewTest is well-documented
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [dx] `mix test` becomes the primary verification feedback loop for multi-user workflows
@@ -74,7 +69,11 @@ accepting **no visual/JS hook coverage and upfront time investment writing test 
 
 ## Evidence
 
-<!-- optional epistemological layer -->
+Phoenix.LiveViewTest has been available since LiveView 0.x and supports multi-connection testing, event simulation, and HTML assertion. Tests run in-process with the full Phoenix stack (PubSub, Endpoint) but without a browser. This is the recommended testing approach in the Phoenix documentation.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -137,12 +136,20 @@ defmodule MaudeLibsWeb.DecisionLiveTest do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: JS hooks or canvas interactions cause bugs that LiveViewTest can't catch
   respond: Add targeted Wallaby/Playwright tests for JS-heavy features only
 - observe: Test setup for multi-user flows is too verbose
   respond: Extract shared builder/helper modules (similar to existing `decision()` helpers in core_test)
+
+## Artistic
+
+Test the socket, not the stylesheet.
 
 ## Historic
 

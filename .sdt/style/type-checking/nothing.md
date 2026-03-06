@@ -11,6 +11,7 @@ children: []
 
 # SDF: Type Checking Strategy
 
+
 ## Scenario
 
 How should we utilize Elixir's type system to improve code quality and catch bugs?
@@ -29,8 +30,6 @@ How should we utilize Elixir's type system to improve code quality and catch bug
 1. [L1] False positive noise - type checkers may flag correct code, requiring workarounds or suppressions
 2. [L2] Ecosystem fragmentation - Dialyzer specs, gradual types, and Hammox all read different things; unclear which source of truth to invest in
 3. [L3] Premature commitment - investing heavily in `@spec` annotations that may be replaced by new type syntax in v1.21+
-
-
 
 ## Decision
 
@@ -60,14 +59,6 @@ accepting **that type-related bugs are only caught at runtime or by tests, and w
 - [M3] Refactors have no type safety net
 - [M4] Only the LLM behaviour boundary has any type enforcement
 
-## Artistic
-
-Ship it and see what breaks.
-
-## Evidence
-
-The current codebase has exactly one type boundary: `@callback` specs on `MaudeLibs.LLM`. Every other function has no type annotation. The gradual type system (active since Elixir 1.17) performs some inference during `mix compile`, but without explicit annotations or Dialyzer, the coverage is minimal. Type bugs are caught by tests or at runtime.
-
 ## Consequences
 
 - [deps] No new dependencies
@@ -75,9 +66,21 @@ The current codebase has exactly one type boundary: `@callback` specs on `MaudeL
 - [dx] No compile-time type feedback
 - [migration] No work needed; no future migration debt
 
+## Evidence
+
+The current codebase has exactly one type boundary: `@callback` specs on `MaudeLibs.LLM`. Every other function has no type annotation. The gradual type system (active since Elixir 1.17) performs some inference during `mix compile`, but without explicit annotations or Dialyzer, the coverage is minimal. Type bugs are caught by tests or at runtime.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
+
 ## Implementation
 
 Status quo. The only type annotations are `@callback` specs on the `MaudeLibs.LLM` behaviour. No `@spec` or `@type` elsewhere. No type checking tools.
+
+## Exceptions
+
+<!-- no exceptions -->
 
 ## Reconsider
 
@@ -85,6 +88,10 @@ Status quo. The only type annotations are `@callback` specs on the `MaudeLibs.LL
   respond: Adopt at least `@spec` annotations on public APIs
 - observe: Elixir's gradual type system reaches maturity (v1.21+)
   respond: Adopt it with minimal migration cost since there's nothing to convert
+
+## Artistic
+
+Ship it and see what breaks.
 
 ## Historic
 

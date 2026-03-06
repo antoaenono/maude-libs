@@ -11,6 +11,7 @@ children: []
 
 # SDF: Decision-to-Code Traceability
 
+
 ## Scenario
 
 How should each SDT decision map to the source files it touches, so that decisions are traceable to code and vice versa?
@@ -28,7 +29,6 @@ How should each SDT decision map to the source files it touches, so that decisio
 1. [L1] Maintenance overhead - path mappings that drift from reality become misleading
 2. [L2] Authoring friction - adding file paths to every decision increases scaffolding cost
 3. [L3] False precision - overly specific paths break on refactors; overly broad globs are useless
-
 
 ## Decision
 
@@ -56,14 +56,6 @@ accepting **that traceability between decisions and code remains implicit and ma
 - [M2] Reconsidering a decision requires manually auditing the codebase to find affected files
 - [M3] LLMs working on a file have no automatic way to discover relevant architectural context
 
-## Artistic
-
-The code knows nothing of its reasons.
-
-## Evidence
-
-The current SDT corpus has 28 decisions. Some have clear code affinity (e.g., testing/mocks maps obviously to test/ and config/test.exs), but the mapping is implicit. A developer modifying lib/maude_libs/decision/core.ex would need to know to check state-machine/core-architecture - this knowledge lives only in people's heads. As the codebase and decision count grow, this implicit mapping becomes increasingly fragile.
-
 ## Consequences
 
 - [authoring] No change to variant file format
@@ -71,9 +63,21 @@ The current SDT corpus has 28 decisions. Some have clear code affinity (e.g., te
 - [traceability] Decisions and code remain disconnected; grep is the only discovery mechanism
 - [dx] Developers must know which decisions exist to consult them
 
+## Evidence
+
+The current SDT corpus has 28 decisions. Some have clear code affinity (e.g., testing/mocks maps obviously to test/ and config/test.exs), but the mapping is implicit. A developer modifying lib/maude_libs/decision/core.ex would need to know to check state-machine/core-architecture - this knowledge lives only in people's heads. As the codebase and decision count grow, this implicit mapping becomes increasingly fragile.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
+
 ## Implementation
 
 No changes. Variant files continue without file path metadata.
+
+## Exceptions
+
+<!-- no exceptions -->
 
 ## Reconsider
 
@@ -81,6 +85,10 @@ No changes. Variant files continue without file path metadata.
   respond: Add file mappings to prevent this class of oversight
 - observe: LLM agents are given SDT context but cannot match it to the code they are editing
   respond: File path mappings would let tooling auto-load relevant decisions
+
+## Artistic
+
+The code knows nothing of its reasons.
 
 ## Historic
 

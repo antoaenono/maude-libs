@@ -11,6 +11,7 @@ children: []
 
 # SDF: Canvas Force Layout Strategy
 
+
 ## Scenario
 
 Which approach should we use to compute non-overlapping, center-clustered positions for decision circles on the canvas homepage, given that the current hand-rolled server-side simulation oscillates and fails to converge at 8+ nodes?
@@ -28,8 +29,6 @@ Which approach should we use to compute non-overlapping, center-clustered positi
 1. [L1] Settling time - layout should reach equilibrium within 1-2 ticks, not 10+
 2. [L2] Architectural complexity - avoid introducing new runtimes, build steps, or JS interop layers
 3. [L3] Tuning surface - fewer knobs to fiddle with
-
-
 
 ## Decision
 
@@ -56,10 +55,6 @@ accepting **continued oscillation, convergence failures at 8+ nodes, and unpredi
 - [M3] Multiple tuning attempts have failed - the algorithm is fundamentally unstable for this use case
 - [L1] Settling takes 10+ ticks (15+ seconds) when it converges at all
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [deps] No change
@@ -67,16 +62,32 @@ accepting **continued oscillation, convergence failures at 8+ nodes, and unpredi
 - [dx] Continued debugging and tuning attempts with no guarantee of resolution
 - [ux] Users see jittery, unsettled circles for extended periods
 
-<!-- evidence -->
+The current hand-rolled server-side simulation has gone through 5+ iterations of constant tuning, algorithm changes (inverse-square to Fruchterman-Reingold to spring-electrical), and structural rewrites (velocity-based to displacement-based). None have produced reliable convergence at 8+ nodes, indicating a fundamental algorithmic limitation rather than a tuning problem.
+
+## Evidence
+
+The current hand-rolled server-side simulation has gone through 5+ iterations of constant tuning, algorithm changes (inverse-square to Fruchterman-Reingold to spring-electrical), and structural rewrites (velocity-based to displacement-based). None have produced reliable convergence at 8+ nodes, indicating a fundamental algorithmic limitation rather than a tuning problem.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
 Continue with `canvas_server.ex` as-is. Accept the limitations.
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: A simple constant tweak finally produces stable behavior at 12+ nodes
   respond: Keep current approach; document the working constants
+
+## Artistic
+
+The devil you know.
 
 ## Historic
 

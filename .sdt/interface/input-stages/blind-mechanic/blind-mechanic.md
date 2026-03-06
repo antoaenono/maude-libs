@@ -11,6 +11,7 @@ children: []
 
 # SDF: Input Reveal Mechanic
 
+
 ## Scenario
 
 When multiple participants submit priorities or options, when should each participant's input become visible to the others?
@@ -27,8 +28,6 @@ When multiple participants submit priorities or options, when should each partic
 
 1. [L1] Groupthink - seeing others' inputs before submitting may anchor your own
 2. [L2] Implementation complexity - rolling reveal requires tracking "has submitted" state per user
-
-
 
 ## Decision
 
@@ -56,15 +55,19 @@ accepting **the mild anchoring risk (mitigated by the ? modal framing which enco
 
 - [L1] Some anchoring risk; mitigated by modal framing that asks for your dimension first
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [ux] All inputs render live via PubSub as participants type
 - [flow] Confirm = done with entry (triggers Claude suggestions when all confirm); Ready = advance
 - [complexity] No hidden/revealed state tracking needed in Core
+
+## Evidence
+
+Planning Poker and Delphi methods use blind reveals to reduce anchoring. However, research on group decision-making shows that transparency during input reduces anxiety about participation, and anchoring effects are mitigated when participants have already formed their own views before seeing others. The confirm button provides the cognitive boundary.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -78,10 +81,18 @@ Core.handle(decision, {:confirm_priority, user})
 # -> if MapSet.subset?(connected, confirmed): emit {:async_llm, :suggest_priorities}
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Users complain of anchoring - their inputs are shaped by seeing others first
   respond: Switch to rolling reveal: hide inputs until user has confirmed their own entry
+
+## Artistic
+
+Radical transparency builds trust faster than staged reveals.
 
 ## Historic
 

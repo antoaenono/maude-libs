@@ -11,6 +11,7 @@ children: []
 
 # SDF: Claude Suggestion Integration Model
 
+
 ## Scenario
 
 How should Claude's suggested priorities and options be presented and adopted by participants?
@@ -27,8 +28,6 @@ How should Claude's suggested priorities and options be presented and adopted by
 
 1. [L1] Coordination overhead - participants voting on each suggestion adds a mini-decision within the decision
 2. [L2] Confusion - suggestions appearing before all humans have confirmed is noisy
-
-
 
 ## Decision
 
@@ -57,15 +56,19 @@ accepting **that "last write wins" may cause brief flicker if two people toggle 
 
 - [L2] Suggestions only appear after all confirmed - no noise during active entry
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [data] suggestions: [{text, direction, included: bool}] in stage struct
 - [trigger] LLM suggestion call fires when MapSet.subset?(connected, confirmed)
 - [ux] Suggestions rendered in center with visual distinction (dashed border, "Claude" label)
+
+## Evidence
+
+Google Docs-style last-write-wins is the simplest conflict resolution model, appropriate for 2-4 co-located participants who can resolve disagreements verbally. At this scale, toggle conflicts are effectively impossible; even at 10 users, the probability of simultaneous toggles on the same suggestion within a PubSub round-trip is negligible.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -78,10 +81,18 @@ def handle(d, {:toggle_suggestion, index, included}) do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Last-write-wins causes confusion when two users rapidly toggle the same suggestion
   respond: Add optimistic locking or switch to majority vote (2/4 participants = include)
+
+## Artistic
+
+One click to include, one click to exclude.
 
 ## Historic
 

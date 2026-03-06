@@ -11,6 +11,7 @@ children: []
 
 # SDF: Verification & Dev Workflow Feedback
 
+
 ## Scenario
 
 How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?
@@ -29,8 +30,6 @@ How can we increase verification feedback and reduce the cost of testing multi-u
 1. [L1] Manual repetition - having to re-click through Lobby -> Scenario -> Priorities every time the server restarts
 2. [L2] Test brittleness - tests that break from minor UI changes rather than actual behavior changes
 3. [L3] Cognitive load - mental overhead of maintaining multiple browser tabs and remembering where you left off
-
-
 
 ## Decision
 
@@ -61,10 +60,6 @@ accepting **slower test execution, ChromeDriver dependency, and higher test main
 - [L2] Extremely brittle: tests break when CSS classes change, elements move, animations alter timing, or DOM structure shifts
 - [L3] Debugging browser test failures is harder than in-process LiveView test failures - screenshots, timeouts, flaky selectors
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [dx] CI pipeline slows significantly; local test runs require ChromeDriver/Playwright installed
@@ -75,7 +70,11 @@ accepting **slower test execution, ChromeDriver dependency, and higher test main
 
 ## Evidence
 
-<!-- optional epistemological layer -->
+Wallaby and Playwright provide the highest fidelity testing by driving a real browser. However, browser tests are 10-100x slower than in-process LiveViewTest and are prone to flakiness from ChromeDriver timing issues. The maintenance burden is significant for a prototype where the UI changes frequently.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -122,12 +121,20 @@ defmodule MaudeLibsWeb.E2E.DecisionFlowTest do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Browser tests take >30s and block CI
   respond: Move to a separate "e2e" CI job that runs on merge only, not on every push
 - observe: Tests break on every UI change despite behavior being correct
   respond: Switch to data-testid selectors and consider replacing with LiveViewTest for non-visual assertions
+
+## Artistic
+
+If the browser sees it, the test sees it.
 
 ## Historic
 

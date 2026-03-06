@@ -11,6 +11,7 @@ children: []
 
 # SDF: Verification & Dev Workflow Feedback
 
+
 ## Scenario
 
 How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?
@@ -29,8 +30,6 @@ How can we increase verification feedback and reduce the cost of testing multi-u
 1. [L1] Manual repetition - having to re-click through Lobby -> Scenario -> Priorities every time the server restarts
 2. [L2] Test brittleness - tests that break from minor UI changes rather than actual behavior changes
 3. [L3] Cognitive load - mental overhead of maintaining multiple browser tabs and remembering where you left off
-
-
 
 ## Decision
 
@@ -63,10 +62,6 @@ accepting **no visual/JS-hook coverage (add browser automation later if needed) 
 - [M4] JS hooks and canvas animations remain untested (acceptable tradeoff for now; add Wallaby later if needed)
 - [L2] Seed routes could drift from real stage shapes if builders aren't shared with tests
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [dx] Two new feedback loops: `mix test` for automated verification, `/dev/seed/:stage` for manual exploratory UI work
@@ -77,7 +72,11 @@ accepting **no visual/JS-hook coverage (add browser automation later if needed) 
 
 ## Evidence
 
-<!-- optional epistemological layer -->
+LiveViewTest runs in-process at millisecond speed with full Phoenix stack fidelity. Dev seed routes provide instant manual access to any stage without clicking through the flow. Together they cover both automated regression and rapid manual verification with zero new dependencies beyond what Phoenix provides.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -194,6 +193,10 @@ defmodule MaudeLibsWeb.DecisionLiveTest do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: JS hook or canvas bugs keep slipping through
@@ -202,6 +205,10 @@ end
   respond: Add a test that validates each builder produces a state that Core.handle/2 accepts
 - observe: Builder module grows complex with many stage permutations
   respond: Consider a pipeline API: `Builders.new(users) |> Builders.advance_to(:priorities)`
+
+## Artistic
+
+Seed the state, test the stack, skip the browser.
 
 ## Historic
 

@@ -11,6 +11,7 @@ children: []
 
 # SDF: Decision-to-Code Traceability
 
+
 ## Scenario
 
 How should each SDT decision map to the source files it touches, so that decisions are traceable to code and vice versa?
@@ -28,7 +29,6 @@ How should each SDT decision map to the source files it touches, so that decisio
 1. [L1] Maintenance overhead - path mappings that drift from reality become misleading
 2. [L2] Authoring friction - adding file paths to every decision increases scaffolding cost
 3. [L3] False precision - overly specific paths break on refactors; overly broad globs are useless
-
 
 ## Decision
 
@@ -60,20 +60,20 @@ accepting **significant tooling investment, heuristic imprecision in mapping dec
 - [L3] Different decisions operate at different granularities: some are module-level (core-architecture), some are line-level (debounced-calls), some are cross-cutting (type-checking); a single analysis approach cannot capture all of them
 - [M1] Elixir-specific tooling does not cover non-Elixir files (JS hooks, CSS, config files, Dockerfiles)
 
-## Artistic
-
-Let the compiler tell you what you touched.
-
-## Evidence
-
-Elixir ships with `mix xref` which can produce module-level and function-level dependency graphs. The `boundary` library by Sasa Juric adds compile-time boundary enforcement and visualization (`mix boundary.visualize`). Both tools operate on the Elixir AST and can produce machine-readable output. However, neither tool knows about SDT decisions - the gap is mapping from "a decision about debouncing" to "the modules that implement debouncing." This requires either: (a) annotations in code linking modules to decisions, (b) heuristics based on module names/paths matching SDT directory names, or (c) a manually seeded mapping that the tool validates and extends. Option (b) works well when SDT paths mirror code paths (state-machine/ -> lib/maude_libs/decision/) but breaks for cross-cutting decisions.
-
 ## Consequences
 
 - [authoring] No manual path maintenance; tooling generates mappings automatically
 - [tooling] New mix task or sdt.py subcommand that shells out to `mix xref` and parses output; significant development effort
 - [traceability] Accurate for Elixir modules; incomplete for JS, CSS, config, and cross-cutting concerns
 - [dx] Developers and LLMs get computed mappings; always fresh but may miss non-Elixir files
+
+## Evidence
+
+Elixir ships with `mix xref` which can produce module-level and function-level dependency graphs. The `boundary` library by Sasa Juric adds compile-time boundary enforcement and visualization (`mix boundary.visualize`). Both tools operate on the Elixir AST and can produce machine-readable output. However, neither tool knows about SDT decisions - the gap is mapping from "a decision about debouncing" to "the modules that implement debouncing." This requires either: (a) annotations in code linking modules to decisions, (b) heuristics based on module names/paths matching SDT directory names, or (c) a manually seeded mapping that the tool validates and extends. Option (b) works well when SDT paths mirror code paths (state-machine/ -> lib/maude_libs/decision/) but breaks for cross-cutting decisions.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -135,6 +135,10 @@ python3 ~/.claude/skills/sdt/sdt.py xref-validate --sdt-root .sdt
 # state-machine/core-architecture: MISSING from touches: lib/maude_libs/decision/effects.ex (called by Core)
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: The heuristic mapper produces too many false positives or false negatives
@@ -143,6 +147,10 @@ python3 ~/.claude/skills/sdt/sdt.py xref-validate --sdt-root .sdt
   respond: Use manual globs for non-Elixir files; automated analysis only covers .ex/.exs
 - observe: The `boundary` library is adopted project-wide
   respond: Use boundary definitions as the primary mapping mechanism; SDT decisions align with boundary groups
+
+## Artistic
+
+Let the compiler tell you what you touched.
 
 ## Historic
 

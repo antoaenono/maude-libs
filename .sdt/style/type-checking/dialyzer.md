@@ -11,6 +11,7 @@ children: []
 
 # SDF: Type Checking Strategy
 
+
 ## Scenario
 
 How should we utilize Elixir's type system to improve code quality and catch bugs?
@@ -29,8 +30,6 @@ How should we utilize Elixir's type system to improve code quality and catch bug
 1. [L1] False positive noise - type checkers may flag correct code, requiring workarounds or suppressions
 2. [L2] Ecosystem fragmentation - Dialyzer specs, gradual types, and Hammox all read different things; unclear which source of truth to invest in
 3. [L3] Premature commitment - investing heavily in `@spec` annotations that may be replaced by new type syntax in v1.21+
-
-
 
 ## Decision
 
@@ -63,20 +62,20 @@ accepting **that Dialyzer is conservative and misses some bugs, PLT builds are s
 - [L3] `@spec` annotations invested now may need rewriting when gradual type signatures land (v1.21+)
 - [M1] First PLT build is slow (minutes); subsequent runs are incremental
 
-## Artistic
-
-No false positives, no excuses.
-
-## Evidence
-
-Dialyzer's success typing approach guarantees zero false positives - if it reports an error, it is a real bug. The tradeoff is that it misses bugs that a more aggressive type checker would catch. First PLT build takes 2-3 minutes but is cached; incremental runs take seconds. Dialyxir is the most downloaded Elixir dev tool on Hex. However, the gradual type system is explicitly designed to replace Dialyzer, with `@spec`/`@type` annotations planned for deprecation once the new type signature syntax lands in v1.21+.
-
 ## Consequences
 
 - [deps] Adds `{:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}` to mix.exs
 - [coverage] All public functions annotated with `@spec`; Dialyzer checks entire project
 - [dx] `mix dialyzer` provides static analysis feedback; first run builds PLT cache
 - [migration] Moderate annotation effort now; specs may need syntax migration for gradual types later
+
+## Evidence
+
+Dialyzer's success typing approach guarantees zero false positives - if it reports an error, it is a real bug. The tradeoff is that it misses bugs that a more aggressive type checker would catch. First PLT build takes 2-3 minutes but is cached; incremental runs take seconds. Dialyxir is the most downloaded Elixir dev tool on Hex. However, the gradual type system is explicitly designed to replace Dialyzer, with `@spec`/`@type` annotations planned for deprecation once the new type signature syntax lands in v1.21+.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -106,6 +105,10 @@ mix dialyzer --plt  # ~2-3 minutes first time, cached after
 mix dialyzer        # seconds on subsequent runs
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Gradual type system (v1.21+) covers everything Dialyzer does at compile time
@@ -114,6 +117,10 @@ mix dialyzer        # seconds on subsequent runs
   respond: Accept the limitation or supplement with the gradual type system in parallel
 - observe: PLT builds slow down the development workflow
   respond: Only run Dialyzer in precommit/CI, not on every save
+
+## Artistic
+
+No false positives, no excuses.
 
 ## Historic
 

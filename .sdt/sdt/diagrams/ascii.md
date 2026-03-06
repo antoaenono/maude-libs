@@ -11,6 +11,7 @@ children: []
 
 # SDF: Visual Diagrams in SDT Variant Files
 
+
 ## Scenario
 
 Should SDT variant files include visual diagrams, and if so, in what format (Mermaid, ASCII, or both)? Diagrams must remain coherent across parent-child decision trees so that zooming into a child decision shows a consistent slice of the parent's diagram.
@@ -29,7 +30,6 @@ Should SDT variant files include visual diagrams, and if so, in what format (Mer
 1. [L1] Authoring friction - adding diagrams to every variant increases the cost of scaffolding and maintaining decisions
 2. [L2] Staleness - diagrams that drift from the prose or implementation become misleading rather than helpful
 3. [L3] Format lock-in - choosing one diagram format constrains future tooling and rendering pipelines
-
 
 ## Decision
 
@@ -60,14 +60,6 @@ accepting **limited expressiveness, harder maintenance, and poor machine-parseab
 - [L2] ASCII diagrams are the most brittle to edit; a one-character change can misalign the entire diagram
 - [M4] While ASCII renders everywhere, it looks worse than Mermaid SVG on GitHub and lacks interactivity
 
-## Artistic
-
-If it fits in 80 columns, it fits in your head.
-
-## Evidence
-
-ASCII diagrams have a long history in software documentation (RFC documents, Linux kernel comments, Go standard library). They excel in contexts where no rendering pipeline exists. However, they are increasingly uncommon in modern documentation systems that support Mermaid, PlantUML, or embedded SVG. The key weakness for the SDT use case is M1: LLMs struggle to extract meaning from ASCII art because tokenizers fragment the spatial layout. A Mermaid flowchart like `A --> B` is unambiguous; an ASCII arrow like `[A] ----> [B]` requires spatial reasoning that current LLMs handle unreliably.
-
 ## Consequences
 
 - [authoring] New `## Diagram` section with fenced code block; manual ASCII drawing per variant
@@ -75,11 +67,10 @@ ASCII diagrams have a long history in software documentation (RFC documents, Lin
 - [coherence] No automated parent-child consistency check; coherence is a visual convention only
 - [readability] Universally readable but limited in expressiveness; complex architectures become unwieldy
 
-## Implementation
+## Evidence
 
-### Variant file addition
+ASCII diagrams have a long history in software documentation (RFC documents, Linux kernel comments, Go standard library). They excel in contexts where no rendering pipeline exists. However, they are increasingly uncommon in modern documentation systems that support Mermaid, PlantUML, or embedded SVG. The key weakness for the SDT use case is M1: LLMs struggle to extract meaning from ASCII art because tokenizers fragment the spatial layout. A Mermaid flowchart like `A --> B` is unambiguous; an ASCII arrow like `[A] ----> [B]` requires spatial reasoning that current LLMs handle unreliably.
 
-```markdown
 ## Diagram
 
 `` `
@@ -94,7 +85,6 @@ ASCII diagrams have a long history in software documentation (RFC documents, Lin
                                           |              |               |
                                        PubSub          Task           Timer
 `` `
-```
 
 ### Convention for parent-child diagrams
 
@@ -121,13 +111,13 @@ Child (`state-machine/debounced-calls`):
 
 The SDT scaffolding skill does not auto-generate ASCII diagrams (too error-prone). It inserts a placeholder:
 
-```markdown
-## Diagram
-
-`` `
-<!-- draw architecture here -->
-`` `
 ```
+Diagram placeholder
+```
+
+## Exceptions
+
+<!-- no exceptions -->
 
 ## Reconsider
 
@@ -137,6 +127,10 @@ The SDT scaffolding skill does not auto-generate ASCII diagrams (too error-prone
   respond: ASCII provides no advantage over Mermaid in these contexts; switch to Mermaid
 - observe: Terminal-only workflow becomes important (SSH servers, CI logs)
   respond: ASCII remains the only option for these contexts; consider dual-format (Mermaid primary, ASCII generated)
+
+## Artistic
+
+If it fits in 80 columns, it fits in your head.
 
 ## Historic
 

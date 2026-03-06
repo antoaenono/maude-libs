@@ -11,6 +11,7 @@ children: []
 
 # SDF: CSS Framework
 
+
 ## Scenario
 
 Which CSS approach should we use for styling the Phoenix LiveView app?
@@ -26,8 +27,6 @@ Which CSS approach should we use for styling the Phoenix LiveView app?
 
 1. [L1] Build complexity - Tailwind requires a build step (postcss/esbuild integration)
 2. [L2] Bundle size - purging unused utilities must be configured correctly
-
-
 
 ## Decision
 
@@ -55,16 +54,20 @@ accepting **that utility class HTML can be verbose and DaisyUI adds a vendor dep
 
 - [L2] Purging requires content paths in tailwind.config.js to be correct (Phoenix default handles this)
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [deps] Tailwind included via Phoenix default; DaisyUI and daisyui-theme as vendored JS plugins in assets/vendor/
 - [build] esbuild pipeline pre-configured by Phoenix generator
 - [dx] Utility classes in heex templates; DaisyUI semantic classes for cards, buttons, badges, inputs
 - [theming] Custom dark/light themes defined in app.css via @plugin with oklch colors
+
+## Evidence
+
+Phoenix 1.7+ ships Tailwind CSS by default via the built-in esbuild integration. DaisyUI adds semantic component classes (btn, card, badge) on top of Tailwind utilities, reducing verbosity for common UI patterns. The oklch color space used in DaisyUI themes provides perceptually uniform color transitions across light and dark modes.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -90,10 +93,18 @@ accepting **that utility class HTML can be verbose and DaisyUI adds a vendor dep
 mix phx.new maude_libs --live --no-dashboard --no-mailer --no-ecto
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Tailwind class names become unwieldy on complex components
   respond: Extract to Phoenix LiveComponents with @apply in component CSS files
+
+## Artistic
+
+Utility classes in, design tokens out.
 
 ## Historic
 

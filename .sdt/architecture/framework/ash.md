@@ -11,6 +11,7 @@ children: []
 
 # SDF: Application Framework Layer
 
+
 ## Scenario
 
 Which application framework layer, if any, should sit between Phoenix and the domain logic to manage resources, actions, authorization, and domain boundaries?
@@ -29,7 +30,6 @@ Which application framework layer, if any, should sit between Phoenix and the do
 1. [L1] Adoption cost - a framework layer adds learning curve, DSL complexity, and potential lock-in
 2. [L2] Architectural mismatch - the real-time decision flow (Pure Core + GenServer Shell) is stateful and event-driven, not CRUD; a resource framework must coexist without replacing it
 3. [L3] Premature abstraction - the current prototype has minimal resources; adopting a framework now may optimize for a future that doesn't arrive
-
 
 ## Decision
 
@@ -62,14 +62,6 @@ accepting **significant learning curve, DSL complexity, framework lock-in, and t
 - [L3] The current prototype has ~2 resources; Ash's benefits materialize at ~5+ resources with policies and relationships
 - [L1] Ash's macro-heavy approach can feel unlike writing Elixir; some community members find the DSL a departure from the language's philosophy
 
-## Artistic
-
-Declare the domain; derive the rest.
-
-## Evidence
-
-Ash Framework ranked #4 in the 2025 Elixir community survey (behind Phoenix, LiveView, Absinthe). It is designed for incremental adoption - Ash resources can coexist with plain Phoenix contexts in the same codebase. AshAuthentication provides user management, AshPolicies provides authorization, and AshAdmin provides admin dashboards - all derived from resource definitions. The key architectural question for this project is coexistence: the real-time decision flow (Core + Server GenServer pattern) is fundamentally stateful and event-driven, not CRUD. Ash would handle the surrounding infrastructure (users, orgs, personas, persistent decision records) while the GenServer handles the live decision process. The boundary between them is well-defined: Ash persists decisions after completion, GenServers manage decisions in progress.
-
 ## Consequences
 
 - [deps] Add `{:ash, "~> 3.0"}`, `{:ash_postgres, "~> 2.0"}`, `{:ash_authentication, "~> 4.0"}`, `{:ash_json_api, "~> 1.0"}` plus related packages
@@ -77,6 +69,14 @@ Ash Framework ranked #4 in the 2025 Elixir community survey (behind Phoenix, Liv
 - [auth] Ash policies for authorization; AshAuthentication for user accounts
 - [api] REST/GraphQL derived from resource definitions; AshAdmin for admin UI
 - [migration] Existing hand-written contexts replaced incrementally with Ash resources
+
+## Evidence
+
+Ash Framework ranked #4 in the 2025 Elixir community survey (behind Phoenix, LiveView, Absinthe). It is designed for incremental adoption - Ash resources can coexist with plain Phoenix contexts in the same codebase. AshAuthentication provides user management, AshPolicies provides authorization, and AshAdmin provides admin dashboards - all derived from resource definitions. The key architectural question for this project is coexistence: the real-time decision flow (Core + Server GenServer pattern) is fundamentally stateful and event-driven, not CRUD. Ash would handle the surrounding infrastructure (users, orgs, personas, persistent decision records) while the GenServer handles the live decision process. The boundary between them is well-defined: Ash persists decisions after completion, GenServers manage decisions in progress.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -173,6 +173,10 @@ end
 Ash.read!(MaudeLibs.Decisions.PersistentDecision, filter: [id: id])
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: The resource count stays under 5 and Ash feels like overhead
@@ -183,6 +187,10 @@ Ash.read!(MaudeLibs.Decisions.PersistentDecision, filter: [id: id])
   respond: Clarify the boundary explicitly: Ash for persistence and CRUD, GenServers for real-time state only
 - observe: Ash 4.0 introduces breaking changes that require a large migration
   respond: Evaluate migration cost vs. benefits; framework lock-in is real
+
+## Artistic
+
+Declare the domain; derive the rest.
 
 ## Historic
 

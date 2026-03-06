@@ -11,6 +11,7 @@ children: []
 
 # SDF: Type Checking Strategy
 
+
 ## Scenario
 
 How should we utilize Elixir's type system to improve code quality and catch bugs?
@@ -29,8 +30,6 @@ How should we utilize Elixir's type system to improve code quality and catch bug
 1. [L1] False positive noise - type checkers may flag correct code, requiring workarounds or suppressions
 2. [L2] Ecosystem fragmentation - Dialyzer specs, gradual types, and Hammox all read different things; unclear which source of truth to invest in
 3. [L3] Premature commitment - investing heavily in `@spec` annotations that may be replaced by new type syntax in v1.21+
-
-
 
 ## Decision
 
@@ -62,20 +61,20 @@ accepting **the ecosystem fragmentation of maintaining two type checking approac
 - [L3] `@spec` annotations will need migration to new type syntax when it lands; double the transition work
 - [L2] Developers must understand both systems and their respective coverage gaps
 
-## Artistic
-
-Every layer of defense counts.
-
-## Evidence
-
-In agentic code generation workflows, automated verification is critical - the more invariants the compiler and tools can check, the less you rely on the agent "just knowing" the right types. Dialyzer catches cross-dependency type issues and validates `@callback` specs today. The gradual type system catches within-module type mismatches at compile time. Together they provide the broadest type safety net available in the current Elixir ecosystem. The overhead of maintaining two tools is negligible with agentic tooling handling annotation generation. When the gradual type system reaches parity with Dialyzer (projected v1.21+), the transition to compiler-only is straightforward: drop Dialyxir, migrate `@spec` to new syntax.
-
 ## Consequences
 
 - [deps] Adds `{:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false}`
 - [coverage] Dialyzer covers cross-dependency and `@callback` specs; gradual types cover within-module inference
 - [dx] Both `mix compile` and `mix dialyzer` provide type feedback; two tools to run
 - [migration] Write `@spec` annotations now; migrate to gradual type syntax when available (v1.21+); eventually drop Dialyxir
+
+## Evidence
+
+In agentic code generation workflows, automated verification is critical - the more invariants the compiler and tools can check, the less you rely on the agent "just knowing" the right types. Dialyzer catches cross-dependency type issues and validates `@callback` specs today. The gradual type system catches within-module type mismatches at compile time. Together they provide the broadest type safety net available in the current Elixir ecosystem. The overhead of maintaining two tools is negligible with agentic tooling handling annotation generation. When the gradual type system reaches parity with Dialyzer (projected v1.21+), the transition to compiler-only is straightforward: drop Dialyxir, migrate `@spec` to new syntax.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -100,6 +99,10 @@ def handle(decision, message), do: ...
 
 Both tools run on every precommit. As the gradual type system expands coverage, Dialyzer's value diminishes.
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Gradual type system (v1.21+) covers cross-dependency inference and typed structs
@@ -108,6 +111,10 @@ Both tools run on every precommit. As the gradual type system expands coverage, 
   respond: Prioritize compiler warnings; Dialyzer becomes supplementary
 - observe: Maintaining `@spec` annotations for Dialyzer while the gradual system infers types feels like double work
   respond: Stop adding new `@spec` annotations; let existing ones serve Dialyzer until it's dropped
+
+## Artistic
+
+Every layer of defense counts.
 
 ## Historic
 

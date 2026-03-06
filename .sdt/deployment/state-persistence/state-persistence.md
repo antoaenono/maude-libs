@@ -11,6 +11,7 @@ children: []
 
 # SDF: Decision State Persistence
 
+
 ## Scenario
 
 Should decision state be persisted to a database, ETS, or live only in GenServer memory?
@@ -26,8 +27,6 @@ Should decision state be persisted to a database, ETS, or live only in GenServer
 
 1. [L1] Setup time - Postgres on fly.io requires a volume and Ecto config
 2. [L2] State loss risk - ephemeral GenServers lose all decisions on restart
-
-
 
 ## Decision
 
@@ -55,15 +54,19 @@ accepting **that a server restart (deploy, crash) loses all in-flight decisions 
 
 - [L2] One crash or deploy during the demo = all decisions gone; mitigate by demoing on stable build
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [deps] No Ecto, no database dependency
 - [risk] Decision state lost on restart; acceptable for hackathon demo
 - [ops] Deploy once before demo; do not redeploy during the event
+
+## Evidence
+
+Phoenix's `--no-ecto` flag removes all database dependencies and shaves roughly 10 minutes off initial deployment. A decision struct with 5 options, 6 priorities, and scaffolding text is under 10KB; even 100 concurrent decisions fit comfortably in 512MB. Ephemeral GenServers are a standard Elixir prototyping pattern.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -73,10 +76,18 @@ mix phx.new maude_libs --live --no-dashboard --no-mailer --no-ecto
 
 All state lives in Decision.Server GenServer processes supervised by DynamicSupervisor.
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Demo requires state to survive deploys (multi-day event)
   respond: Add ETS persistence with :ets.tab2file on terminate and reload on start; or add Postgres/Ecto
+
+## Artistic
+
+Memory is fast, disk is forever, and we only need fast.
 
 ## Historic
 

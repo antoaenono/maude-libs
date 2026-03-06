@@ -12,6 +12,7 @@ supersedes: [layout/force-layout-strategy/d3-force-client-side, layout/stage-lay
 
 # SDF: Client-Side D3 Force Layout with Scale-to-Fit Virtual Canvas
 
+
 ## Scenario
 
 How do we position decision circles on the lobby canvas and participant cards on stage views so that layouts are non-overlapping, visually balanced, responsive to viewport size, and work within LiveView's DOM patching model?
@@ -32,8 +33,6 @@ How do we position decision circles on the lobby canvas and participant cards on
 2. [L2] JavaScript complexity - minimize hooks and client-side logic
 3. [L3] CSS rigidity - avoid hardcoded pixel values that break across screen sizes
 4. [L4] LiveView interop friction - hooks must coexist with LiveView's DOM patching
-
-
 
 ## Decision
 
@@ -69,14 +68,6 @@ accepting **d3-force as a JS dependency, three hooks to maintain, and a conceptu
 - [L3] Virtual canvas 1000x900 is a hardcoded design constant (though it scales to any viewport)
 - [L4] StageForce `updated()` callback must re-sync DOM nodes after LiveView patches; brief position flash possible
 
-## Artistic
-
-A map. The territory doesn't change shape when you fold it smaller - it just
-zooms out. The roads, the towns, the distances between them all stay proportional.
-The frame (header, breadcrumbs, footer) is the map case - bolted to the wall.
-The magnets (D3 forces) keep the cards from piling up. LiveView draws the cards;
-the magnets move them; the frame holds everything steady.
-
 ## Consequences
 
 - [deps] `d3-force` as npm dependency (~30KB tree-shakeable)
@@ -85,6 +76,14 @@ the magnets move them; the frame holds everything steady.
 - [dom] Stage cards use `data-node-id` and `data-node-role` attributes as the contract between LiveView and JS
 - [input] All phx-change, phx-submit, phx-click events work normally; LiveView owns the DOM
 - [testing] Position logic testable in JS (Vitest); card content testable in LiveViewTest; only visual accuracy requires browser
+
+## Evidence
+
+d3-force is the canonical JS force-directed layout library with 10+ years of production use. The virtual canvas + scale-to-fit pattern is the foundation of every presentation tool (Slides, Keynote) and whiteboarding app (Miro, FigJam). CSS `transform: scale()` is hardware-accelerated on the compositor thread. This three-layer approach emerged after iterating through server-side physics (oscillation failures), pure CSS positioning (inflexible), and D3-manages-DOM (conflicts with LiveView patching).
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -167,6 +166,10 @@ this.sim = forceSimulation()
   .alphaDecay(0.02);
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: LiveView morphdom patches cause visible position flicker despite StageForce.updated()
@@ -177,6 +180,14 @@ this.sim = forceSimulation()
   respond: Add mobile-specific layout that stacks cards vertically instead of scaling
 - observe: Want server-authoritative positions (e.g., screenshots)
   respond: Add periodic position sync from client back to server
+
+## Artistic
+
+A map. The territory doesn't change shape when you fold it smaller - it just
+zooms out. The roads, the towns, the distances between them all stay proportional.
+The frame (header, breadcrumbs, footer) is the map case - bolted to the wall.
+The magnets (D3 forces) keep the cards from piling up. LiveView draws the cards;
+the magnets move them; the frame holds everything steady.
 
 ## Historic
 

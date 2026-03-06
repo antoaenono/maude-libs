@@ -11,6 +11,7 @@ children: []
 
 # SDF: Module Boundary Enforcement
 
+
 ## Scenario
 
 How should we enforce architectural boundaries between module groups to prevent cross-layer coupling and dependency violations?
@@ -29,7 +30,6 @@ How should we enforce architectural boundaries between module groups to prevent 
 1. [L1] Annotation overhead - boundary declarations add ceremony to module definitions
 2. [L2] False constraints - overly strict boundaries can block legitimate cross-cutting concerns and require workarounds
 3. [L3] Scale mismatch - at ~20 modules, the codebase may not be large enough to justify formal boundary enforcement
-
 
 ## Decision
 
@@ -60,20 +60,20 @@ accepting **no compile-time enforcement; boundaries are still conventions, just 
 - [M1] Convention enforcement depends entirely on code review discipline; LLM agents may not follow conventions
 - [L2] Phoenix contexts can become "god modules" that expose too many functions, diluting the boundary
 
-## Artistic
-
-Convention over configuration, for better and worse.
-
-## Evidence
-
-Phoenix contexts are the idiomatic Elixir approach to grouping related functionality. The `mix phx.gen.context` generator scaffolds context modules with CRUD operations. However, contexts provide no enforcement - they are a naming convention. The Phoenix documentation explicitly notes that contexts are "not a hard boundary" and that developers are free to call internal modules directly. For a project using LLM agents to generate code, convention-only boundaries are risky because agents optimize for "make it work" over "follow the architecture."
-
 ## Consequences
 
 - [deps] No new dependencies
 - [enforcement] Convention only; no compile-time or runtime checks
 - [dx] Context modules serve as API surfaces; internals are "private by naming"
 - [onboarding] Standard Phoenix pattern; no new concepts to learn
+
+## Evidence
+
+Phoenix contexts are the idiomatic Elixir approach to grouping related functionality. The `mix phx.gen.context` generator scaffolds context modules with CRUD operations. However, contexts provide no enforcement - they are a naming convention. The Phoenix documentation explicitly notes that contexts are "not a hard boundary" and that developers are free to call internal modules directly. For a project using LLM agents to generate code, convention-only boundaries are risky because agents optimize for "make it work" over "follow the architecture."
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -104,6 +104,10 @@ end
 2. Context modules delegate to Server; Server delegates to Core
 3. Internal modules (Core, Stage structs) are not called from outside their context
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: LLM agents bypass context modules and call Core directly
@@ -112,6 +116,10 @@ end
   respond: Split into sub-contexts or adopt `boundary` for more granular boundary definitions
 - observe: Code review repeatedly catches the same boundary violations
   respond: Automated enforcement would eliminate this review burden
+
+## Artistic
+
+Convention over configuration, for better and worse.
 
 ## Historic
 

@@ -11,6 +11,7 @@ children: [realtime/invites/user-registry]
 
 # SDF: Invite and Discovery Mechanism
 
+
 ## Scenario
 
 How do invited participants discover and navigate to a decision they've been invited to join?
@@ -26,8 +27,6 @@ How do invited participants discover and navigate to a decision they've been inv
 
 1. [L1] Infrastructure complexity - push notifications, email, or SMS are out of scope
 2. [L2] Polling overhead - canvas shouldn't need to poll for invites
-
-
 
 ## Decision
 
@@ -55,16 +54,20 @@ accepting **that offline users will miss the invite and must navigate directly v
 
 - [L2] Canvas subscribes to both `"canvas"` (circle updates) and `"user:#{username}"` (invites) - two topics
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [ux] Modal on canvas when invited; one click to join the lobby
 - [transport] Per-user topic `"user:#{username}"` carries invite events; `"canvas"` topic carries circle metadata updates
 - [creator-ux] Add/remove list with autocomplete from ETS-backed UserRegistry
 - [limitation] Offline users miss the live invite; must join via direct URL
+
+## Evidence
+
+Phoenix PubSub per-user topics are a standard pattern for targeted notifications in LiveView apps. Subscribe cost is negligible; each topic is a lightweight ETS entry. The add/remove list UI with autocomplete follows the same interaction pattern as Slack's channel invite flow, which users already understand.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -89,10 +92,18 @@ def handle_event("add_invite", %{"username" => username}, socket) do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Users miss invites because they're not on /canvas
   respond: Add a persistent "pending invites" badge visible from /d/:id
+
+## Artistic
+
+The invite finds you.
 
 ## Historic
 

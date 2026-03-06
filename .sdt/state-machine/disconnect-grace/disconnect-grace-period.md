@@ -11,6 +11,7 @@ children: []
 
 # SDF: Disconnect Grace Period
 
+
 ## Scenario
 
 When a participant's LiveView disconnects (page refresh, network hiccup, tab switch on mobile), should they be immediately removed from the connected set, or should there be a grace window for reconnection?
@@ -26,8 +27,6 @@ When a participant's LiveView disconnects (page refresh, network hiccup, tab swi
 
 1. [L1] Complexity - timer management adds state to the Server (pending disconnect timers per user)
 2. [L2] Stale presence - during the grace window, a disconnected user appears "connected" even though they're gone
-
-
 
 ## Decision
 
@@ -56,16 +55,20 @@ accepting **that during the grace window a disconnected user still counts as "co
 - [L2] Brief ghost presence: other users see the card for up to 5 seconds after a real departure
 - [L1] Must track `disconnect_timers: %{username => timer_ref}` in Server state
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [server] Server state includes `disconnect_timers: %{}` map of pending timer refs
 - [config] `disconnect_grace_ms` configurable (default 5000, set to 0 in tests for instant disconnect)
 - [reconnect] `{:connect, user}` and `{:join, user}` cancel any pending disconnect timer for that user
 - [ux] Page refresh is invisible to other participants
+
+## Evidence
+
+Phoenix LiveView page refresh round-trip is typically 1-2 seconds. Slack uses ~30 seconds before showing 'disconnected.' Most gaming frameworks use 5-15 seconds. The 5-second window covers even slow mobile connections while keeping ghost presence brief enough to avoid confusion.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -102,12 +105,20 @@ defp cancel_disconnect_timer(state, user) do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: 5 seconds feels too long; ghost presence confuses other participants
   respond: Reduce to 2-3 seconds; or add a visual "reconnecting..." indicator during grace period
 - observe: 5 seconds feels too short; mobile users on slow networks time out
   respond: Increase to 10 seconds; consider exponential backoff for repeated disconnects
+
+## Artistic
+
+Five seconds to come back before anyone notices.
 
 ## Historic
 

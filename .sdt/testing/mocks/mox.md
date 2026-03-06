@@ -11,6 +11,7 @@ children: []
 
 # SDF: Test Mock Implementation Strategy
 
+
 ## Scenario
 
 Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?
@@ -30,8 +31,6 @@ Which mock implementation strategy should we use for isolating external dependen
 2. [L2] Dependency count - adding a mock library means another hex dependency to maintain and keep updated
 3. [L3] Setup boilerplate - per-test mock setup code (expect/verify calls) can be verbose compared to a simple module swap
 4. [L4] Learning curve - team members need to learn a new API vs simple module pattern
-
-
 
 ## Decision
 
@@ -64,14 +63,6 @@ accepting **a one-time migration of all test files and the addition of a hex dep
 - [L3] Each test must explicitly set up expectations; no shared default mock module to fall back on without `Mox.stub`
 - [L4] Team must learn Mox API: `expect`, `stub`, `verify_on_exit!`, `set_mox_from_context`
 
-## Artistic
-
-Mock the behaviour, not the module.
-
-## Evidence
-
-Mox is the most widely adopted mocking library in the Elixir ecosystem. Jose Valim's 2015 blog post "Mocks and explicit contracts" established the pattern of defining behaviours for external dependencies and mocking at that boundary. Mox implements this pattern with per-process isolation via `$callers`, which is battle-tested across thousands of production Elixir projects. The migration from hand-rolled mocks is mechanical: replace `Application.put_env` swaps with `Mox.expect` calls.
-
 ## Consequences
 
 - [deps] Adds `{:mox, "~> 1.0", only: :test}` to mix.exs
@@ -79,6 +70,14 @@ Mox is the most widely adopted mocking library in the Elixir ecosystem. Jose Val
 - [test-quality] Tests can verify exact arguments passed to LLM calls
 - [concurrency] Server tests use `set_mox_global` and remain `async: false` due to Supervisor breaking `$callers` chain; per-process isolation deferred
 - [cost] No API costs in tests
+
+## Evidence
+
+Mox is the most widely adopted mocking library in the Elixir ecosystem. Jose Valim's 2015 blog post "Mocks and explicit contracts" established the pattern of defining behaviours for external dependencies and mocking at that boundary. Mox implements this pattern with per-process isolation via `$callers`, which is battle-tested across thousands of production Elixir projects. The migration from hand-rolled mocks is mechanical: replace `Application.put_env` swaps with `Mox.expect` calls.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -110,12 +109,20 @@ Mox.expect(MaudeLibs.LLM.MockBehaviour, :synthesize_scenario, fn _submissions ->
 end)
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Only one external dependency (LLM) needs mocking; Mox overhead not justified
   respond: If a second external dependency appears (e.g., email, storage), Mox pays for itself immediately
 - observe: Mox expectations make tests brittle by coupling to internal call structure
   respond: Use `Mox.stub/3` for tests that only care about output, `expect` for tests that verify integration
+
+## Artistic
+
+Mock the behaviour, not the module.
 
 ## Historic
 

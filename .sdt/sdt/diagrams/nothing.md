@@ -11,6 +11,7 @@ children: []
 
 # SDF: Visual Diagrams in SDT Variant Files
 
+
 ## Scenario
 
 Should SDT variant files include visual diagrams, and if so, in what format (Mermaid, ASCII, or both)? Diagrams must remain coherent across parent-child decision trees so that zooming into a child decision shows a consistent slice of the parent's diagram.
@@ -29,7 +30,6 @@ Should SDT variant files include visual diagrams, and if so, in what format (Mer
 1. [L1] Authoring friction - adding diagrams to every variant increases the cost of scaffolding and maintaining decisions
 2. [L2] Staleness - diagrams that drift from the prose or implementation become misleading rather than helpful
 3. [L3] Format lock-in - choosing one diagram format constrains future tooling and rendering pipelines
-
 
 ## Decision
 
@@ -57,14 +57,6 @@ accepting **that architectural understanding remains locked in prose and readers
 - [M2] Complex decisions like layout or state-machine architecture are hard to scan without a visual
 - [M3] No mechanism for coherent parent-child visual drilling; each file is an island
 
-## Artistic
-
-Words are enough, if you read them all.
-
-## Evidence
-
-The current SDT corpus has 28 decisions with no diagrams. The Implementation sections use Elixir code blocks and prose descriptions. For simpler decisions (e.g., testing/coverage), prose is sufficient. For complex architectural decisions (e.g., interface/layout with its three-layer architecture, or state-machine/core-architecture with its Pure Core + Shell pattern), readers must mentally reconstruct the component relationships from scattered code snippets.
-
 ## Consequences
 
 - [authoring] No change to variant file structure or scaffolding workflow
@@ -72,9 +64,21 @@ The current SDT corpus has 28 decisions with no diagrams. The Implementation sec
 - [coherence] No parent-child diagram consistency mechanism
 - [readability] Complex decisions remain prose-heavy; reader constructs mental models from text
 
+## Evidence
+
+The current SDT corpus has 28 decisions with no diagrams. The Implementation sections use Elixir code blocks and prose descriptions. For simpler decisions (e.g., testing/coverage), prose is sufficient. For complex architectural decisions (e.g., interface/layout with its three-layer architecture, or state-machine/core-architecture with its Pure Core + Shell pattern), readers must mentally reconstruct the component relationships from scattered code snippets.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
+
 ## Implementation
 
 No changes. Variant files continue to use the current format with `## Implementation` containing prose and code blocks only.
+
+## Exceptions
+
+<!-- no exceptions -->
 
 ## Reconsider
 
@@ -82,6 +86,10 @@ No changes. Variant files continue to use the current format with `## Implementa
   respond: Revisit this decision; diagrams may be necessary for complex architectural SDTs
 - observe: LLM agents struggle to reason about SDT files when generating code
   respond: Structured diagrams (Mermaid) would give LLMs explicit relationship data
+
+## Artistic
+
+Words are enough, if you read them all.
 
 ## Historic
 

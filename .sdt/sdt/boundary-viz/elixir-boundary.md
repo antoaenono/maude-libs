@@ -11,6 +11,7 @@ children: []
 
 # SDF: Automated Boundary and Dependency Visualization
 
+
 ## Scenario
 
 Should we adopt tooling to automatically discover and visualize code boundaries, module dependencies, and how the program uses its dependencies, so that architectural diagrams stay grounded in the actual codebase?
@@ -29,7 +30,6 @@ Should we adopt tooling to automatically discover and visualize code boundaries,
 1. [L1] Tooling investment - building or integrating analysis tools requires development effort and ongoing maintenance
 2. [L2] Noise - dependency graphs for non-trivial systems are large and overwhelming without careful filtering and layering
 3. [L3] Elixir coupling - Elixir-specific tools (mix xref, boundary) do not cover JS hooks, CSS, or infrastructure files
-
 
 ## Decision
 
@@ -61,9 +61,12 @@ accepting **a new dependency, annotation overhead in boundary modules, and no co
 - [L1] Boundary rules must be maintained as modules are added; incorrect `deps` or `exports` cause false warnings
 - [L2] At the current codebase size (~20 modules), boundary definitions may feel like ceremony; the value increases with scale
 
-## Artistic
+## Consequences
 
-Walls make good neighbors; compilers make good walls.
+- [tooling] Add `{:boundary, "~> 0.10"}` to mix.exs; annotate ~5-8 modules with `use Boundary`
+- [visualization] `mix boundary.visualize` generates Graphviz dot files; renderable to SVG for inclusion in tree.html or SDT diagrams
+- [enforcement] Compile-time warnings for cross-boundary calls; CI catches architectural violations
+- [dx] Boundary definitions serve as living documentation of architectural intent; LLMs can read them to understand system structure
 
 ## Evidence
 
@@ -74,12 +77,9 @@ The `boundary` library is maintained by Sasa Juric, author of "Elixir in Action"
 - `MaudeLibsWeb` boundary: LiveViews, controllers, components (maps to interface/ SDTs)
 - `MaudeLibs.Realtime` boundary: PubSub, UserRegistry, invites (maps to realtime/ SDTs)
 
-## Consequences
+## Diagram
 
-- [tooling] Add `{:boundary, "~> 0.10"}` to mix.exs; annotate ~5-8 modules with `use Boundary`
-- [visualization] `mix boundary.visualize` generates Graphviz dot files; renderable to SVG for inclusion in tree.html or SDT diagrams
-- [enforcement] Compile-time warnings for cross-boundary calls; CI catches architectural violations
-- [dx] Boundary definitions serve as living documentation of architectural intent; LLMs can read them to understand system structure
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -145,6 +145,10 @@ Boundary groups are named to mirror SDT categories. The `sdt.py` indexer can cro
 # realtime/* -> MaudeLibs boundary (Realtime sub-boundary)
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Boundary warnings are noisy and developers disable or ignore them
@@ -153,6 +157,10 @@ Boundary groups are named to mirror SDT categories. The `sdt.py` indexer can cro
   respond: Supplement boundary with a custom tool that maps JS/CSS dependencies; or use manual globs (see sibling decision `sdt/code-mapping`) for non-Elixir files
 - observe: The `boundary` library becomes unmaintained or incompatible with new Elixir versions
   respond: Fall back to `mix xref` with custom analysis scripts; lose compile-time enforcement but retain dependency graph extraction
+
+## Artistic
+
+Walls make good neighbors; compilers make good walls.
 
 ## Historic
 

@@ -11,6 +11,7 @@ children: []
 
 # SDF: Module Boundary Enforcement
 
+
 ## Scenario
 
 How should we enforce architectural boundaries between module groups to prevent cross-layer coupling and dependency violations?
@@ -29,7 +30,6 @@ How should we enforce architectural boundaries between module groups to prevent 
 1. [L1] Annotation overhead - boundary declarations add ceremony to module definitions
 2. [L2] False constraints - overly strict boundaries can block legitimate cross-cutting concerns and require workarounds
 3. [L3] Scale mismatch - at ~20 modules, the codebase may not be large enough to justify formal boundary enforcement
-
 
 ## Decision
 
@@ -58,14 +58,6 @@ accepting **that architectural boundaries remain conventions enforced only by di
 - [M3] The intended architecture exists only in SDT prose and developers' heads
 - [M4] Refactoring a module's internals has no compiler-checked guarantee that external callers haven't coupled to internal functions
 
-## Artistic
-
-Trust the team; trust the review.
-
-## Evidence
-
-The current codebase uses an informal layered architecture: MaudeLibsWeb (web layer) calls MaudeLibs (business logic) which uses MaudeLibs.LLM (external service). This layering is maintained by convention. No violations have been observed yet, but the codebase is young. As the module count grows and more contributors (including LLM agents) write code, implicit boundaries become harder to maintain.
-
 ## Consequences
 
 - [deps] No new dependencies
@@ -73,9 +65,21 @@ The current codebase uses an informal layered architecture: MaudeLibsWeb (web la
 - [dx] No compile-time feedback on architectural violations
 - [onboarding] New contributors must learn boundaries from SDT docs or code review feedback
 
+## Evidence
+
+The current codebase uses an informal layered architecture: MaudeLibsWeb (web layer) calls MaudeLibs (business logic) which uses MaudeLibs.LLM (external service). This layering is maintained by convention. No violations have been observed yet, but the codebase is young. As the module count grows and more contributors (including LLM agents) write code, implicit boundaries become harder to maintain.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
+
 ## Implementation
 
 No changes. The existing module structure continues without boundary annotations.
+
+## Exceptions
+
+<!-- no exceptions -->
 
 ## Reconsider
 
@@ -85,6 +89,10 @@ No changes. The existing module structure continues without boundary annotations
   respond: Formal boundaries would prevent these at compile time
 - observe: A refactor of Core internals breaks a LiveView that was directly coupled to an internal function
   respond: Boundaries would have flagged the coupling before merge
+
+## Artistic
+
+Trust the team; trust the review.
 
 ## Historic
 

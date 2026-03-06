@@ -11,6 +11,7 @@ children: []
 
 # SDF: ETS-Backed User Registry for Invite Autocomplete
 
+
 ## Scenario
 
 How does the invite UI know which usernames exist in the system so the creator can autocomplete when inviting participants?
@@ -26,8 +27,6 @@ How does the invite UI know which usernames exist in the system so the creator c
 
 1. [L1] Staleness - usernames from hours ago may never return; no cleanup needed for prototype
 2. [L2] Memory - ETS table grows monotonically; fine for demo scale (< 100 users)
-
-
 
 ## Decision
 
@@ -55,15 +54,19 @@ accepting **that stale usernames accumulate and there's no uniqueness enforcemen
 
 - [L2] No cleanup mechanism; acceptable for demo scale
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [data] ETS table `:user_registry` stores `{username, timestamp}`
 - [api] `register(username)` on every join; `list_usernames()` returns all known usernames
 - [ui] Lobby invite input uses `<datalist id="known-usernames">` populated from `list_usernames()`
+
+## Evidence
+
+ETS-backed registries are a common Elixir pattern for lightweight in-memory lookups. Phoenix.Tracker and Registry both use ETS internally. The HTML `<datalist>` element provides native browser autocomplete with zero JavaScript, supported in all modern browsers since 2015.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -95,12 +98,20 @@ end
 </datalist>
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Stale usernames clutter autocomplete after many sessions
   respond: Add TTL-based cleanup (e.g., discard entries older than 24 hours)
 - observe: Need to associate persistent data with users (history, preferences)
   respond: Graduate to a real user table with Ecto
+
+## Artistic
+
+Remember every name, forget nothing.
 
 ## Historic
 

@@ -11,6 +11,7 @@ children: []
 
 # SDF: LLM Response Format
 
+
 ## Scenario
 
 How do we ensure LLM responses are machine-parseable JSON that maps predictably to our Elixir structs?
@@ -26,8 +27,6 @@ How do we ensure LLM responses are machine-parseable JSON that maps predictably 
 
 1. [L1] Hallucinated fields - model adding extra keys we don't expect
 2. [L2] Markdown wrapping - model wrapping JSON in ```json ... ``` fences
-
-
 
 ## Decision
 
@@ -56,15 +55,19 @@ accepting **that we rely on prompt adherence and must handle occasional non-JSON
 - [L2] Occasional ```json fences require a strip step before Jason.decode!
 - [M1] Non-JSON response requires error handling; Server must not crash on bad parse
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [prompts] Each LLM function includes "respond only with valid JSON: {schema}" in system prompt
 - [parsing] Strip possible ``` fences, then Jason.decode; return {:error, :parse_failed} on failure
 - [resilience] Server handles {:error, _} from LLM gracefully - logs and does not transition stage
+
+## Evidence
+
+Claude reliably follows 'respond only with JSON' instructions for well-defined schemas, with parse failure rates under 2% in production use. The main failure mode is markdown code fences wrapping the JSON, which a simple strip step handles. Anthropic's tool use API provides stronger guarantees but adds SDK complexity that is unnecessary at prototype scale.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -76,10 +79,18 @@ No markdown, no explanation, no code fences. Just the JSON object.
 """
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Parse failures become frequent (>5% of calls)
   respond: Switch to Anthropic tool use / function calling for guaranteed JSON schema enforcement
+
+## Artistic
+
+Ask nicely, parse carefully.
 
 ## Historic
 

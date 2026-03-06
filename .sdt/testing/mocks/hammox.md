@@ -11,6 +11,7 @@ children: []
 
 # SDF: Test Mock Implementation Strategy
 
+
 ## Scenario
 
 Which mock implementation strategy should we use for isolating external dependencies (LLM calls) in tests: hand-rolled mock modules or a library like Mox?
@@ -30,8 +31,6 @@ Which mock implementation strategy should we use for isolating external dependen
 2. [L2] Dependency count - adding a mock library means another hex dependency to maintain and keep updated
 3. [L3] Setup boilerplate - per-test mock setup code (expect/verify calls) can be verbose compared to a simple module swap
 4. [L4] Learning curve - team members need to learn a new API vs simple module pattern
-
-
 
 ## Decision
 
@@ -65,14 +64,6 @@ accepting **a one-time migration of all test files and the addition of two hex d
 - [L4] Same Mox API to learn, plus understanding that return values are now type-checked
 - [L2] Hammox is a smaller community project compared to Mox; may lag behind Mox updates
 
-## Artistic
-
-Trust, but verify the types.
-
-## Evidence
-
-Hammox is a thin wrapper - the entire library is a few hundred lines that intercept `expect` and `stub` calls to validate return values against `@callback` typespecs using Erlang's `typespecs` module. Since we already define `@callback` specs on `MaudeLibs.LLM`, Hammox provides free runtime type checking at mock boundaries with zero additional annotation work. The migration from Mox to Hammox (or back) is a single find-and-replace: `Mox.expect` to `Hammox.expect`. This makes it a low-risk bridge until the gradual type system handles `@callback` validation at compile time (projected Elixir v1.21+, late 2026).
-
 ## Consequences
 
 - [deps] Adds `{:hammox, "~> 0.7", only: :test}` to mix.exs (pulls in Mox as transitive dep)
@@ -80,6 +71,14 @@ Hammox is a thin wrapper - the entire library is a few hundred lines that interc
 - [test-quality] Tests verify arguments and return type conformance against `@callback` specs
 - [concurrency] Server tests use `set_mox_global` and remain `async: false` due to Supervisor breaking the `$callers` chain; per-process isolation deferred
 - [cost] No API costs in tests
+
+## Evidence
+
+Hammox is a thin wrapper - the entire library is a few hundred lines that intercept `expect` and `stub` calls to validate return values against `@callback` typespecs using Erlang's `typespecs` module. Since we already define `@callback` specs on `MaudeLibs.LLM`, Hammox provides free runtime type checking at mock boundaries with zero additional annotation work. The migration from Mox to Hammox (or back) is a single find-and-replace: `Mox.expect` to `Hammox.expect`. This makes it a low-risk bridge until the gradual type system handles `@callback` validation at compile time (projected Elixir v1.21+, late 2026).
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -119,6 +118,10 @@ end
 
 **Why `set_mox_global`:** The GenServer is started via `DecisionSup` (DynamicSupervisor). LLM calls are spawned in `Task.start/1` from the GenServer. The process chain is test -> Supervisor -> GenServer -> Task. Mox's `$callers` mechanism walks up the spawning chain, but the Supervisor was started by the Application, not the test process. This breaks per-process isolation. `set_mox_global` makes expectations visible to all processes, matching the semantics of the previous `Application.put_env` approach while adding argument verification and typespec validation.
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Server test suite grows large and `async: false` with `set_mox_global` becomes a bottleneck
@@ -129,6 +132,10 @@ end
   respond: Fall back to plain Mox; lose typespec validation but keep all other benefits
 - observe: `@callback` specs are being phased out in favor of new type signatures
   respond: Check if Hammox adapts to new type syntax; if not, plain Mox + compiler types is the path
+
+## Artistic
+
+Trust, but verify the types.
 
 ## Historic
 

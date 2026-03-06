@@ -11,6 +11,7 @@ children: []
 
 # SDF: Verification & Dev Workflow Feedback
 
+
 ## Scenario
 
 How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?
@@ -29,8 +30,6 @@ How can we increase verification feedback and reduce the cost of testing multi-u
 1. [L1] Manual repetition - having to re-click through Lobby -> Scenario -> Priorities every time the server restarts
 2. [L2] Test brittleness - tests that break from minor UI changes rather than actual behavior changes
 3. [L3] Cognitive load - mental overhead of maintaining multiple browser tabs and remembering where you left off
-
-
 
 ## Decision
 
@@ -59,10 +58,6 @@ accepting **continued slow manual testing, low confidence in LiveView integratio
 - [L1] Server restart wipes all state, forcing full replay of every stage
 - [L3] Mentally tracking two browser contexts and their respective users is taxing
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [dx] Developer continues hand-navigating tabs for every test scenario
@@ -72,7 +67,11 @@ accepting **continued slow manual testing, low confidence in LiveView integratio
 
 ## Evidence
 
-<!-- optional epistemological layer -->
+Manual browser testing is the default starting point for every web application. It catches visual and interaction bugs that automated tests miss but does not scale: a full multi-user decision flow takes 3-5 minutes to walk through manually, and must be repeated after every change.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -82,12 +81,20 @@ No implementation needed. Continue the current workflow:
 3. Navigate both through Lobby -> Scenario -> Priorities -> ... manually
 4. Repeat after every server restart
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Time spent manually testing exceeds time you'd spend writing test infrastructure
   respond: Adopt one of the other variants
 - observe: A regression ships that automated tests would have caught
   respond: Prioritize automated coverage
+
+## Artistic
+
+Click through it again, from the top.
 
 ## Historic
 

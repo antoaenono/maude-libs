@@ -11,6 +11,7 @@ children: []
 
 # SDF: Application Framework Layer
 
+
 ## Scenario
 
 Which application framework layer, if any, should sit between Phoenix and the domain logic to manage resources, actions, authorization, and domain boundaries?
@@ -29,7 +30,6 @@ Which application framework layer, if any, should sit between Phoenix and the do
 1. [L1] Adoption cost - a framework layer adds learning curve, DSL complexity, and potential lock-in
 2. [L2] Architectural mismatch - the real-time decision flow (Pure Core + GenServer Shell) is stateful and event-driven, not CRUD; a resource framework must coexist without replacing it
 3. [L3] Premature abstraction - the current prototype has minimal resources; adopting a framework now may optimize for a future that doesn't arrive
-
 
 ## Decision
 
@@ -61,14 +61,6 @@ accepting **significant complexity overhead, event store management, eventual co
 - [M4] No API generation; REST/GraphQL endpoints must be built manually on top of read projections
 - [L1] Event store management (EventStore or Postgres-backed) adds operational complexity
 
-## Artistic
-
-Every action leaves a trace.
-
-## Evidence
-
-Commanded is an established Elixir library for CQRS/ES, maintained by Ben Smith. It provides command dispatch, aggregate roots, event handlers, and projections. The pattern fits naturally with the decision lifecycle described in the PrePR thesis: each decision mutation is an event, and the event log enables temporal analysis, reconsideration trigger evaluation, and "what happened and when" queries. However, CQRS/ES is widely regarded as one of the most over-applied patterns in software engineering. For this project, the event-driven nature of the decision flow is already captured by the Core + Server pattern with effect tuples; adding a full event sourcing layer on top would provide audit trail benefits but at significant complexity cost.
-
 ## Consequences
 
 - [deps] Add `{:commanded, "~> 1.4"}`, `{:commanded_eventstore_adapter, "~> 1.4"}`, `{:eventstore, "~> 1.4"}`
@@ -76,6 +68,14 @@ Commanded is an established Elixir library for CQRS/ES, maintained by Ben Smith.
 - [auth] No built-in authorization; must be implemented in command handlers or middleware
 - [api] No generated APIs; manual endpoint implementation on top of projections
 - [migration] Existing code restructured into commands, events, aggregates, and projections
+
+## Evidence
+
+Commanded is an established Elixir library for CQRS/ES, maintained by Ben Smith. It provides command dispatch, aggregate roots, event handlers, and projections. The pattern fits naturally with the decision lifecycle described in the PrePR thesis: each decision mutation is an event, and the event log enables temporal analysis, reconsideration trigger evaluation, and "what happened and when" queries. However, CQRS/ES is widely regarded as one of the most over-applied patterns in software engineering. For this project, the event-driven nature of the decision flow is already captured by the Core + Server pattern with effect tuples; adding a full event sourcing layer on top would provide audit trail benefits but at significant complexity cost.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -123,6 +123,10 @@ defp dispatch_effect({:broadcast, id, decision}, state) do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: The audit trail provided by event sourcing is not actually needed; no one queries historical decision state
@@ -131,6 +135,10 @@ end
   respond: Switch to synchronous projections or abandon CQRS/ES for a simpler approach
 - observe: The event store becomes a maintenance burden (migrations, upgrades, backups)
   respond: Evaluate whether Ash with standard Ecto provides sufficient history tracking via timestamps and soft deletes
+
+## Artistic
+
+Every action leaves a trace.
 
 ## Historic
 

@@ -11,6 +11,7 @@ children: []
 
 # SDF: Line Coverage Enforcement Strategy
 
+
 ## Scenario
 
 What level of line coverage enforcement should we adopt for our test suite, and how should we handle coverage tool limitations that make 100% unachievable without workarounds?
@@ -30,8 +31,6 @@ What level of line coverage enforcement should we adopt for our test suite, and 
 2. [L2] Workflow friction - having to unignore/re-ignore modules when editing them slows development
 3. [L3] Cognitive overhead - developers shouldn't need to understand cover tool internals to pass the gate
 4. [L4] Threshold churn - lowering the threshold to accommodate tool quirks weakens the gate over time
-
-
 
 ## Decision
 
@@ -64,10 +63,6 @@ accepting **that modifying a stage component requires temporarily removing it fr
 - [L3] Developers need to understand why specific modules are ignored and the unignore/re-ignore dance
 - [L1] If a developer adds a new function to a stage component and doesn't unignore it, the new function ships untested and the gate still shows 100%
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [gate] Precommit enforces 100% threshold via `mix test --cover`; any uncovered line in a non-ignored module fails
@@ -78,7 +73,11 @@ accepting **that modifying a stage component requires temporarily removing it fr
 
 ## Evidence
 
-<!-- optional epistemological layer -->
+Erlang's cover tool cannot measure `defmodule` lines, creating a hard ceiling below 100% for any non-trivial codebase. The `ignore_modules` option in ExUnit works around this by excluding specific modules from the threshold calculation. The risk is that ignored modules accumulate genuine coverage gaps hidden behind the exclusion.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -121,6 +120,10 @@ When modifying a stage component:
 2. Run `mix test --cover` and verify the only uncovered line is `defmodule`
 3. Re-add the module to `ignore_modules`
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Elixir's cover tool fixes the `defmodule` counting
@@ -131,6 +134,10 @@ When modifying a stage component:
   respond: Evaluate whether the bookkeeping cost outweighs the benefit of the 100% headline number
 - observe: A CI script could automate the unignore check (run coverage once without ignore for each changed module)
   respond: Build the automation; this eliminates L2 workflow friction and L1 blind spot risk
+
+## Artistic
+
+A perfect score with footnotes.
 
 ## Historic
 

@@ -11,6 +11,7 @@ children: []
 
 # SDF: Type Checking Strategy
 
+
 ## Scenario
 
 How should we utilize Elixir's type system to improve code quality and catch bugs?
@@ -29,8 +30,6 @@ How should we utilize Elixir's type system to improve code quality and catch bug
 1. [L1] False positive noise - type checkers may flag correct code, requiring workarounds or suppressions
 2. [L2] Ecosystem fragmentation - Dialyzer specs, gradual types, and Hammox all read different things; unclear which source of truth to invest in
 3. [L3] Premature commitment - investing heavily in `@spec` annotations that may be replaced by new type syntax in v1.21+
-
-
 
 ## Decision
 
@@ -62,20 +61,20 @@ accepting **that the current coverage (v1.19) is incomplete - no guard inference
 - [M4] Cross-module and cross-dependency type checking not available until v1.20+
 - [L1] May produce false positives as the type system matures; new releases may surface new warnings
 
-## Artistic
-
-The compiler will catch up.
-
-## Evidence
-
-As of Elixir 1.19, the gradual type system infers types from all constructs except guards, within the same module and Elixir stdlib. Cross-dependency inference and guard types are coming in v1.20 (mid-2026). User-facing type signatures and typed structs are projected for v1.21-1.22 (late 2026-mid 2027). The system is already active on every `mix compile` with no configuration needed. Coverage improves automatically with each Elixir upgrade.
-
 ## Consequences
 
 - [deps] No new dependencies - built into the compiler
 - [coverage] Type inference within same module and stdlib; gaps at dependency boundaries
 - [dx] Type errors surface during `mix compile` automatically; no separate tool to run
 - [migration] No annotation work; coverage improves automatically with Elixir upgrades
+
+## Evidence
+
+As of Elixir 1.19, the gradual type system infers types from all constructs except guards, within the same module and Elixir stdlib. Cross-dependency inference and guard types are coming in v1.20 (mid-2026). User-facing type signatures and typed structs are projected for v1.21-1.22 (late 2026-mid 2027). The system is already active on every `mix compile` with no configuration needed. Coverage improves automatically with each Elixir upgrade.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -97,6 +96,10 @@ As the type system matures, add type signatures when the syntax is available (v1
 def handle(decision :: Decision.t(), message :: message()) :: {:ok, Decision.t(), [effect()]} | {:error, term()}
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: v1.20 adds cross-dependency inference and guard types
@@ -105,6 +108,10 @@ def handle(decision :: Decision.t(), message :: message()) :: {:ok, Decision.t()
   respond: Begin annotating public APIs with the new syntax for documentation and enforcement
 - observe: The gradual type system misses bugs that Dialyzer would catch
   respond: Consider adding Dialyzer as a supplement until the gradual system reaches parity
+
+## Artistic
+
+The compiler will catch up.
 
 ## Historic
 

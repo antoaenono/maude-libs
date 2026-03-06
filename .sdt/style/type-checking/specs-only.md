@@ -11,6 +11,7 @@ children: []
 
 # SDF: Type Checking Strategy
 
+
 ## Scenario
 
 How should we utilize Elixir's type system to improve code quality and catch bugs?
@@ -29,8 +30,6 @@ How should we utilize Elixir's type system to improve code quality and catch bug
 1. [L1] False positive noise - type checkers may flag correct code, requiring workarounds or suppressions
 2. [L2] Ecosystem fragmentation - Dialyzer specs, gradual types, and Hammox all read different things; unclear which source of truth to invest in
 3. [L3] Premature commitment - investing heavily in `@spec` annotations that may be replaced by new type syntax in v1.21+
-
-
 
 ## Decision
 
@@ -61,20 +60,20 @@ accepting **that no tool enforces these specs, so they may drift from reality ov
 - [L3] `@spec` syntax may be superseded by gradual type syntax in v1.21+; annotations would need rewriting
 - [L2] Specs are useful to Dialyzer and Hammox but we're not running either in this variant
 
-## Artistic
-
-Documentation that lies.
-
-## Evidence
-
-Unenforced `@spec` annotations are a known problem in the Elixir community. Without Dialyzer or another enforcement tool, specs drift from reality as code evolves. They provide value for IDE tooling (ElixirLS hover, ExDoc) but can mislead developers who trust them as guarantees. The gradual type system does not currently read `@spec` annotations - it infers types independently.
-
 ## Consequences
 
 - [deps] No new dependencies
 - [coverage] Public functions annotated with `@spec`; `@type` for custom types
 - [dx] Better IDE hover and ExDoc output; no compile-time enforcement
 - [migration] Moderate annotation effort; specs may need rewriting for gradual type syntax later
+
+## Evidence
+
+Unenforced `@spec` annotations are a known problem in the Elixir community. Without Dialyzer or another enforcement tool, specs drift from reality as code evolves. They provide value for IDE tooling (ElixirLS hover, ExDoc) but can mislead developers who trust them as guarantees. The gradual type system does not currently read `@spec` annotations - it infers types independently.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -96,12 +95,20 @@ Define custom types with `@type`:
 @type message() :: {:submit_scenario, String.t(), String.t()} | ...
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Specs drift from actual code because nothing enforces them
   respond: Add Dialyzer to catch spec violations
 - observe: Gradual type system (v1.21+) introduces new type signature syntax
   respond: Migrate `@spec` annotations to the new syntax; specs-only approach makes this straightforward
+
+## Artistic
+
+Documentation that lies.
 
 ## Historic
 

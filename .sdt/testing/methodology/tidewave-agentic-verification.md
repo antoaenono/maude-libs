@@ -11,6 +11,7 @@ children: []
 
 # SDF: Verification & Dev Workflow Feedback
 
+
 ## Scenario
 
 How can we increase verification feedback and reduce the cost of testing multi-user, multi-stage decision workflows during development?
@@ -29,8 +30,6 @@ How can we increase verification feedback and reduce the cost of testing multi-u
 1. [L1] Manual repetition - having to re-click through Lobby -> Scenario -> Priorities every time the server restarts
 2. [L2] Test brittleness - tests that break from minor UI changes rather than actual behavior changes
 3. [L3] Cognitive load - mental overhead of maintaining multiple browser tabs and remembering where you left off
-
-
 
 ## Decision
 
@@ -63,10 +62,6 @@ accepting **this only works during active Claude Code sessions and doesn't provi
 - [L2] browser_eval snapshots can be sensitive to HTML structure changes, though less so than CSS-selector-based tests since snapshots use semantic ARIA roles
 - [M3] True multi-browser-session testing (two real WebSocket connections) is limited - project_eval manipulates state but doesn't simulate two concurrent LiveView mounts the way Phoenix.LiveViewTest does
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [dx] During agentic sessions: the agent can verify any change immediately after writing it, creating a tight code-verify loop
@@ -77,7 +72,11 @@ accepting **this only works during active Claude Code sessions and doesn't provi
 
 ## Evidence
 
-<!-- optional epistemological layer -->
+Tidewave provides MCP tools (project_eval, browser_eval, get_logs) that allow Claude Code to introspect running application state during development. This creates an ephemeral verification layer: the agent can execute code in the running app, check browser state, and read logs without leaving the conversation. It complements rather than replaces `mix test`.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -147,6 +146,10 @@ After writing code that changes a stage's behavior:
 5. **get_logs**: Check no errors were logged
 6. If all good, run `mix test` for full regression
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: You find yourself re-doing the same Tidewave verification steps across sessions
@@ -155,6 +158,10 @@ After writing code that changes a stage's behavior:
   respond: Tidewave is complementary, not a replacement. Run mix test before committing.
 - observe: A new team member can't reproduce verification steps from a previous session
   respond: Document common verification patterns in a dev guide, or encode as tests
+
+## Artistic
+
+Let the agent check its own work.
 
 ## Historic
 

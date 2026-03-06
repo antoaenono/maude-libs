@@ -11,6 +11,7 @@ children: []
 
 # SDF: Scenario Consensus Mechanism
 
+
 ## Scenario
 
 How do participants agree on the final scenario framing before advancing to priorities?
@@ -27,8 +28,6 @@ How do participants agree on the final scenario framing before advancing to prio
 
 1. [L1] Deadlock risk - unanimous requirement could stall if participants disagree indefinitely
 2. [L2] Implementation complexity of voting - tracking votes, detecting unanimity, handling ties
-
-
 
 ## Decision
 
@@ -57,15 +56,19 @@ accepting **the risk of deadlock if participants cannot agree (they should discu
 - [L1] Two stubborn participants could deadlock; no timeout mechanism
 - [L2] Unanimity detection: count unique vote values, check == 1 and count == connected size
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [logic] Advance predicate: map_size(votes) == connected_count and all values equal
 - [ux] Votes visible to all; when unanimous the stage auto-advances
 - [llm] Synthesis only triggered when >= 1 alternative submission (bridging divergence)
+
+## Evidence
+
+Robert's Rules of Order uses unanimous consent for procedural matters where getting the framing wrong would waste the group's time. The scenario framing is the single highest-leverage decision point; every subsequent stage builds on it. Unanimity detection is O(1): count unique vote values, check == 1 and count == connected size.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -78,10 +81,18 @@ defp unanimous?(%Decision{connected: c, stage: %Stage.Scenario{votes: votes}}) d
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Participants are stuck and can't reach unanimity
   respond: Add a "creator override" escape hatch or a majority vote fallback after N minutes
+
+## Artistic
+
+If you can't agree on the question, you can't agree on the answer.
 
 ## Historic
 

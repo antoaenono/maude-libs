@@ -11,6 +11,7 @@ children: [state-machine/debounced-calls]
 
 # SDF: Decision State Machine Architecture
 
+
 ## Scenario
 
 How do we structure the decision state machine so it is testable, predictable, and easy to reason about under concurrent LiveView connections?
@@ -27,8 +28,6 @@ How do we structure the decision state machine so it is testable, predictable, a
 
 1. [L1] Boilerplate - two layers (Core + Server) instead of one
 2. [L2] Indirection - tracing a bug requires looking in two modules
-
-
 
 ## Decision
 
@@ -57,16 +56,20 @@ accepting **an extra module and the overhead of threading effects through return
 - [L1] Two files instead of one; effect tuples add ceremony to every transition
 - [L2] Debugging requires checking both Core (did the transition happen?) and Server (was the effect dispatched?)
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [arch] Core module: pure functions only, returns effect lists
 - [arch] Server GenServer: owns state, pattern-matches effects, spawns Tasks for LLM, manages debounce timers and disconnect grace periods
 - [testing] Core tests call handle/2 directly; Server tests use real GenServer with LLM.Mock behaviour
 - [effects] Four effect types: `{:broadcast, id, d}`, `{:async_llm, spec}`, `{:debounce, key, delay_ms, spec}`, `{:delayed_broadcast, id, d, delay_ms}`
+
+## Evidence
+
+The Elm architecture and Redux both popularized the pure reducer + effect pattern. In Elixir, the GenServer provides the 'store' and the Core module provides the 'reducer.' Sasa Juric's 'To spawn or not to spawn' article describes this exact pattern. The BEAM's single-process mailbox serialization guarantees all state mutations are sequential, eliminating race conditions.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -95,10 +98,18 @@ defp dispatch_effect({:debounce, key, delay_ms, call_spec}, state) # Cancel prev
 defp dispatch_effect({:delayed_broadcast, id, d, delay_ms}, state) # Timed broadcast for animations
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Effect list grows complex (debounce + async_llm + broadcast in one transition)
   respond: Add effect priority ordering or a dedicated effect pipeline module
+
+## Artistic
+
+Pure functions in, effect tuples out.
 
 ## Historic
 

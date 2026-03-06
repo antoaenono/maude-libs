@@ -11,6 +11,7 @@ children: []
 
 # SDF: Module Boundary Enforcement
 
+
 ## Scenario
 
 How should we enforce architectural boundaries between module groups to prevent cross-layer coupling and dependency violations?
@@ -29,7 +30,6 @@ How should we enforce architectural boundaries between module groups to prevent 
 1. [L1] Annotation overhead - boundary declarations add ceremony to module definitions
 2. [L2] False constraints - overly strict boundaries can block legitimate cross-cutting concerns and require workarounds
 3. [L3] Scale mismatch - at ~20 modules, the codebase may not be large enough to justify formal boundary enforcement
-
 
 ## Decision
 
@@ -61,9 +61,12 @@ accepting **a new dependency, annotation overhead in boundary-defining modules, 
 - [L3] The codebase is small enough that a developer can verify boundaries manually; the tool adds structure that may feel like overhead
 - [L1] New module groups require updating boundary declarations; forgetting causes false warnings
 
-## Artistic
+## Consequences
 
-The compiler is the best code reviewer.
+- [deps] Add `{:boundary, "~> 0.10", runtime: false}` to mix.exs
+- [enforcement] Compile-time warnings for cross-boundary calls; CI treats warnings as errors
+- [dx] Boundary declarations serve as living architecture documentation in source code
+- [onboarding] New contributors see allowed dependencies at the top of each boundary module
 
 ## Evidence
 
@@ -78,12 +81,9 @@ The `boundary` library integrates as a mix compiler with zero runtime overhead. 
 
 The boundary structure mirrors the SDT decision tree, reinforcing the connection between architectural decisions and code structure.
 
-## Consequences
+## Diagram
 
-- [deps] Add `{:boundary, "~> 0.10", runtime: false}` to mix.exs
-- [enforcement] Compile-time warnings for cross-boundary calls; CI treats warnings as errors
-- [dx] Boundary declarations serve as living architecture documentation in source code
-- [onboarding] New contributors see allowed dependencies at the top of each boundary module
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -155,6 +155,10 @@ mix boundary.visualize.mods
 
 As decided in `sdt/boundary-viz`, the Graphviz output provides auto-generated architecture diagrams grounded in actual code dependencies.
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Boundary warnings are noisy for test support modules that legitimately cross boundaries
@@ -165,6 +169,10 @@ As decided in `sdt/boundary-viz`, the Graphviz output provides auto-generated ar
   respond: The overhead is minimal (5 annotations); keep it as a safety net even if it rarely fires
 - observe: Elixir's gradual type system adds module-level visibility controls
   respond: Evaluate whether compiler-native visibility replaces the need for `boundary`; if so, migrate
+
+## Artistic
+
+The compiler is the best code reviewer.
 
 ## Historic
 

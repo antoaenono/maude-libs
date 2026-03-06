@@ -11,6 +11,7 @@ children: []
 
 # SDF: Decision Stage Representation
 
+
 ## Scenario
 
 How do we represent the current stage of a decision and its stage-specific data in Elixir?
@@ -27,8 +28,6 @@ How do we represent the current stage of a decision and its stage-specific data 
 
 1. [L1] Runtime overhead - stage transitions happen frequently
 2. [L2] Verbosity - we have 7 stages; struct per stage adds module boilerplate
-
-
 
 ## Decision
 
@@ -56,15 +55,19 @@ accepting **7 small modules that are mostly boilerplate structs**.
 
 - [L2] 7 modules each with defstruct - ~10 lines per module = ~70 lines of boilerplate in stages.ex
 
-## Artistic
-
-<!-- author this yourself -->
-
 ## Consequences
 
 - [data] One defstruct per stage in lib/maude_libs/decision/stages.ex
 - [dispatch] Core.handle/2 pattern-matches on stage struct type in function head
 - [clarity] Stage fields are explicit; nil fields are impossible
+
+## Evidence
+
+Elixir structs as tagged unions is idiomatic; Ecto changesets, Phoenix.LiveView.Socket, and Plug.Conn all use the same pattern. Pattern matching on struct type in function heads is a zero-cost dispatch mechanism. With 7 stages at roughly 10 lines per struct definition, the total boilerplate is ~70 lines in a single file.
+
+## Diagram
+
+<!-- no diagram needed for this decision -->
 
 ## Implementation
 
@@ -83,10 +86,18 @@ defmodule MaudeLibs.Decision.Stage do
 end
 ```
 
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Stage structs need versioning for live deploys
   respond: Add a vsn field or use a registry-based approach
+
+## Artistic
+
+One struct per stage, one truth per field.
 
 ## Historic
 

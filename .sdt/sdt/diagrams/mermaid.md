@@ -11,6 +11,7 @@ children: []
 
 # SDF: Visual Diagrams in SDT Variant Files
 
+
 ## Scenario
 
 Should SDT variant files include visual diagrams, and if so, in what format (Mermaid, ASCII, or both)? Diagrams must remain coherent across parent-child decision trees so that zooming into a child decision shows a consistent slice of the parent's diagram.
@@ -29,7 +30,6 @@ Should SDT variant files include visual diagrams, and if so, in what format (Mer
 1. [L1] Authoring friction - adding diagrams to every variant increases the cost of scaffolding and maintaining decisions
 2. [L2] Staleness - diagrams that drift from the prose or implementation become misleading rather than helpful
 3. [L3] Format lock-in - choosing one diagram format constrains future tooling and rendering pipelines
-
 
 ## Decision
 
@@ -60,14 +60,6 @@ accepting **additional authoring effort per variant and a dependency on Mermaid 
 - [L3] Mermaid syntax evolves; breaking changes in mermaid-js could require diagram updates across the corpus
 - [L1] LLM-scaffolded diagrams still need human review for accuracy; adds a review step to the SDT workflow
 
-## Artistic
-
-Draw the architecture before you code it.
-
-## Evidence
-
-GitHub has rendered Mermaid natively in markdown since February 2022. Mermaid supports flowcharts, sequence diagrams, state diagrams, and C4 architecture diagrams - all relevant to the kinds of decisions in this SDT corpus (state machines, data flow, component architecture). Claude and other LLMs can both generate and parse Mermaid syntax reliably, making it a good bridge format for LLM-assisted scaffolding. The existing SDT corpus has 28 decisions; roughly 8-10 of them (state-machine/*, interface/layout, realtime/pubsub, core-architecture) would benefit significantly from diagrams. Simpler decisions can use a minimal diagram or mark the section as optional.
-
 ## Consequences
 
 - [authoring] New `## Diagram` section added to the variant file template; scaffolding skill generates a starter diagram
@@ -75,13 +67,10 @@ GitHub has rendered Mermaid natively in markdown since February 2022. Mermaid su
 - [coherence] Convention: parent defines `subgraph` IDs; children reuse and expand. sdt.py can validate ID consistency across parent-child files
 - [readability] Complex decisions get a visual overview; simple decisions may use a minimal or empty diagram section
 
-## Implementation
+## Evidence
 
-### Variant file addition
+GitHub has rendered Mermaid natively in markdown since February 2022. Mermaid supports flowcharts, sequence diagrams, state diagrams, and C4 architecture diagrams - all relevant to the kinds of decisions in this SDT corpus (state machines, data flow, component architecture). Claude and other LLMs can both generate and parse Mermaid syntax reliably, making it a good bridge format for LLM-assisted scaffolding. The existing SDT corpus has 28 decisions; roughly 8-10 of them (state-machine/*, interface/layout, realtime/pubsub, core-architecture) would benefit significantly from diagrams. Simpler decisions can use a minimal diagram or mark the section as optional.
 
-A new `## Diagram` section is added after `## Implementation` and before `## Reconsider`:
-
-```markdown
 ## Diagram
 
 ```mermaid
@@ -143,6 +132,20 @@ sdt.py validates:
 2. Mermaid code block is syntactically valid (basic parse check)
 3. Subgraph IDs in child decisions match the parent's subgraph IDs
 
+## Implementation
+
+### Variant file addition
+
+A new `## Diagram` section is added after `## Implementation` and before `## Reconsider`:
+
+```
+Diagram placeholder
+```
+
+## Exceptions
+
+<!-- no exceptions -->
+
 ## Reconsider
 
 - observe: Mermaid syntax changes break existing diagrams across the corpus
@@ -151,6 +154,10 @@ sdt.py validates:
   respond: Make the Diagram section optional (warning not error) for simple decisions; let the scaffolding LLM generate first drafts
 - observe: ASCII art is needed for terminal-only contexts or embedding in code comments
   respond: Consider adding an ASCII render of the Mermaid diagram as a secondary output, not a primary authoring format
+
+## Artistic
+
+Draw the architecture before you code it.
 
 ## Historic
 
